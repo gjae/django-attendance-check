@@ -82,6 +82,7 @@ THIRD_PARTY_APPS = [
 
 LOCAL_APPS = [
     "src.users",
+    "src.clocking",
     # Your stuff: custom apps go here
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
