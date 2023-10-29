@@ -47,3 +47,8 @@ class DailyChecks(TimeStampedModel):
 
     def __str__(self):
         return f"{DailyChecks.CHECK_STATUS_CHOISE[self.checking_type]} - {self.daily.date_day.strftime('%d/%m/%Y')} {self.time.strftime('%H:%M')}"
+    
+
+    @property
+    def fecha(self):
+        return f"{self.daily.date_day.strftime('%d/%m/%Y')}"

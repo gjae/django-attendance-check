@@ -1,10 +1,37 @@
 from typing import Any
 from django.contrib import admin
+from django.contrib.admin.options import InlineModelAdmin
 from django.db.models.query import QuerySet
 from django.http.request import HttpRequest
 from django.utils.html import mark_safe
 
+from src.clocking.models import DailyChecks
 from .models import Employee, EmployeePosition
+
+
+class EmployerCheckingRecord(admin.TabularInline):
+    model = DailyChecks
+    can_delete = False
+    fields = ["fecha", "time", "checking_type"]
+
+    def get_queryset(self, request: HttpRequest) -> QuerySet[Any]:
+        return super().get_queryset(request).select_related(
+            "employee", 
+            "employee__position",
+            "daily"
+        )
+    
+    def get_readonly_fields(self, request: HttpRequest, obj):
+        if obj:
+            return ["fecha", 'time', 'checking_type', "daily"]
+        else:  # When object is created
+            return [] # no editable field
+        
+    def has_delete_permission(self, request: HttpRequest, obj=None) -> bool:
+        return False
+    
+    def has_add_permission(self, request: HttpRequest, obj=None) -> bool:
+        return False
 
 @admin.register(EmployeePosition)
 class EmployeePositionAdmin(admin.ModelAdmin):
@@ -16,6 +43,7 @@ class EmployeePositionAdmin(admin.ModelAdmin):
 class EmployeeAdmin(admin.ModelAdmin):
     search_fields = ["name", "last_name", "cedula"]
     list_per_page = 32
+    inlines = [EmployerCheckingRecord, ]
 
     fieldsets = (
         (
@@ -39,6 +67,7 @@ class EmployeeAdmin(admin.ModelAdmin):
     )
 
 
+    @admin.display(empty_value="Sin registro")
     def photo_tag(self, obj):
         return mark_safe(
             f"<div>"
@@ -46,20 +75,33 @@ class EmployeeAdmin(admin.ModelAdmin):
             f"</div>"
         )
     
+    @admin.display(empty_value="Sin registro")
     def last_checking(self, obj):
         last_check = obj.daily_checks.first()
+        if last_check is None:
+            return "Sin registros"
+        
         return mark_safe(
             f'<div>'
             f'<span class="bg-blue-100 text-blue-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300">{last_check}</span>'
             f'</div>'
         )
+    
+    def has_delete_permission(self, request: HttpRequest, obj=None) -> bool:
+        return False
 
     def get_queryset(self, request: HttpRequest) -> QuerySet[Any]:
-        return super().get_queryset(request).select_related("position").prefetch_related("daily_checks")
+        return super().get_queryset(request).select_related("position").prefetch_related("daily_checks", "daily_checks__daily")
 
     @admin.display(empty_value="S/A")
     def position_user(self, obj):
         return obj.position.position
+    
+    def get_inline_instances(self, request: HttpRequest, obj = None):
+        if obj is not None:
+            return super().get_inline_instances(request, obj)
+        
+        return []
     
     photo_tag.short_description = "Foto"
     position_user.short_description = "Cargo"
