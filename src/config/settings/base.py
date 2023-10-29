@@ -85,6 +85,7 @@ LOCAL_APPS = [
     "src.users",
     "src.clocking",
     "src.employees",
+    "src.settings",
     # Your stuff: custom apps go here
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
@@ -142,6 +143,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
     "auditlog.middleware.AuditlogMiddleware",
+    "src.settings.middlewares.ClientMiddleware",
 ]
 
 # STATIC
