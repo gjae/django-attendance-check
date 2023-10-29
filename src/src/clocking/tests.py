@@ -1,8 +1,9 @@
 import pytest
 
 from celery.result import EagerResult
-from src.clocking.models import DailyCalendar
+from src.clocking.models import DailyCalendar, DailyChecks
 from src.clocking.tasks import create_current_date
+from src.employees.models import Employee
 
 
 pytestmark = pytest.mark.django_db
@@ -32,3 +33,22 @@ def test_task_create_current_date(settings):
     assert isinstance(task_result, EagerResult)
     assert task_result.result is None
     assert not isinstance(task_result.result, Exception)
+
+
+def test_checking_employee_should_be_twice_daily():
+    """
+    Verifica que un trabajador solo pueda tener dos checkeos maximos
+    por dia, uno de entrada y otro de salida unicamente
+    """
+
+    employer = Employee.objects.create(name="Test person")
+
+    response = DailyChecks.objects.checking_user(employer)
+    DailyChecks.objects.checking_user(employer)
+    DailyChecks.objects.checking_user(employer)
+
+    employer_checks = DailyChecks.objects.filter(employee=employer)
+
+    assert employer_checks.count() == 2
+    assert employer_checks.first().checking_type == DailyChecks.CHECK_STATUS_CHOISE.salida
+    assert response.checking_type == DailyChecks.CHECK_STATUS_CHOISE.entrada
