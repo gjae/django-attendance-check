@@ -13,12 +13,9 @@ class User(AbstractUser):
     """
 
     # First and last name do not cover name patterns around the globe
-    name = CharField(_("Name of User"), blank=True, max_length=255)
-    cedula = models.PositiveIntegerField("Cédula", db_index=True, default=0)
-    picture = models.CharField("Foto", max_length=255, blank=True, default='')
-    date_entry_job = models.DateField("Fecha de ingreso", null=True, default=None)
+    name = CharField(_("Nombre"), blank=True, max_length=255)
+    last_name = CharField(_("Apellido"), blank=True, max_length=255, default='') 
     first_name = None  # type: ignore
-    last_name = None  # type: ignore
 
     def get_absolute_url(self) -> str:
         """Get URL for user's detail view.
