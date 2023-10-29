@@ -17,3 +17,10 @@ class Employee(TimeStampedModel):
         verbose_name_plural = "Trabajadores"
         ordering = ["date_entry_job", ]
 
+
+    def __str__(self):
+        return f"{self.get_fullname()} - {self.cedula}"
+
+
+    def get_fullname(self):
+        return f"{self.name} {self.last_name}"

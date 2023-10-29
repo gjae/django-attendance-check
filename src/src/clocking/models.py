@@ -4,10 +4,18 @@ from model_utils.models import TimeStampedModel
 # Create your models here.
 
 from src.employees.models import Employee
+from .managers import ClockingManager
 
 
 class DailyCalendar(TimeStampedModel):
     date_day = models.DateField("Calendario de checkeos", db_index=True)
+
+    objects = ClockingManager()
+
+    class Meta:
+        ordering = ["-date_day", ]
+        verbose_name = "Calendario del sistema"
+        verbose_name_plural = "Días del calendario"
 
 
 class DailyChecks(TimeStampedModel):
