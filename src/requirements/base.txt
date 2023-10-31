@@ -22,3 +22,5 @@ django-redis==5.4.0  # https://github.com/jazzband/django-redis
 
 qrcode==7.4.2
 django-auditlog==2.3.0
+crispy-bootstrap5==0.7
+django-bootstrap-v5==1.0.11

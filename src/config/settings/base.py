@@ -79,6 +79,7 @@ THIRD_PARTY_APPS = [
     "allauth.socialaccount",
     "django_celery_beat",
     "auditlog",
+    "bootstrap5",
 ]
 
 LOCAL_APPS = [
