@@ -44,4 +44,4 @@ class CheckingManager(models.Manager):
             return DailyChecks.objects.create(employee=employee, daily=daily, checking_type=DailyChecks.CHECK_STATUS_CHOISE.salida)
 
 
-        return None
+        return employee_calendar.first()

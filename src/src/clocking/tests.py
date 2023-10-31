@@ -52,3 +52,4 @@ def test_checking_employee_should_be_twice_daily():
     assert employer_checks.count() == 2
     assert employer_checks.first().checking_type == DailyChecks.CHECK_STATUS_CHOISE.salida
     assert response.checking_type == DailyChecks.CHECK_STATUS_CHOISE.entrada
+    assert employer_checks.first().checking_time is not None

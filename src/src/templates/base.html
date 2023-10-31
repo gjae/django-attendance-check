@@ -27,7 +27,8 @@
   <div class="container">
     <div class="row">
       <div class="col d-flex flex-row align-self-center justify-content-center align-ittems-center">
-        <img :src="data.defaultImage" class="rounded-circle float-start" alt="...">
+        <img :src="data.defaultImage" x-show="data.formIsValid === null || !data.formIsValid" class="rounded-circle float-start" alt="...">
+        <img :src="data.personal.photo" style="height: 200px; width: 200px;" x-show="data.formIsValid !== null && data.formIsValid" class="rounded-circle float-start" alt="...">
       </div>
     </div>
     <div class="row pt-2">
@@ -59,6 +60,10 @@
       </div>
     </div>
   </div>
+  <form action="{% url 'clocking.checking' %}" method="post" id="checkingForm">
+    {% csrf_token %}
+    <input type="hidden" name="cedula" :value="data.id">
+  </form>
 
 </main>
 
@@ -66,11 +71,14 @@
 <script>
   function app() {
     return {
+      timer: null,
       data: {
         id: "",
         personal : {
           name: "Giovanny Avila",
-          position: "Programador"
+          position: "Programador",
+          department: "",
+          photo: ""
         },
         showFullId: "",
         defaultImage: "/static/images/default_assistent_image.jpg",
@@ -87,6 +95,7 @@
           "Tener un amigo como tú en el lugar de trabajo es un regalo ¡Descansa!",
         ],
         bepEffect: null,
+        
       },
       audioEffect() {
         this.bepEffect = new Audio("/static/audio/checking_effect.wav")
@@ -102,21 +111,56 @@
             this.data.id = `${this.data.id}${e.key}`
           } else if (e.key == "enter" || e.keyCode == 13) {
             if (this.data.id != "") {
-              this.playBep()
               this.$refs["idDisplayer"].value = this.data.id
-
-              const greeting =  this.data.welcomeMessages.concat(this.data.goodBayMessages)
-              this.data.greeting = greeting[Math.floor(Math.random()*greeting.length)];
-
-              this.data.formIsValid = true
-              setTimeout(() => {
-                this.$refs["idDisplayer"].value = ""
-                this.data.formIsValid = null
-                this.data.id = ""
-              }, 5000)
+              this.sendForm()
             }
           }
         })
+      },
+      sendForm() {
+        const form = document.getElementById("checkingForm")
+        const formData = new FormData(form)
+
+        fetch(
+          form.action,
+          {
+            method: "POST",
+            body: formData
+          }
+        )
+        .then(resp => resp.json())
+        .then(resp => {
+          console.log(resp)
+          if (this.timer !== null) {
+            clearTimeout(this.timer)
+            this.timer = null
+          }
+          this.data.id = ""
+          this.noticeCheckStatus(resp.error, resp.message, resp.checking_type, resp.user_data)
+        })
+      },
+      noticeCheckStatus(hasError, message, checking_type, user_data) {
+        this.playBep()
+        if (hasError) {
+          this.data.formIsValid = false
+          this.data.greeting = message.cedula[0].message
+        } else  {
+          let greeting = []
+          if (checking_type == "ENTRADA") {
+            greeting =  this.data.welcomeMessages
+          } else {
+            greeting = this.data.goodBayMessages
+          }
+          this.data.greeting = greeting[Math.floor(Math.random()*greeting.length)];
+          this.data.formIsValid = true
+          this.data.personal = user_data
+        }
+
+        this.timer = setTimeout(() => {
+          this.$refs["idDisplayer"].value = ""
+          this.data.formIsValid = null
+          this.data.id = ""
+        }, 5000)
       }
     }
   }
