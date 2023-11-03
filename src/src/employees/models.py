@@ -4,6 +4,7 @@ from model_utils.fields import StatusField
 from model_utils import Choices
 
 from src.employees.managers import EmployerManager
+from src.settings.models import Department
 
 
 # Create your models here.
@@ -31,11 +32,12 @@ class Employee(TimeStampedModel):
     last_name = models.CharField("Apellido", blank=True, max_length=255, default='') 
     cedula = models.PositiveIntegerField("Cédula", db_index=True, default=0)
     picture = models.ImageField("Foto", upload_to='pictures')
-    date_entry_job = models.DateField("Fecha de ingreso", null=True, default=None)
+    date_entry_job = models.DateField("Fecha de ingreso", null=True, default=None, help_text="Formato: AAAA-MM-DD")
 
     position = models.ForeignKey(EmployeePosition, on_delete=models.CASCADE, related_name="employees", null=True, default=None)
 
     status = StatusField(default="actived")
+    department = models.ForeignKey(Department, on_delete=models.RESTRICT, related_name="employers", null=True, default=None)
     objects = EmployerManager()
 
     class Meta:

@@ -13,6 +13,8 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   # psycopg2 dependencies
   libpq-dev
 
+RUN apt-get -y install python3-pip python3-cffi python3-brotli libpango-1.0-0 libharfbuzz0b libpangoft2-1.0-0
+
 # Requirements are installed here to ensure they will be cached.
 COPY ./requirements .
 

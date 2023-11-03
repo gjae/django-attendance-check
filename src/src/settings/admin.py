@@ -1,8 +1,9 @@
 import logging
 from django.contrib import messages
 from django.contrib import admin
+from unfold.admin import ModelAdmin
 
-from src.settings.models import ClientConfig
+from src.settings.models import ClientConfig,  Department
 from src.settings.forms import ClientConfigModelForm
 
 
@@ -42,7 +43,7 @@ def disable_client_status(modeladmin, request, queryset):
 
 # Register your models here.
 @admin.register(ClientConfig)
-class ClientConfigAdminModel(admin.ModelAdmin):
+class ClientConfigAdminModel(ModelAdmin):
     model = ClientConfig
     form = ClientConfigModelForm
     actions = [active_client_status, disable_client_status]
@@ -72,3 +73,29 @@ class ClientConfigAdminModel(admin.ModelAdmin):
             }
         )
     )
+
+@admin.register(Department)
+class DepartmentModelAdmin(ModelAdmin):
+    model = Department
+    list_display = [
+        "name",
+        "is_actived"
+    ]
+
+    fieldsets = (
+        (None, {
+            "fields": (
+                "is_actived",
+                "name"
+            ),
+        }),
+    )
+    
+    search_fields = ["name", ]
+    list_filter = ["is_actived", ]
+
+    def is_actived(self, obj):
+        if obj.is_actived:
+            return "Activo"
+        
+        return "Inactivo"

@@ -4,6 +4,8 @@ Base settings to build other settings files upon.
 from pathlib import Path
 
 import environ
+from django.templatetags.static import static
+from django.urls import reverse_lazy
 
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 # src/
@@ -25,14 +27,16 @@ DEBUG = env.bool("DJANGO_DEBUG", False)
 # In Windows, this must be set to your system time zone.
 TIME_ZONE = "America/Caracas"
 # https://docs.djangoproject.com/en/dev/ref/settings/#language-code
-LANGUAGE_CODE = "es-VE"
 # https://docs.djangoproject.com/en/dev/ref/settings/#languages
 # from django.utils.translation import gettext_lazy as _
-# LANGUAGES = [
-#     ('en', _('English')),
-#     ('fr-fr', _('French')),
-#     ('pt-br', _('Portuguese')),
-# ]
+LANGUAGES = [
+    ('en', 'English'),
+    ('fr-fr', 'French'),
+    ('pt-br', 'Portuguese'),
+    ('es-ve', 'Spanish'),
+]
+LANGUAGE_CODE = "es-VE"
+MODELTRANSLATION_DEFAULT_LANGUAGE = "es-VE"
 # https://docs.djangoproject.com/en/dev/ref/settings/#site-id
 SITE_ID = 1
 # https://docs.djangoproject.com/en/dev/ref/settings/#use-i18n
@@ -40,6 +44,8 @@ USE_I18N = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#use-tz
 USE_TZ = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#locale-paths
+
+USE_L10N = False
 LOCALE_PATHS = [str(BASE_DIR / "locale")]
 
 # DATABASES
@@ -66,7 +72,7 @@ DJANGO_APPS = [
     "django.contrib.sites",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    # "django.contrib.humanize", # Handy template tags
+    "django.contrib.humanize", # Handy template tags
     "unfold", 
     "django.contrib.admin",
     "django.forms",
@@ -323,7 +329,21 @@ STATICFILES_FINDERS += ["compressor.finders.CompressorFinder"]
 # ------------------------------------------------------------------------------
 
 
-
-USE_I18N = True
-
-USE_L10N = False
+UNFOLD = {
+    "SITE_TITLE": "Sistema INPOMAR C.A",
+    "SITE_HEADER": "GESTIÓN INPOMARC.A",
+    "SITE_ICON": lambda request: static("images/branding/logo_inpromaro_lit.png"),
+    "EXTENSIONS": {
+        "modeltranslation": {
+            "flags": {
+                "en": "🇬🇧",
+                "fr": "🇫🇷",
+                "nl": "🇧🇪",
+            },
+        },
+    },
+    "SIDEBAR": {
+        "show_search": True,  # Search in applications and models names
+        "show_all_applications": True,  # Dropdown with all applications and models
+    },
+}

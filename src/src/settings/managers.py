@@ -23,3 +23,8 @@ class ClientConfigManager(models.Manager):
         enableds = self.get_enabled_clients().values_list("client_ip", flat=True)
 
         return ip in list(enableds)
+    
+
+
+class DepartmentManager(models.Manager):
+    pass

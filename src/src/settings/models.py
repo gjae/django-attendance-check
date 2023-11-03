@@ -1,8 +1,10 @@
 from django.db import models
 from model_utils.models import TimeStampedModel, StatusModel
 from model_utils import Choices
+from model_utils.fields import StatusField
 
-from src.settings.managers import ClientConfigManager
+from src.settings.managers import ClientConfigManager, DepartmentManager
+from src.settings.querysets import DepartmentQuerySet
 
 # Create your models here.
 class ClientConfig(TimeStampedModel, StatusModel):
@@ -36,3 +38,26 @@ class ClientConfig(TimeStampedModel, StatusModel):
 
     def __str__(self):
         return f"{self.description} - {self.client_ip}"
+    
+
+
+class Department(TimeStampedModel):
+    name = models.CharField(
+        "Nombre",
+        max_length=150
+    )
+
+    is_actived = models.BooleanField(
+        "Departamento activo",
+        default=True
+    )
+
+    objects = DepartmentManager.from_queryset(DepartmentQuerySet)()
+
+    class Meta:
+        verbose_name = "Departamento"
+        verbose_name_plural = "Departamentos"
+
+    
+    def __str__(self):
+        return self.name

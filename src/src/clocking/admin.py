@@ -3,6 +3,7 @@ from django.contrib import admin
 from django.db.models.query import QuerySet
 from django.http.request import HttpRequest
 from .models import DailyCalendar, DailyChecks
+from unfold.admin import ModelAdmin
 
 # Register your models here.
 
@@ -24,7 +25,7 @@ class CheckingCalendarAdmin(admin.TabularInline):
             return [] # no editable field
     
 @admin.register(DailyCalendar)
-class DailyCalendarAdmin(admin.ModelAdmin):
+class DailyCalendarAdmin(ModelAdmin):
     list_display = ["date_day", ]
     inlines = [CheckingCalendarAdmin, ]
     readonly_fields = ["date_day", ]

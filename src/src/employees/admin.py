@@ -4,9 +4,11 @@ from django.contrib.admin.options import InlineModelAdmin
 from django.db.models.query import QuerySet
 from django.http.request import HttpRequest
 from django.utils.html import mark_safe
+from unfold.admin import ModelAdmin
 
 from src.clocking.models import DailyChecks
 from .models import Employee, EmployeePosition
+from .forms import EmployerModelForm
 
 
 class EmployerCheckingRecord(admin.TabularInline):
@@ -34,16 +36,17 @@ class EmployerCheckingRecord(admin.TabularInline):
         return False
 
 @admin.register(EmployeePosition)
-class EmployeePositionAdmin(admin.ModelAdmin):
+class EmployeePositionAdmin(ModelAdmin):
     list_display = ["id", "created", "position", ]
     search_fields = ["position", ]
 
 # Register your models here.
 @admin.register(Employee)
-class EmployeeAdmin(admin.ModelAdmin):
+class EmployeeAdmin(ModelAdmin):
     search_fields = ["name", "last_name", "cedula"]
     list_per_page = 32
     inlines = [EmployerCheckingRecord, ]
+    form = EmployerModelForm
 
     fieldsets = (
         (
@@ -59,6 +62,7 @@ class EmployeeAdmin(admin.ModelAdmin):
             {
                 "fields": (
                     ("date_entry_job", "position"),
+                    "department",
                     "picture",
 
                 )
@@ -91,7 +95,7 @@ class EmployeeAdmin(admin.ModelAdmin):
         return False
 
     def get_queryset(self, request: HttpRequest) -> QuerySet[Any]:
-        return super().get_queryset(request).select_related("position").prefetch_related("daily_checks", "daily_checks__daily")
+        return super().get_queryset(request).select_related("position", "department").prefetch_related("daily_checks", "daily_checks__daily")
 
     @admin.display(empty_value="S/A")
     def position_user(self, obj):

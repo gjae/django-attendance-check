@@ -17,6 +17,10 @@ class User(AbstractUser):
     last_name = CharField(_("Apellido"), blank=True, max_length=255, default='') 
     first_name = None  # type: ignore
 
+    class Meta(AbstractUser.Meta):
+        verbose_name = "Usuario"
+        verbose_name_plural = "Usuarios"
+
     def get_absolute_url(self) -> str:
         """Get URL for user's detail view.
 

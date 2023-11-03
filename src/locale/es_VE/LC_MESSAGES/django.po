@@ -1,17 +1,22 @@
-# Translations for the src project
-# Copyright (C) 2023 Giovanny Avila
-# Giovanny Avila <gjavilae@gmail.com>, 2023.
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: 0.1.0\n"
+"Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-11-03 04:58+0000\n"
-"Language: en-US\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: src/templates/account/account_inactive.html:6
 #: src/templates/account/account_inactive.html:9
@@ -24,11 +29,11 @@ msgstr ""
 
 #: src/templates/account/email.html:8
 msgid "Account"
-msgstr ""
+msgstr "Cuenta"
 
 #: src/templates/account/email.html:11
 msgid "E-mail Addresses"
-msgstr ""
+msgstr "Dirección de correo eléctronico"
 
 #: src/templates/account/email.html:13
 msgid "The following e-mail addresses are associated with your account:"
@@ -36,11 +41,11 @@ msgstr ""
 
 #: src/templates/account/email.html:28
 msgid "Verified"
-msgstr ""
+msgstr "Verificado"
 
 #: src/templates/account/email.html:30
 msgid "Unverified"
-msgstr ""
+msgstr "Sin verificar"
 
 #: src/templates/account/email.html:33
 msgid "Primary"
@@ -94,7 +99,7 @@ msgstr ""
 
 #: src/templates/account/email_confirm.html:19
 msgid "Confirm"
-msgstr ""
+msgstr "Confirmar"
 
 #: src/templates/account/email_confirm.html:24
 #, python-format
@@ -271,7 +276,7 @@ msgstr ""
 
 #: src/templates/admin/index.html:10
 msgid "Django administration"
-msgstr ""
+msgstr "Administrador de DJANGO"
 
 #: src/users/admin.py:26
 msgid "Información Personal"
@@ -283,11 +288,11 @@ msgstr ""
 
 #: src/users/admin.py:46
 msgid "Log de actividades"
-msgstr ""
+msgstr "Log de actividades"
 
 #: src/users/forms.py:26
 msgid "This username has already been taken."
-msgstr ""
+msgstr "Este nombre de usuario ya se encuentra en uso"
 
 #: src/users/models.py:16
 msgid "Nombre"
@@ -300,3 +305,19 @@ msgstr ""
 #: src/users/tests/test_views.py:71 src/users/views.py:23
 msgid "Information successfully updated"
 msgstr ""
+
+#~ msgid ""
+#~ "First, enter a username and password. Then, you’ll be able to edit more "
+#~ "user options."
+#~ msgstr ""
+#~ "Primero, ingresa un nombre de usuario y una clave, lueggo podras editar "
+#~ "mas información del usuario."
+
+msgid "Enter a username and password."
+msgstr "Ingresa un usuario y una clave."
+
+msgid "Welcome back to"
+msgstr "Bienvenido de vuelta"
+
+msgid "Forgotten your password or username?"
+msgstr "Recuperar contraseña"

@@ -6,13 +6,16 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-03 04:58+0000\n"
 "Language: fr-FR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
-#: src/templates/account/account_inactive.html:5
-#: src/templates/account/account_inactive.html:8
+
+#: src/templates/account/account_inactive.html:6
+#: src/templates/account/account_inactive.html:9
 msgid "Account Inactive"
 msgstr "Compte inactif"
 
@@ -20,11 +23,11 @@ msgstr "Compte inactif"
 msgid "This account is inactive."
 msgstr "Ce compte est inactif."
 
-#: src/templates/account/email.html:7
+#: src/templates/account/email.html:8
 msgid "Account"
 msgstr "Compte"
 
-#: src/templates/account/email.html:10
+#: src/templates/account/email.html:11
 msgid "E-mail Addresses"
 msgstr "Adresses e-mail"
 
@@ -32,95 +35,93 @@ msgstr "Adresses e-mail"
 msgid "The following e-mail addresses are associated with your account:"
 msgstr "Les adresses e-mail suivantes sont associées à votre compte :"
 
-#: src/templates/account/email.html:27
+#: src/templates/account/email.html:28
 msgid "Verified"
 msgstr "Vérifié"
 
-#: src/templates/account/email.html:29
+#: src/templates/account/email.html:30
 msgid "Unverified"
 msgstr "Non vérifié"
 
-#: src/templates/account/email.html:31
+#: src/templates/account/email.html:33
 msgid "Primary"
 msgstr "Primaire"
 
-#: src/templates/account/email.html:37
+#: src/templates/account/email.html:41
 msgid "Make Primary"
 msgstr "Changer Primaire"
 
-#: src/templates/account/email.html:38
+#: src/templates/account/email.html:44
 msgid "Re-send Verification"
 msgstr "Renvoyer vérification"
 
-#: src/templates/account/email.html:39
+#: src/templates/account/email.html:47
 msgid "Remove"
 msgstr "Supprimer"
 
-#: src/templates/account/email.html:46
+#: src/templates/account/email.html:53
 msgid "Warning:"
 msgstr "Avertissement:"
 
-#: src/templates/account/email.html:46
+#: src/templates/account/email.html:53
 msgid ""
 "You currently do not have any e-mail address set up. You should really add "
 "an e-mail address so you can receive notifications, reset your password, etc."
 msgstr ""
-"Vous n'avez actuellement aucune adresse e-mail configurée. Vous devriez ajouter "
-"une adresse e-mail pour reçevoir des notifications, réinitialiser votre mot "
-"de passe, etc."
+"Vous n'avez actuellement aucune adresse e-mail configurée. Vous devriez "
+"ajouter une adresse e-mail pour reçevoir des notifications, réinitialiser "
+"votre mot de passe, etc."
 
-#: src/templates/account/email.html:51
+#: src/templates/account/email.html:56
 msgid "Add E-mail Address"
 msgstr "Ajouter une adresse e-mail"
 
-#: src/templates/account/email.html:56
+#: src/templates/account/email.html:60
 msgid "Add E-mail"
 msgstr "Ajouter e-mail"
 
-#: src/templates/account/email.html:66
+#: src/templates/account/email.html:67
 msgid "Do you really want to remove the selected e-mail address?"
 msgstr "Voulez-vous vraiment supprimer l'adresse e-mail sélectionnée ?"
 
-#: src/templates/account/email_confirm.html:6
+#: src/templates/account/email_confirm.html:7
 #: src/templates/account/email_confirm.html:10
 msgid "Confirm E-mail Address"
 msgstr "Confirmez votre adresse email"
 
-#: src/templates/account/email_confirm.html:16
+#: src/templates/account/email_confirm.html:14
 #, python-format
 msgid ""
 "Please confirm that <a href=\"mailto:%(email)s\">%(email)s</a> is an e-mail "
 "address for user %(user_display)s."
 msgstr ""
-"Veuillez confirmer que <a href=\"mailto:%(email)s\">%(email)s</a> est un e-mail "
-"adresse de l'utilisateur %(user_display)s."
+"Veuillez confirmer que <a href=\"mailto:%(email)s\">%(email)s</a> est un e-"
+"mail adresse de l'utilisateur %(user_display)s."
 
-#: src/templates/account/email_confirm.html:20
+#: src/templates/account/email_confirm.html:19
 msgid "Confirm"
 msgstr "Confirm"
 
-#: src/templates/account/email_confirm.html:27
+#: src/templates/account/email_confirm.html:24
 #, python-format
 msgid ""
 "This e-mail confirmation link expired or is invalid. Please <a href="
 "\"%(email_url)s\">issue a new e-mail confirmation request</a>."
 msgstr ""
-"Ce lien de confirmation par e-mail a expiré ou n'est pas valide. Veuillez"
- "<a href=\"%(email_url)s\">émettre une nouvelle demande de confirmation "
-"par e-mail</a>."
+"Ce lien de confirmation par e-mail a expiré ou n'est pas valide. Veuillez<a "
+"href=\"%(email_url)s\">émettre une nouvelle demande de confirmation par e-"
+"mail</a>."
 
-#: src/templates/account/login.html:7
-#: src/templates/account/login.html:11
-#: src/templates/account/login.html:56
-#: src/templates/base.html:72
+#: src/templates/account/login.html:8 src/templates/account/login.html:11
+#: src/templates/account/login.html:50
 msgid "Sign In"
 msgstr "S'identifier"
 
-#: src/templates/account/login.html:17
+#: src/templates/account/login.html:15
 msgid "Please sign in with one of your existing third party accounts:"
 msgstr "Veuillez vous connecter avec l'un de vos comptes tiers existants :"
 
-#: src/templates/account/login.html:19
+#: src/templates/account/login.html:17
 #, python-format
 msgid ""
 "Or, <a href=\"%(signup_url)s\">sign up</a> for a %(site_name)s account and "
@@ -129,27 +130,25 @@ msgstr ""
 "Ou, <a href=\"%(signup_url)s\">créez</a> un compte %(site_name)s et "
 "connectez-vous ci-dessous :"
 
-#: src/templates/account/login.html:32
+#: src/templates/account/login.html:27
 msgid "or"
 msgstr "ou"
 
-#: src/templates/account/login.html:41
+#: src/templates/account/login.html:33
 #, python-format
 msgid ""
 "If you have not created an account yet, then please <a href=\"%(signup_url)s"
 "\">sign up</a> first."
 msgstr ""
-"Si vous n'avez pas encore créé de compte, veuillez d'abord <a href=\"%(signup_url)s"
-"\">vous inscrire</a>."
+"Si vous n'avez pas encore créé de compte, veuillez d'abord <a href="
+"\"%(signup_url)s\">vous inscrire</a>."
 
-#: src/templates/account/login.html:55
+#: src/templates/account/login.html:49
 msgid "Forgot Password?"
 msgstr "Mot de passe oublié?"
 
-#: src/templates/account/logout.html:5
-#: src/templates/account/logout.html:8
-#: src/templates/account/logout.html:17
-#: src/templates/base.html:61
+#: src/templates/account/logout.html:6 src/templates/account/logout.html:9
+#: src/templates/account/logout.html:18
 msgid "Sign Out"
 msgstr "Se déconnecter"
 
@@ -157,20 +156,20 @@ msgstr "Se déconnecter"
 msgid "Are you sure you want to sign out?"
 msgstr "Êtes-vous certain de vouloir vous déconnecter?"
 
-#: src/templates/account/password_change.html:6
-#: src/templates/account/password_change.html:9
-#: src/templates/account/password_change.html:14
-#: src/templates/account/password_reset_from_key.html:5
-#: src/templates/account/password_reset_from_key.html:8
-#: src/templates/account/password_reset_from_key_done.html:4
-#: src/templates/account/password_reset_from_key_done.html:7
+#: src/templates/account/password_change.html:7
+#: src/templates/account/password_change.html:10
+#: src/templates/account/password_change.html:16
+#: src/templates/account/password_reset_from_key.html:7
+#: src/templates/account/password_reset_from_key.html:14
+#: src/templates/account/password_reset_from_key_done.html:6
+#: src/templates/account/password_reset_from_key_done.html:9
 msgid "Change Password"
 msgstr "Changer le mot de passe"
 
-#: src/templates/account/password_reset.html:7
+#: src/templates/account/password_reset.html:8
 #: src/templates/account/password_reset.html:11
-#: src/templates/account/password_reset_done.html:6
-#: src/templates/account/password_reset_done.html:9
+#: src/templates/account/password_reset_done.html:7
+#: src/templates/account/password_reset_done.html:10
 msgid "Password Reset"
 msgstr "Réinitialisation du mot de passe"
 
@@ -182,15 +181,15 @@ msgstr ""
 "Mot de passe oublié? Entrez votre adresse e-mail ci-dessous, et nous vous "
 "enverrons un e-mail vous permettant de le réinitialiser."
 
-#: src/templates/account/password_reset.html:21
+#: src/templates/account/password_reset.html:25
 msgid "Reset My Password"
 msgstr "Réinitialiser mon mot de passe"
 
-#: src/templates/account/password_reset.html:24
+#: src/templates/account/password_reset.html:27
 msgid "Please contact us if you have any trouble resetting your password."
 msgstr ""
-"Veuillez nous contacter si vous rencontrez des difficultés pour réinitialiser"
-"votre mot de passe."
+"Veuillez nous contacter si vous rencontrez des difficultés pour "
+"réinitialiservotre mot de passe."
 
 #: src/templates/account/password_reset_done.html:15
 msgid ""
@@ -200,55 +199,55 @@ msgstr ""
 "Nous vous avons envoyé un e-mail. Veuillez nous contacter si vous ne le "
 "recevez pas d'ici quelques minutes."
 
-#: src/templates/account/password_reset_from_key.html:8
+#: src/templates/account/password_reset_from_key.html:12
 msgid "Bad Token"
 msgstr "Token Invalide"
 
-#: src/templates/account/password_reset_from_key.html:12
+#: src/templates/account/password_reset_from_key.html:20
 #, python-format
 msgid ""
 "The password reset link was invalid, possibly because it has already been "
 "used.  Please request a <a href=\"%(passwd_reset_url)s\">new password reset</"
 "a>."
 msgstr ""
-"Le lien de réinitialisation du mot de passe n'était pas valide, peut-être parce "
-"qu'il a déjà été utilisé. Veuillez faire une <a href=\"%(passwd_reset_url)s\"> "
-"nouvelle demande de réinitialisation de mot de passe</a>."
+"Le lien de réinitialisation du mot de passe n'était pas valide, peut-être "
+"parce qu'il a déjà été utilisé. Veuillez faire une <a href="
+"\"%(passwd_reset_url)s\"> nouvelle demande de réinitialisation de mot de "
+"passe</a>."
 
-#: src/templates/account/password_reset_from_key.html:18
+#: src/templates/account/password_reset_from_key.html:30
 msgid "change password"
 msgstr "changer le mot de passe"
 
-#: src/templates/account/password_reset_from_key.html:21
-#: src/templates/account/password_reset_from_key_done.html:8
+#: src/templates/account/password_reset_from_key.html:33
+#: src/templates/account/password_reset_from_key_done.html:10
 msgid "Your password is now changed."
 msgstr "Votre mot de passe est maintenant modifié."
 
-#: src/templates/account/password_set.html:6
-#: src/templates/account/password_set.html:9
-#: src/templates/account/password_set.html:14
+#: src/templates/account/password_set.html:7
+#: src/templates/account/password_set.html:10
+#: src/templates/account/password_set.html:19
 msgid "Set Password"
 msgstr "Définir le mot de passe"
 
-#: src/templates/account/signup.html:6
+#: src/templates/account/signup.html:7
 msgid "Signup"
 msgstr "S'inscrire"
 
-#: src/templates/account/signup.html:9
-#: src/templates/account/signup.html:19
-#: src/templates/base.html:67
+#: src/templates/account/signup.html:10 src/templates/account/signup.html:25
 msgid "Sign Up"
 msgstr "S'inscrire"
 
-#: src/templates/account/signup.html:11
+#: src/templates/account/signup.html:12
 #, python-format
 msgid ""
 "Already have an account? Then please <a href=\"%(login_url)s\">sign in</a>."
 msgstr ""
-"Vous avez déjà un compte? Alors veuillez <a href=\"%(login_url)s\">vous connecter</a>."
+"Vous avez déjà un compte? Alors veuillez <a href=\"%(login_url)s\">vous "
+"connecter</a>."
 
-#: src/templates/account/signup_closed.html:5
-#: src/templates/account/signup_closed.html:8
+#: src/templates/account/signup_closed.html:6
+#: src/templates/account/signup_closed.html:9
 msgid "Sign Up Closed"
 msgstr "Inscriptions closes"
 
@@ -256,21 +255,22 @@ msgstr "Inscriptions closes"
 msgid "We are sorry, but the sign up is currently closed."
 msgstr "Désolé, mais l'inscription est actuellement fermée."
 
-#: src/templates/account/verification_sent.html:5
-#: src/templates/account/verification_sent.html:8
-#: src/templates/account/verified_email_required.html:5
-#: src/templates/account/verified_email_required.html:8
+#: src/templates/account/verification_sent.html:6
+#: src/templates/account/verification_sent.html:9
+#: src/templates/account/verified_email_required.html:6
+#: src/templates/account/verified_email_required.html:9
 msgid "Verify Your E-mail Address"
 msgstr "Vérifiez votre adresse e-mail"
 
-#: src/templates/account/verification_sent.html:10
+#: src/templates/account/verification_sent.html:11
 msgid ""
 "We have sent an e-mail to you for verification. Follow the link provided to "
 "finalize the signup process. Please contact us if you do not receive it "
 "within a few minutes."
-msgstr "Nous vous avons envoyé un e-mail pour vérification. Suivez le lien fourni "
-"pour finalisez le processus d'inscription. Veuillez nous contacter si vous ne le "
-"recevez pas d'ici quelques minutes."
+msgstr ""
+"Nous vous avons envoyé un e-mail pour vérification. Suivez le lien fourni "
+"pour finalisez le processus d'inscription. Veuillez nous contacter si vous "
+"ne le recevez pas d'ici quelques minutes."
 
 #: src/templates/account/verified_email_required.html:12
 msgid ""
@@ -282,54 +282,76 @@ msgstr ""
 "vous êtes qui vous prétendez être. Nous vous demandons donc de\n"
 "vérifier la propriété de votre adresse e-mail."
 
-#: src/templates/account/verified_email_required.html:16
+#: src/templates/account/verified_email_required.html:17
 msgid ""
 "We have sent an e-mail to you for\n"
 "verification. Please click on the link inside this e-mail. Please\n"
 "contact us if you do not receive it within a few minutes."
 msgstr ""
 "Nous vous avons envoyé un e-mail pour\n"
-"vérification. Veuillez cliquer sur le lien contenu dans cet e-mail. Veuillez nous\n"
+"vérification. Veuillez cliquer sur le lien contenu dans cet e-mail. Veuillez "
+"nous\n"
 "contacter si vous ne le recevez pas d'ici quelques minutes."
 
-#: src/templates/account/verified_email_required.html:20
+#: src/templates/account/verified_email_required.html:22
 #, python-format
 msgid ""
 "<strong>Note:</strong> you can still <a href=\"%(email_url)s\">change your e-"
 "mail address</a>."
 msgstr ""
-"<strong>Remarque :</strong> vous pouvez toujours <a href=\"%(email_url)s\">changer votre e-"
-"adresse e-mail</a>."
+"<strong>Remarque :</strong> vous pouvez toujours <a href=\"%(email_url)s"
+"\">changer votre e-adresse e-mail</a>."
 
-#: src/templates/base.html:57
-msgid "My Profile"
-msgstr "Mon Profil"
+#: src/templates/admin/index.html:7
+msgid "Django site admin"
+msgstr ""
 
-#: src/users/admin.py:17
-msgid "Personal info"
-msgstr "Personal info"
+#: src/templates/admin/index.html:10
+msgid "Django administration"
+msgstr ""
 
-#: src/users/admin.py:19
-msgid "Permissions"
-msgstr "Permissions"
+#: src/users/admin.py:26
+msgid "Información Personal"
+msgstr ""
 
-#: src/users/admin.py:30
-msgid "Important dates"
-msgstr "Dates importantes"
+#: src/users/admin.py:35
+msgid "Permisología"
+msgstr ""
 
-#: src/users/apps.py:7
-msgid "Users"
-msgstr "Utilisateurs"
+#: src/users/admin.py:46
+msgid "Log de actividades"
+msgstr ""
 
-#: src/users/forms.py:24
-#: src/users/tests/test_forms.py:36
+#: src/users/forms.py:26
 msgid "This username has already been taken."
 msgstr "Ce nom d'utilisateur est déjà pris."
 
-#: src/users/models.py:15
-msgid "Name of User"
-msgstr "Nom de l'utilisateur"
+#: src/users/models.py:16
+msgid "Nombre"
+msgstr ""
 
-#: src/users/views.py:23
+#: src/users/models.py:17
+msgid "Apellido"
+msgstr ""
+
+#: src/users/tests/test_views.py:71 src/users/views.py:23
 msgid "Information successfully updated"
 msgstr "Informations mises à jour avec succès"
+
+#~ msgid "My Profile"
+#~ msgstr "Mon Profil"
+
+#~ msgid "Personal info"
+#~ msgstr "Personal info"
+
+#~ msgid "Permissions"
+#~ msgstr "Permissions"
+
+#~ msgid "Important dates"
+#~ msgstr "Dates importantes"
+
+#~ msgid "Users"
+#~ msgstr "Utilisateurs"
+
+#~ msgid "Name of User"
+#~ msgstr "Nom de l'utilisateur"
