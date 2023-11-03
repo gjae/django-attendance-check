@@ -1,4 +1,6 @@
 from django.http import HttpResponse
+from django.utils import translation
+from django.conf import settings
 from src.settings.models import ClientConfig
 
 class ClientMiddleware:
@@ -26,3 +28,4 @@ class ClientMiddleware:
 
         msg = "Este cliente no se encuentra activo"
         return HttpResponse(msg, status=404)
+    

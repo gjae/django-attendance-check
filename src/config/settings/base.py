@@ -36,7 +36,7 @@ LANGUAGES = [
     ('es-ve', 'Spanish'),
 ]
 LANGUAGE_CODE = "es-VE"
-MODELTRANSLATION_DEFAULT_LANGUAGE = "es-VE"
+MODELTRANSLATION_DEFAULT_LANGUAGE = "es"
 # https://docs.djangoproject.com/en/dev/ref/settings/#site-id
 SITE_ID = 1
 # https://docs.djangoproject.com/en/dev/ref/settings/#use-i18n

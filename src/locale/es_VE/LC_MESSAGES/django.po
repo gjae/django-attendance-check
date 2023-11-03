@@ -321,3 +321,15 @@ msgstr "Bienvenido de vuelta"
 
 msgid "Forgotten your password or username?"
 msgstr "Recuperar contraseña"
+
+msgid "Type to search"
+msgstr "Buscar"
+
+msgid "Search apps and models..."
+msgstr "Buscar en menú"
+
+msgid "Select action"
+msgstr "Seleccionar acción"
+
+msgid "You have been successfully logged out from the administration"
+msgstr "Has terminado la sesión satisfactoriamente en el sistema"
