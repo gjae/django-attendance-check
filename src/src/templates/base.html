@@ -11,14 +11,19 @@
   <style>
     [x-cloak] { display: none !important; }
 
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
   </style>
 </head>
-<body class="h-100 bg-light">
+<body class="bg-light d-flex flex-column justify-content-between px-0">
 
 <nav class="navbar text-with">
   <div class="container-fluid">
     <span class="navbar-brand mb-0 h1">
-      Sistema de gestión de asistencia
+      <img src="{% static 'images/branding/logo_inpromaro_lit.png' %}" alt=""> 
     </span>
   </div>
 </nav>
@@ -65,8 +70,18 @@
     <input type="hidden" name="cedula" :value="data.id">
   </form>
 
-</main>
+</main><!-- Remove the container if you want to extend the Footer to full width. -->
+<div class="container-fluid px-0">
 
+  <footer class="bg-light text-center">
+    <div class="text-center p-3" style="background-color: rgba(0, 0, 0, 0.2);">
+      © 2023 Copyright:
+      Este sistema fue desarrollado por <a href="mailto:gjavilae@gmail.com"><strong>Giovanny Avila</strong></a>  / <a href="tel:+584125723883">+584124723883</a>
+    </div>
+  </footer>
+
+</div>
+<!-- End of .container -->
 <script src="{% static 'js/bootstrap.min.js' %}"></script>
 <script>
   function app() {
