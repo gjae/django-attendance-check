@@ -93,6 +93,7 @@ LOCAL_APPS = [
     "src.clocking",
     "src.employees",
     "src.settings",
+    "src.indentities",
     # Your stuff: custom apps go here
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps

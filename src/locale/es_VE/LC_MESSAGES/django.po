@@ -333,3 +333,6 @@ msgstr "Seleccionar acción"
 
 msgid "You have been successfully logged out from the administration"
 msgstr "Has terminado la sesión satisfactoriamente en el sistema"
+
+msgid "Return to site"
+msgstr "Volver al inicio"
