@@ -22,6 +22,9 @@ RUN pip wheel --wheel-dir /usr/src/app/wheels  \
   -r ${BUILD_ENVIRONMENT}.txt
 
 
+RUN apt-get install -y  --no-install-recommends   gir1.2-gobject-2.0 libglib2.0-dev libcairo2-dev python3-pip python3-cffi python3-brotli libpango-1.0-0 libharfbuzz0b libpangoft2-1.0-0  libgtk2.0-dev libgirepository1.0-dev
+
+
 # Python 'run' stage
 FROM python as python-run-stage
 
@@ -57,6 +60,8 @@ COPY --from=python-build-stage /usr/src/app/wheels  /wheels/
 # use wheels to install python dependencies
 RUN pip install --no-cache-dir --no-index --find-links=/wheels/ /wheels/* \
   && rm -rf /wheels/
+
+RUN apt-get install pangoft2-1.0-0 pango-1.0-0 libgirepository-1.0-1 -y
 
 
 COPY --chown=django:django ./compose/production/django/entrypoint /entrypoint

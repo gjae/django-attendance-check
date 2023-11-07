@@ -1,7 +1,6 @@
 from django.utils import timezone
 from django.db import models
-
-
+from django.db.models import ExpressionWrapper, F, fields
 
 class ClockingManager(models.Manager):
 
@@ -45,3 +44,4 @@ class CheckingManager(models.Manager):
 
 
         return employee_calendar.first()
+    

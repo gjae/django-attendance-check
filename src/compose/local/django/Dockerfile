@@ -13,8 +13,6 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   # psycopg2 dependencies
   libpq-dev
 
-RUN apt-get -y install python3-pip python3-cffi python3-brotli libpango-1.0-0 libharfbuzz0b libpangoft2-1.0-0
-
 # Requirements are installed here to ensure they will be cached.
 COPY ./requirements .
 
@@ -22,6 +20,11 @@ COPY ./requirements .
 RUN pip wheel --wheel-dir /usr/src/app/wheels  \
   -r ${BUILD_ENVIRONMENT}.txt
 
+
+RUN apt-get install -y  --no-install-recommends   gir1.2-gobject-2.0 libglib2.0-dev libcairo2-dev python3-pip python3-cffi python3-brotli libpango-1.0-0 libharfbuzz0b libpangoft2-1.0-0  libgtk2.0-dev libgirepository1.0-dev
+
+
+RUN pip install weasyprint
 
 # Python 'run' stage
 FROM python as python-run-stage
@@ -46,6 +49,7 @@ RUN groupadd --gid 1000 dev-user \
   && echo dev-user ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/dev-user \
   && chmod 0440 /etc/sudoers.d/dev-user
 
+RUN apt-get install pangoft2-1.0-0 pango-1.0-0 libgirepository-1.0-1 -y
 
 # Install required system dependencies
 RUN apt-get update && apt-get install --no-install-recommends -y \
@@ -64,6 +68,7 @@ COPY --from=python-build-stage /usr/src/app/wheels  /wheels/
 # use wheels to install python dependencies
 RUN pip install --no-cache-dir --no-index --find-links=/wheels/ /wheels/* \
   && rm -rf /wheels/
+
 
 COPY ./compose/production/django/entrypoint /entrypoint
 RUN sed -i 's/\r$//g' /entrypoint

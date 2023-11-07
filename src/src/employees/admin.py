@@ -1,14 +1,33 @@
 from typing import Any
+from django.urls import reverse
 from django.contrib import admin
 from django.contrib.admin.options import InlineModelAdmin
 from django.db.models.query import QuerySet
 from django.http.request import HttpRequest
+from django.http.response import HttpResponseRedirect
 from django.utils.html import mark_safe
 from unfold.admin import ModelAdmin
+from django.contrib import messages
 
 from src.clocking.models import DailyChecks
 from .models import Employee, EmployeePosition
 from .forms import EmployerModelForm
+
+@admin.action(description="Generar e imprimir carnet")
+def print_carnet(modeladmin, request, queryset):
+    if queryset.count() > 1 or queryset.count() == 0:
+        modeladmin.message_user(
+            request,
+            "Solo puede seleccionar un unico empleado a la vez para generar e imprimir su carnet",
+            messages.ERROR,
+        )
+
+        return False
+    
+
+    return HttpResponseRedirect(
+        reverse("carnets.print", kwargs={"pk": queryset.first().id})
+    )
 
 
 class EmployerCheckingRecord(admin.TabularInline):
@@ -46,6 +65,7 @@ class EmployeeAdmin(ModelAdmin):
     search_fields = ["name", "last_name", "cedula"]
     list_per_page = 32
     inlines = [EmployerCheckingRecord, ]
+    actions = [print_carnet, ]
     form = EmployerModelForm
 
     fieldsets = (

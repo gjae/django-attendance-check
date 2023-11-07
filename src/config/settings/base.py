@@ -94,6 +94,7 @@ LOCAL_APPS = [
     "src.employees",
     "src.settings",
     "src.indentities",
+    "src.reports",
     # Your stuff: custom apps go here
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
@@ -348,3 +349,5 @@ UNFOLD = {
         "show_all_applications": True,  # Dropdown with all applications and models
     },
 }
+
+WEASYPRINT_BASEURL = '/'

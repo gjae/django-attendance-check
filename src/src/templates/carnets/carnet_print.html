@@ -1,0 +1,40 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<link rel="stylesheet" href="{% static 'css/bootstrap.css' %}">
+<head>
+    <style>
+    @page {
+        size:  57mm 85.5mm ;
+        margin: 1.35mm;
+        padding: 0mm;
+        font-family: monospace;
+    }
+    </style>
+</head>
+
+<body>
+    <table width="100%">
+        <tr>
+            <td width="2%">
+                <img src="/app/src/static/images/branding/logo_inpromaro_lit.png" style="height: 10mm;" alt="">
+            </td>
+            <td width="80%">
+                <p style="font-size: 2mm; text-align: center;">
+                    RIF: J-0000000 <br>
+                    Carnét Identificativo
+                </p>
+            </td>
+        </tr>
+    </table>
+    <table style="width: 100%;">
+    
+        <tr>
+            <td>
+                <div style="height: 1mm; background-color: blue;"></div>
+            </td>
+        </tr>
+    </table>
+</body>
+
+</html>
