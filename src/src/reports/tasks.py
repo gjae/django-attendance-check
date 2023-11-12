@@ -43,7 +43,15 @@ def hour_counter_task():
             if stack[0].employee_id == check.employee_id:
                 prev = stack.pop()
                 total_hours = (check.checking_time - prev.checking_time ).total_seconds() / 60 / 60
-                reports.append(TimeReport(employer_id=check.employee_id, total_hours=total_hours, created=yesterday))
+                reports.append(
+                    TimeReport(
+                        employer_id=check.employee_id, 
+                        total_hours=total_hours, 
+                        created=yesterday,
+                        end_at=check.checking_time,
+                        start_at=prev.checking_time
+                    )
+                )
 
 
     if len(reports) > 0:

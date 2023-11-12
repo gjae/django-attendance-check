@@ -10,17 +10,17 @@
 <body>
     
     <div class="container-fluid">
-        <form action="{% url 'reports.by.worker.pdf' %}" method="post">
+        <form action="{% url 'reports.by.department.pdf' %}" method="post">
             {% csrf_token %}
             <div class="row">
                 <div class="col-sm-12 col-lg-4">
                     <label for="employer_id">
-                        <strong>Trabajador <span class="text-danger">*</span> </strong>
+                        <strong>Departamento <span class="text-danger">*</span> </strong>
                     </label>
-                    <select name="employer" required id="employer_id" class="form-control">
+                    <select name="department" required id="employer_id" class="form-control">
                         <option value="">--</option>
-                        {% for employer in employers %}
-                            <option value="{{employer.id}}">{{employer.get_fullname}} - {{employer.cedula}}</option>
+                        {% for department in departments %}
+                            <option value="{{department.id}}">{{department.name}}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -46,4 +46,4 @@
     </div>
 
 </body>
-</html>
+</html> 

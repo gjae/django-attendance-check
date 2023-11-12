@@ -1,0 +1,48 @@
+{% extends 'reports/base.html' %}
+
+{% block content %} 
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12 text-center">
+            <strong>
+                Reporte del trabajador {{employer.get_fullname}} 
+            </strong>
+        </div>
+        <div class="col-12 text-center">
+            Desde <strong>{{range_start|date:'d/m/Y'}}</strong> hasta <strong>{{ range_end|date:"d/m/Y" }}</strong>
+        </div>
+    </div>
+    <div class="row mt-4">
+        <div class="col-12">
+            <table class="table table-stripped" style="font-size: 12px;">
+                <thead>
+                    <tr class="text-center">
+                        <th>Fecha</th>
+                        <th>Hora de entrada</th>
+                        <th>Hora de salida</th>
+                        <th>Total de horas</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in data %}
+                        <tr>
+                            <td class="text-center">{{record.created|date:'d/m/Y'}}</td>
+                            <td class="text-center">{{record.start_at|date:'d/m/Y h:m a'|default:'--'}}</td>
+                            <td class="text-center">{{record.end_at|date:'d/m/Y h:m a'|default:'--'}}</td>
+                            <td class="text-end">{{record.abs_total_hours}}</td>
+                        </tr>
+                    {% endfor %}
+                    <tr class="bg-secondary">
+                        <td colspan="2">
+                            <strong>Total de horas trabajadas</strong>
+                        </td>
+                        <td colspan="2" class="text-end">{{total_hours}}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}

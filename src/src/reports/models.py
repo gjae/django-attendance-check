@@ -17,3 +17,20 @@ class TimeReport(TimeStampedModel):
         max_digits=17,
         decimal_places=2
     )
+
+    start_at = models.DateTimeField(
+        "Hora de entrada",
+        null=True,
+        default=None
+    )
+
+    end_at = models.DateTimeField(
+        "Hora de salida",
+        null=True,
+        default=None
+    )
+
+
+    @property
+    def abs_total_hours(self):
+        return abs(self.total_hours)
