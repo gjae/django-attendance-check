@@ -47,7 +47,7 @@
     </div>
     <div class="row">
       <div class="col-6 offset-3">
-        <input type="text" name="" id="" disabled readonly x-ref="idDisplayer"  :class="{'form-control': true, 'text-center': true, 'is-valid text-success fw-bold': data.formIsValid !== null && data.formIsValid,'is-invalid text-danger fw-bold': data.formIsValid !== null && !data.formIsValid}">
+        <input type="text" name="" id="reader" readonly disabled x-ref="idDisplayer"  :class="{'form-control': true, 'text-center': true, 'is-valid text-success fw-bold': data.formIsValid !== null && data.formIsValid,'is-invalid text-danger fw-bold': data.formIsValid !== null && !data.formIsValid}">
       </div>
     </div>
     <div class="row mt-4" x-show="data.formIsValid !== null && data.formIsValid">
@@ -123,8 +123,9 @@
       },
       initialize() {
         this.audioEffect()
+        // document.getElementById("reader").focus()
         window.addEventListener("keyup", (e)=> {
-          if (e.keyCode >= 96 && e.keyCode <= 105) {
+          if (parseInt(e.key) >= 0 && parseInt(e.key) <= 9) {
             this.data.id = `${this.data.id}${e.key}`
           } else if (e.key == "enter" || e.keyCode == 13) {
             if (this.data.id != "") {

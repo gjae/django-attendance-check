@@ -2,6 +2,7 @@ from django.db import models
 from model_utils.models import TimeStampedModel
 
 from src.employees.models import Employee
+from src.reports.managers import TimeReportManager
 
 # Create your models here.
 class TimeReport(TimeStampedModel):
@@ -29,6 +30,8 @@ class TimeReport(TimeStampedModel):
         null=True,
         default=None
     )
+
+    objects = TimeReportManager()
 
 
     @property

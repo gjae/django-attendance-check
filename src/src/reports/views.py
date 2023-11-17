@@ -1,10 +1,16 @@
+import calendar
 from datetime import datetime
 from django.conf import settings
+from django.utils import timezone
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.utils import timezone
 from django.views.generic.base import ContextMixin
+from django.http.response import HttpResponse
 from django_weasyprint import WeasyTemplateResponseMixin
-from django.views.generic import TemplateView, DetailView
+from django.views.generic import TemplateView, DetailView, View
+from openpyxl import Workbook
+from openpyxl.worksheet.dimensions import ColumnDimension, DimensionHolder
+from openpyxl.utils import get_column_letter
 
 
 from src.employees.models import Employee
@@ -85,24 +91,15 @@ class ReportByWorkerPdfView(BaseReportMixin, WeasyTemplateResponseMixin, Templat
     
     def get_context_data(self):
         context = super().get_context_data()
-        data = (
+        data, total_hours = (
             TimeReport
             .objects
-            .filter(employer_id=int(self.request.POST.get("employer")))
-            .filter(
-                created__range=[
-                    self.request.POST.get("start_at"), 
-                    self.request.POST.get("end_at")
-                ]
-            )
-            .select_related(
-                "employer"
+            .report_by_worker(
+                self.request.POST.get("start_at"),
+                self.request.POST.get("end_at"),
+                int(self.request.POST.get("employer"))
             )
         )
-
-        total_hours = 0
-        for d in data:
-            total_hours += d.abs_total_hours
 
         context["data"] = data
         context["total_hours"] = total_hours
@@ -157,24 +154,16 @@ class ReportByDepartmentPdfView(BaseReportMixin, WeasyTemplateResponseMixin, Tem
     
     def get_context_data(self):
         context = super().get_context_data()
-        data = (
+        data, total_hours = (
             TimeReport
             .objects
-            .filter(employer__department_id=int(self.request.POST.get("department")))
-            .filter(
-                created__range=[
-                    self.request.POST.get("start_at"), 
-                    self.request.POST.get("end_at")
-                ]
-            )
-            .select_related(
-                "employer"
+            .report_by_department(
+                self.request.POST.get("start_at"),
+                self.request.POST.get("end_at"),
+                int(self.request.POST.get("department"))
             )
         )
 
-        total_hours = 0
-        for d in data:
-            total_hours += d.abs_total_hours
 
         context["data"] = data
         context["total_hours"] = total_hours
@@ -196,3 +185,125 @@ class ReportByDepartmentView(LoginRequiredMixin, TemplateView):
 
         context["departments"] = Department.objects.all()
         return context
+
+
+class ReportExcelMixin(LoginRequiredMixin, View):
+
+    def get_footer(self, total_hours):
+        num_fields = len(self.get_headers())
+        fields = ["Horas trabajadas"]
+
+        for i in range(num_fields - 2):
+            fields.append(" ")
+
+        fields.append(total_hours)
+
+        return fields
+
+
+    def post(self, request, *args, **kwargs):
+        workbook = Workbook()
+        headers = self.get_headers()
+        ws = workbook.active
+        ws.title = self.get_sheet_title()
+        ws.append(headers)
+        data, total_hours = self.get_report_content() 
+
+        for record in data:
+            ws.append(self.process_row(record))
+
+        ws.append(self.get_footer(total_hours))
+
+        dim_holder = DimensionHolder(worksheet=ws)
+
+        for col in range(ws.min_column, ws.max_column + 1):
+            dim_holder[get_column_letter(col)] = ColumnDimension(ws, min=col, max=col, width=20)
+        
+        ws.column_dimensions = dim_holder
+        file_name = self.get_file_name()
+        response = HttpResponse(content_type="application/ms-excel")
+        content = "attachment; filename = {0}".format(file_name)
+        response["Content-Disposition"] = content
+        workbook.save(response)
+        return response
+
+
+class ReportWorkerExcel(ReportExcelMixin):
+
+    def get_headers(self):
+        return [
+            "Fecha", 
+            "Hora de entrada",
+            "Hora de salida",
+            "Total de horas"
+        ]
+    
+    def process_row(self, record):
+        return [
+            record.created.strftime("%d/%m/%Y"),
+            record.start_at.strftime("%d/%m/%Y %I:%M %p"),
+            record.end_at.strftime("%d/%m/%Y %I:%M %p"),
+            record.abs_total_hours
+        ]
+
+    def get_sheet_title(self):
+        return "Reporte por trabajador"
+
+    def get_file_name(self):
+        return "{at}_reporte_por_trabajador.xlsx".format(
+            at=calendar.timegm(timezone.now().timetuple())
+        )
+
+    def get_report_content(self):
+        return (
+            TimeReport
+            .objects
+            .report_by_worker(
+                self.request.POST.get("start_at"),
+                self.request.POST.get("end_at"),
+                int(self.request.POST.get("employer"))
+            )
+        )
+    
+
+
+class ReportDepartmentExcel(ReportExcelMixin):
+
+    def get_headers(self):
+        return [
+            "Cédula", 
+            "Nombre",
+            "Fecha",
+            "Hora de entrada",
+            "Hora de salida",
+            "Total de horas"
+        ]
+    
+    def process_row(self, record):
+        return [
+            record.employer.cedula,
+            record.employer.get_fullname(),
+            record.created.strftime("%d/%m/%Y"),
+            record.start_at.strftime("%d/%m/%Y %I:%M %p"),
+            record.end_at.strftime("%d/%m/%Y %I:%M %p"),
+            record.abs_total_hours
+        ]
+
+    def get_sheet_title(self):
+        return "Reporte por departamento"
+
+    def get_file_name(self):
+        return "{at}_reporte_por_departamento.xlsx".format(
+            at=calendar.timegm(timezone.now().timetuple())
+        )
+    
+    def get_report_content(self):
+        return (
+            TimeReport
+            .objects
+            .report_by_department(
+                self.request.POST.get("start_at"),
+                self.request.POST.get("end_at"),
+                int(self.request.POST.get("department"))
+            )
+        )
