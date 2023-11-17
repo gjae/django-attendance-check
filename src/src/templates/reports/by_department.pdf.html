@@ -13,11 +13,12 @@
     </div>
     <div class="row mt-4">
         <div class="col-12">
-            <table class="table table-stripped" style="font-size: 12px;">
+            <table class="table table-stripped" style="font-size: 10px;">
                 <thead>
                     <tr class="text-center">
                         <th>Cédula</th>
                         <th>Nombre</th>
+                        <th>Apellido</th>
                         <th>Fecha</th>
                         <th>Hora de entrada</th>
                         <th>Hora de salida</th>
@@ -28,18 +29,19 @@
                     {% for record in data %}
                         <tr>
                             <td class="text-end">{{record.employer.cedula}}</td>
-                            <td class="text-center">{{record.employer.get_fullname}}</td>
+                            <td class="text-center">{{record.employer.name}}</td>
+                            <td class="text-center">{{record.employer.last_name}}</td>
                             <td class="text-center">{{record.created|date:'d/m/Y'}}</td>
                             <td class="text-center">{{record.start_at|date:'d/m/Y h:m a'|default:'--'}}</td>
                             <td class="text-center">{{record.end_at|date:'d/m/Y h:m a'|default:'--'}}</td>
-                            <td class="text-end">{{record.abs_total_hours}}</td>
+                            <td class="text-end">{{record.total}}</td>
                         </tr>
                     {% endfor %}
                     <tr class="bg-secondary">
                         <td colspan="2">
                             <strong>Total de horas trabajadas</strong>
                         </td>
-                        <td colspan="4" class="text-end">{{total_hours}}</td>
+                        <td colspan="5" class="text-end">{{total_hours}}</td>
                     </tr>
                 </tbody>
             </table>

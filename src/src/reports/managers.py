@@ -1,5 +1,19 @@
 from typing import Optional
 from django.db import models
+from django.db.models import Sum, IntegerField
+
+class AbsoluteSum(Sum):
+    name = 'AbsoluteSum'
+    template = '%(function)s(%(absolute)s(%(expressions)s))'
+
+    def __init__(self, expression, **extra):
+        super(AbsoluteSum, self).__init__(
+            expression, absolute='ABS ', output_field=IntegerField(), **extra)
+
+    def __repr__(self):
+        return "SUM(ABS(%s))".format(
+            self.arg_joiner.join(str(arg) for arg in self.source_expressions)
+        )
 
 class TimeReportManager(models.Manager):
 
@@ -28,7 +42,9 @@ class TimeReportManager(models.Manager):
 
     def report_by_department(self, start_date,  end_date, department_id: Optional[int] = None):
         total_hours = 0
-        data = self.filter_by_time(start_date, end_date)
+        data = self.filter_by_time(start_date, end_date).order_by("employer_id").annotate(
+            total=AbsoluteSum("total_hours")
+        )
 
         if department_id is not None:
             data = data.filter(employer__department_id=department_id)

@@ -11,6 +11,8 @@ from django.views.generic import TemplateView, DetailView, View
 from openpyxl import Workbook
 from openpyxl.worksheet.dimensions import ColumnDimension, DimensionHolder
 from openpyxl.utils import get_column_letter
+from openpyxl.drawing.image import Image
+from openpyxl.styles import Alignment, Font
 
 
 from src.employees.models import Employee
@@ -200,12 +202,17 @@ class ReportExcelMixin(LoginRequiredMixin, View):
 
         return fields
 
+    def before(self, ws):
+        pass
+
 
     def post(self, request, *args, **kwargs):
         workbook = Workbook()
         headers = self.get_headers()
         ws = workbook.active
+        self.before(ws)
         ws.title = self.get_sheet_title()
+
         ws.append(headers)
         data, total_hours = self.get_report_content() 
 
@@ -226,10 +233,46 @@ class ReportExcelMixin(LoginRequiredMixin, View):
         response["Content-Disposition"] = content
         workbook.save(response)
         return response
+    
+
+class ReportBrandMixin:
+
+    def get_headlines(self, department, model_id):
+        return ""
+    
+    def before(self, ws):
+        now = timezone.now()
+        ws.merge_cells("A1:A6")
+        img = Image("/app/src/static/images/branding/logo_inpromaro_lit.png")
+        ws.add_image(img, "A1")
+        ws.merge_cells("B1:G6")
+        department = None
+        if "department" in self.request.POST:
+            department = Department.objects.get(id=self.request.POST.get("department"))
+
+        else:
+            department = Employee.objects.select_related("department").get(id=int(self.request.POST.get("employer"))).department
+        
+        ws["B1"].alignment = Alignment(horizontal="center", vertical="center")
+        ws["B1"].font = Font(bold=True, size=13, name="Arial")
+
+        ws["B1"].value = self.get_headlines(department, int(self.request.POST.get("department", self.request.POST.get("employer"))))
+        for i in range(6):
+            ws.append([" ", " ", " ", " ", " ", " ", " "])
 
 
-class ReportWorkerExcel(ReportExcelMixin):
-
+class ReportWorkerExcel(ReportBrandMixin, ReportExcelMixin):
+    def get_headlines(self, department, model_id):
+        now = timezone.now()
+        
+        employer = Employee.objects.get(id=model_id)
+        return (
+            " Reporte por departamento \n"
+            f"Departamento: {department.name} \n"
+            f"Trabajador: {employer.name} {employer.last_name} - {employer.cedula} \n"
+            "Fecha de generación: {0} \n ".format(now.strftime("%d/%m/%Y"))
+        )
+    
     def get_headers(self):
         return [
             "Fecha", 
@@ -267,26 +310,31 @@ class ReportWorkerExcel(ReportExcelMixin):
     
 
 
-class ReportDepartmentExcel(ReportExcelMixin):
+class ReportDepartmentExcel(ReportBrandMixin, ReportExcelMixin):
 
+    def get_headlines(self, department, model_id):
+        now = timezone.now()
+
+        return (
+            " Reporte por departamento \n"
+            f"Departamento: {department.name} \n"
+            "Fecha de generación: {0} \n ".format(now.strftime("%d/%m/%Y"))
+        )
+    
     def get_headers(self):
         return [
             "Cédula", 
             "Nombre",
-            "Fecha",
-            "Hora de entrada",
-            "Hora de salida",
+            "Apellido",
             "Total de horas"
         ]
     
     def process_row(self, record):
         return [
             record.employer.cedula,
-            record.employer.get_fullname(),
-            record.created.strftime("%d/%m/%Y"),
-            record.start_at.strftime("%d/%m/%Y %I:%M %p"),
-            record.end_at.strftime("%d/%m/%Y %I:%M %p"),
-            record.abs_total_hours
+            record.employer.name,
+            record.employer.last_name,
+            record.total
         ]
 
     def get_sheet_title(self):
