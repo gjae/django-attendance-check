@@ -266,10 +266,13 @@ class ReportWorkerExcel(ReportBrandMixin, ReportExcelMixin):
         now = timezone.now()
         
         employer = Employee.objects.get(id=model_id)
+        start_at = datetime.strptime(self.request.POST.get("start_at"), "%Y-%m-%d")
+        end_at = datetime.strptime(self.request.POST.get("end_at"), "%Y-%m-%d")
         return (
             " Reporte por departamento \n"
             f"Departamento: {department.name} \n"
             f"Trabajador: {employer.name} {employer.last_name} - {employer.cedula} \n"
+            f"Desde {start_at.strftime('%d/%m/%Y')} hasta {end_at.strftime('%d/%m/%Y')} \n"
             "Fecha de generación: {0} \n ".format(now.strftime("%d/%m/%Y"))
         )
     
@@ -314,10 +317,12 @@ class ReportDepartmentExcel(ReportBrandMixin, ReportExcelMixin):
 
     def get_headlines(self, department, model_id):
         now = timezone.now()
-
+        start_at = datetime.strptime(self.request.POST.get("start_at"), "%Y-%m-%d")
+        end_at = datetime.strptime(self.request.POST.get("end_at"), "%Y-%m-%d")
         return (
             " Reporte por departamento \n"
             f"Departamento: {department.name} \n"
+            f"Desde {start_at.strftime('%d/%m/%Y')} hasta {end_at.strftime('%d/%m/%Y')} \n"
             "Fecha de generación: {0} \n ".format(now.strftime("%d/%m/%Y"))
         )
     
@@ -326,15 +331,17 @@ class ReportDepartmentExcel(ReportBrandMixin, ReportExcelMixin):
             "Cédula", 
             "Nombre",
             "Apellido",
+            "Cargo",
             "Total de horas"
         ]
     
     def process_row(self, record):
         return [
-            record.employer.cedula,
-            record.employer.name,
-            record.employer.last_name,
-            record.total
+            record["employer__cedula"],
+            record["employer__name"],
+            record["employer__last_name"],
+            record["employer__position__position"],
+            record["total"]
         ]
 
     def get_sheet_title(self):
