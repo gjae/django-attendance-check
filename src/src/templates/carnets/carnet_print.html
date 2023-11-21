@@ -10,31 +10,58 @@
         padding: 0mm;
         font-family: monospace;
     }
+    #content {
+        background-image: url("/app/src/static/images/branding/logo_inpromaro_med.png");
+        background-repeat: no-repeat;
+        background-size: cover;
+        background-position: left;
+    }
     </style>
 </head>
 
 <body>
-    <table width="100%">
-        <tr>
-            <td width="2%">
-                <img src="/app/src/static/images/branding/logo_inpromaro_lit.png" style="height: 10mm;" alt="">
-            </td>
-            <td width="80%">
-                <p style="font-size: 2mm; text-align: center;">
-                    RIF: J-0000000 <br>
-                    Carnét Identificativo
-                </p>
-            </td>
-        </tr>
-    </table>
-    <table style="width: 100%;">
-    
-        <tr>
-            <td>
-                <div style="height: 1mm; background-color: blue;"></div>
-            </td>
-        </tr>
-    </table>
+    <div class="container-flow" id="content">
+        <div class="row">
+            <div class="col-12" style="padding-left: 2.3cm;">
+                <img src="/app/src/static/images/branding/logo_inpromaro_lit.png" style="height: 15mm;" alt="">
+            </div>
+        </div>
+        <div class="row d-flex flex-row align-items-center justify-content-center mt-1" style="max-width: 60mm;">
+            <img src="{{current_carnet_data.picture.path}}"  style="height: 70px; width: 70px; border-radius: 50%;" alt="">
+        </div>
+        <div class="row">
+            <div class="col-12" style="text-align: center;">
+                <div style="max-width: 55mm; font-size: 12pt;">
+                    <strong>{{current_carnet_data.name}}</strong>
+                    <br>
+                    <strong>{{current_carnet_data.last_name}}</strong>
+                    <br>
+                    <strong style="font-size: 8pt;">C.I.: {{current_carnet_data.cedula}}</strong>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                <div style="max-width: 57mm; align-items: center; text-align: center;">
+                    <img src="/app/src/media/pictures/qrs/{{current_carnet_data.cedula}}.png" style="height: 15mm;" alt="" srcset="">
+                </div>
+            </div>
+        </div>
+        <div class="row" >
+            <div class="col-12">
+                <div style="max-width: 55mm; text-align: center;">
+                    <strong>{{current_carnet_data.position.position}}</strong>
+                </div>
+            </div>
+            <div class="col-12 bg-primary">
+                <div style="max-width: 55mm; text-align: center;">
+                    <strong class="text-white">
+                        {{current_carnet_data.department.name}}
+                    </strong>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>
