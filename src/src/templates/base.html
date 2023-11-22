@@ -15,6 +15,16 @@
       height: 100%;
       margin: 0;
       padding: 0;
+    } 
+    .reloj {
+        color: #0d1420;
+        font-size: 40px;
+        font-family: Arial;
+        letter-spacing: 5px;
+        text-align: center;
+        background-color: #e6e6e6;
+        border: 2px solid #434547;
+        border-radius: 20px;
     }
   </style>
 </head>
@@ -31,6 +41,13 @@
   
   <div class="container">
     <div class="row">
+      <div class="col-sm-12 col-6">
+        <div id="relojnumerico" class="reloj" >
+          <!-- Acá mostraremos el reloj desde JavaScript --> 
+      </div>
+      </div>
+    </div>
+    <div class="row mt-4">
       <div class="col d-flex flex-row align-self-center justify-content-center align-ittems-center">
         <img :src="data.defaultImage" x-show="data.formIsValid === null || !data.formIsValid" class="rounded-circle float-start" alt="...">
         <img :src="data.personal.photo" style="height: 200px; width: 200px;" x-show="data.formIsValid !== null && data.formIsValid" class="rounded-circle float-start" alt="...">
@@ -119,6 +136,7 @@
       },
       initialize() {
         this.audioEffect()
+        this.cargarReloj()
         // document.getElementById("reader").focus()
         window.addEventListener("keyup", (e)=> {
           if (parseInt(e.key) >= 0 && parseInt(e.key) <= 9) {
@@ -175,7 +193,52 @@
           this.data.formIsValid = null
           this.data.id = ""
         }, 5000)
+      },
+      cargarReloj(){
+        // Haciendo uso del objeto Date() obtenemos la hora, minuto y segundo 
+        var fechahora = new Date();
+        var hora = fechahora.getHours(); 
+        var minuto = fechahora.getMinutes(); 
+        var segundo = fechahora.getSeconds(); 
+
+        // Variable meridiano con el valor 'AM' 
+        var meridiano = "AM";
+        
+        
+        // Si la hora es igual a 0, declaramos la hora con el valor 12 
+        if(hora == 0){
+
+            hora = 12;
+            
+        }
+        
+        // Si la hora es mayor a 12, restamos la hora - 12 y mostramos la variable meridiano con el valor 'PM' 
+        if(hora > 12) {
+
+            hora = hora - 12;
+
+            // Variable meridiano con el valor 'PM' 
+            meridiano = "PM";
+
+        }
+        
+        // Formateamos los ceros '0' del reloj 
+        hora = (hora < 10) ? "0" + hora : hora;
+        minuto = (minuto < 10) ? "0" + minuto : minuto;
+        segundo = (segundo < 10) ? "0" + segundo : segundo;
+        
+        // Enviamos la hora a la vista HTML 
+        var tiempo = hora + ":" + minuto + ":" + segundo + " " + meridiano;    
+        document.getElementById("relojnumerico").innerText = tiempo;
+        document.getElementById("relojnumerico").textContent = tiempo;
+
+        // Cargamos el reloj a los 500 milisegundos 
+        setTimeout(() => {
+          this.cargarReloj()
+        }, 500);
+        
       }
+
     }
   }
 </script>
