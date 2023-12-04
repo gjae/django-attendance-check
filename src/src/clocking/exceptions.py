@@ -1,0 +1,2 @@
+class CheckingTooRecentException(Exception):
+    pass

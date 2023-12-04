@@ -77,7 +77,8 @@
     <div class="row mt-4" x-show="data.formIsValid !== null && !data.formIsValid">
       <div class="col-6 offset-3">
         <div class="alert alert-danger text-center" >
-          <strong>Cédula invalida o no registrada. Vuelva a intentar o comuniquese con su administrador</strong>
+          <strong x-show="!errorTyped">Cédula invalida o no registrada. Vuelva a intentar o comuniquese con su administrador</strong>
+          <strong x-show="true" x-text="data.greeting"></strong>
         </div>
       </div>
     </div>
@@ -106,6 +107,7 @@
   function app() {
     return {
       timer: null,
+      errorTyped: false,
       data: {
         id: "",
         personal : {
@@ -117,6 +119,7 @@
         showFullId: "",
         defaultImage: "/static/images/default_assistent_image.jpg",
         formIsValid: null,
+        errorTyped: false,
         greeting: "Descanse y reponga sus energias. ¡Hasta mañana!",
         welcomeMessages: [
           "¡Chequeo exitoso!",
@@ -137,6 +140,7 @@
       initialize() {
         this.audioEffect()
         this.cargarReloj()
+        this.errorTyped = false
         // document.getElementById("reader").focus()
         window.addEventListener("keyup", (e)=> {
           if (parseInt(e.key) >= 0 && parseInt(e.key) <= 9) {
@@ -168,14 +172,17 @@
             this.timer = null
           }
           this.data.id = ""
-          this.noticeCheckStatus(resp.error, resp.message, resp.checking_type, resp.user_data)
+          this.noticeCheckStatus(resp.error, resp.message, resp.checking_type, resp.user_data, resp.error_type)
         })
       },
-      noticeCheckStatus(hasError, message, checking_type, user_data) {
+      noticeCheckStatus(hasError, message, checking_type, user_data, errorType = null) {
         this.playBep()
         if (hasError) {
           this.data.formIsValid = false
           this.data.greeting = message.cedula[0].message
+          if (errorType !== null ){
+            this.errorTyped = true
+          }
         } else  {
           let greeting = []
           if (checking_type == "ENTRADA") {
@@ -192,6 +199,7 @@
           this.$refs["idDisplayer"].value = ""
           this.data.formIsValid = null
           this.data.id = ""
+          this.errorTyped = false
         }, 5000)
       },
       cargarReloj(){

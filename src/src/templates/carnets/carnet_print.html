@@ -11,7 +11,7 @@
         font-family: monospace;
     }
     #content {
-        background-image: url("/app/src/static/images/branding/logo_inpromaro_med.png");
+        background-image: url("/app/src/static/images/branding/borde_carnet.jpeg");
         background-repeat: no-repeat;
         background-size: cover;
         background-position: left;
@@ -20,14 +20,18 @@
 </head>
 
 <body>
-    <div class="container-flow" id="content">
+    <div class="row" style="padding: 0 !important; margin:  0 !important; z-index: 0; position: absolute;">
+        <img src="/app/src/static/images/branding/layout_borde_carnet.png" style="width: 56.9mm; height: 85mm;" alt="" srcset="">
+    </div>
+    <div class="container-flow" id="content" style="z-index: 9;">
+
         <div class="row">
-            <div class="col-12" style="padding-left: 2.45cm;">
-                <img src="/app/src/static/images/branding/logo_inpromaro_lit.png" style="height: 15mm;" alt="">
+            <div class="col-12" >
+                <img src="/app/src/static/images/branding/logo_inpromaro_lit.png" style="height: 12mm;" alt="">
             </div>
         </div>
-        <div class="row d-flex flex-row align-items-center justify-content-center mt-1" style="max-width: 60mm; padding-left: 3mm;">
-            <img src="{{current_carnet_data.picture.path}}"  style="height: 70px; width: 70px; border-radius: 50%;" alt="">
+        <div class="row d-flex flex-row align-items-center justify-content-center " style="max-width: 60mm; padding-left: 3mm; z-index: 11;">
+            <img src="{{current_carnet_data.picture.path}}"  style="height: 70px; width: 70px; border-radius: 50%; z-index: 12;" alt="">
         </div>
         <div class="row">
             <div class="col-12" style="text-align: center;">
@@ -53,15 +57,26 @@
                     <strong>{{current_carnet_data.position.position}}</strong>
                 </div>
             </div>
-            <div class="col-12 bg-primary">
+            <div class="col-12">
                 <div style="max-width: 55mm; text-align: center;">
-                    <strong class="text-white">
+                    <strong class="text-dark">
                         {{current_carnet_data.department.name}}
                     </strong>
                 </div>
             </div>
         </div>
     </div>
+    <div style="page-break-before:always; max-width: 55mm; text-align: center; padding-top: 1mm; border: 0.5mm solid black; min-height: 83.5mm; font-size: 12pt;">
+        Este carnet es intransferible y solo acredita al portador, titular de la cédula de identidad N° <span style="text-decoration: underline;">{{current_carnet_data.cedula}}</span>,
+        como trabajador de esta entidad de trabajo.
+        <div class="row">
+
+            <div class="col-12" style="padding-left: 1.6cm; text-align: center;">
+                <img src="/app/src/static/images/branding/logo_inpromaro_lit.png"  alt="">
+            </div>
+        </div>
+    </div>
+
 </body>
 
 </html>
