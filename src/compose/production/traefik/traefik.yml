@@ -31,7 +31,7 @@ certificatesResolvers:
 http:
   routers:
     web-secure-router:
-      rule: 'Host(`gjae.online`) || Host(`www.gjae.online`)'
+      rule: 'Host(`192.168.15`)'
       entryPoints:
         - web-secure
       middlewares:
@@ -39,26 +39,24 @@ http:
       service: django
       tls:
         # https://docs.traefik.io/master/routing/routers/#certresolver
-        certResolver: letsencrypt
+        #certResolver: letsencrypt
 
     flower-secure-router:
-      rule: 'Host(`gjae.online`)'
+      rule: 'Host(`192.168.15`)'
       entryPoints:
         - flower
       service: flower
       tls:
         # https://docs.traefik.io/master/routing/routers/#certresolver
-        certResolver: letsencrypt
+        # certResolver: letsencrypt
 
     web-media-router:
-      rule: '(Host(`gjae.online`) || Host(`www.gjae.online`)) && PathPrefix(`/media/`)'
+      rule: '(Host(`192.168.15`) && PathPrefix(`/media/`)'
       entryPoints:
         - web-secure
       middlewares:
         - csrf
       service: django-media
-      tls:
-        certResolver: letsencrypt
 
   middlewares:
     csrf:
