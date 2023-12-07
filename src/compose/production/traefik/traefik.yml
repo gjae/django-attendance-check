@@ -5,11 +5,6 @@ entryPoints:
   web:
     # http
     address: ':80'
-    http:
-      # https://docs.traefik.io/routing/entrypoints/#entrypoint
-      redirections:
-        entryPoint:
-          to: web-secure
 
   web-secure:
     # https
@@ -33,7 +28,7 @@ http:
     web-secure-router:
       rule: 'Host(`192.168.15`)'
       entryPoints:
-        - web-secure
+        - web
       middlewares:
         - csrf
       service: django
@@ -53,7 +48,7 @@ http:
     web-media-router:
       rule: '(Host(`192.168.15`) && PathPrefix(`/media/`)'
       entryPoints:
-        - web-secure
+        - web
       middlewares:
         - csrf
       service: django-media
