@@ -5,8 +5,6 @@ from .base import env
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#secret-key
 SECRET_KEY = env("DJANGO_SECRET_KEY")
-# https://docs.djangoproject.com/en/dev/ref/settings/#allowed-hosts
-ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["gjae.online"])
 
 # DATABASES
 # ------------------------------------------------------------------------------
@@ -72,7 +70,7 @@ EMAIL_SUBJECT_PREFIX = env(
 # ADMIN
 # ------------------------------------------------------------------------------
 # Django Admin URL regex.
-ADMIN_URL = env("DJANGO_ADMIN_URL")
+ADMIN_URL = ""
 
 # Anymail
 # ------------------------------------------------------------------------------
@@ -150,3 +148,5 @@ LOGGING = {
 
 # Your stuff...
 # ------------------------------------------------------------------------------
+
+ALLOWED_HOSTS = ["inpromar.ca", "0.0.0.0", "172.19.0.9", "127.0.0.1", "localhost", ]

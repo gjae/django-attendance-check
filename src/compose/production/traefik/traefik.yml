@@ -5,6 +5,7 @@ entryPoints:
   web:
     # http
     address: ':80'
+    http:
 
   web-secure:
     # https
@@ -34,7 +35,7 @@ http:
       service: django
       tls:
         # https://docs.traefik.io/master/routing/routers/#certresolver
-        #certResolver: letsencrypt
+        certResolver: letsencrypt
 
     flower-secure-router:
       rule: 'Host(`inpromar.ca`)'
@@ -43,15 +44,17 @@ http:
       service: flower
       tls:
         # https://docs.traefik.io/master/routing/routers/#certresolver
-        # certResolver: letsencrypt
+        certResolver: letsencrypt
 
     web-media-router:
-      rule: '(Host(`inpromar.ca`) && PathPrefix(`/media/`)'
+      rule: '(Host(`inpromar.ca`) || Host(`inpromar.ca`)) && PathPrefix(`/media/`)'
       entryPoints:
-        - web
+        - web-secure
       middlewares:
         - csrf
       service: django-media
+      tls:
+        certResolver: letsencrypt
 
   middlewares:
     csrf:

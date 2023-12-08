@@ -25,20 +25,20 @@ class Command(BaseCommand):
                     for row in reader:
                         department = row[3]
                         charge = row[2]
-                        idcard = int(row[1].replace("V-", "").replace(".", ""))
-                        name, last_name = row[0].split(", ")
+                        idcard = int(row[1].replace("V-", "").replace(".", "").replace("V", ""))
+                        name, last_name = row[0].split(",")
                         if department not in departments:
-                            departments[departments], _ = Department.objects.get_or_create(description=department)
+                            departments[department], _ = Department.objects.get_or_create(name=department)
                         if charge not in charges:
                             charges[charge], _ = EmployeePosition.objects.get_or_create(position=charge)
 
                         Employee.objects.get_or_create(
                             cedula=idcard,
                             defaults={
-                                "name": name,
-                                "last_name": last_name,
+                                "name": name.strip(),
+                                "last_name": last_name.strip(),
                                 "position_id": charges[charge].id,
-                                "department": departments[department].id
+                                "department_id": departments[department].id
                             }
                         )
                         

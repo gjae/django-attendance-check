@@ -93,11 +93,16 @@ class EmployeeAdmin(ModelAdmin):
 
     @admin.display(empty_value="Sin registro")
     def photo_tag(self, obj):
-        return mark_safe(
-            f"<div>"
-            f'<img src="{obj.picture.url}" alt="{obj.name}_picture" class="w-10 h-10 rounded-full" loading="lazy" decoding="async">'
-            f"</div>"
-        )
+        if obj.picture is None:
+            return ""
+        try:
+            return mark_safe(
+                f"<div>"
+                f'<img src="{obj.picture.url}" alt="{obj.name}_picture" class="w-10 h-10 rounded-full" loading="lazy" decoding="async">'
+                f"</div>"
+            )
+        except:
+            return ""
     
     @admin.display(empty_value="Sin registro")
     def last_checking(self, obj):
