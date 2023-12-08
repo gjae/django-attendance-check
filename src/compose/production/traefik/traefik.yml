@@ -26,9 +26,9 @@ certificatesResolvers:
 http:
   routers:
     web-secure-router:
-      rule: 'Host(`192.168.15`)'
+      rule: 'Host(`inpromar.ca`)'
       entryPoints:
-        - web
+        - web-secure
       middlewares:
         - csrf
       service: django
@@ -37,7 +37,7 @@ http:
         #certResolver: letsencrypt
 
     flower-secure-router:
-      rule: 'Host(`192.168.15`)'
+      rule: 'Host(`inpromar.ca`)'
       entryPoints:
         - flower
       service: flower
@@ -46,7 +46,7 @@ http:
         # certResolver: letsencrypt
 
     web-media-router:
-      rule: '(Host(`192.168.15`) && PathPrefix(`/media/`)'
+      rule: '(Host(`inpromar.ca`) && PathPrefix(`/media/`)'
       entryPoints:
         - web
       middlewares:
