@@ -1,6 +1,6 @@
 
 # define an alias for the specific python version used in this file.
-FROM python:3.11.6-slim-bullseye as python
+FROM python:3.11.7-bullseye as python
 
 # Python build stage
 FROM python as python-build-stage
@@ -14,6 +14,11 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   # psycopg2 dependencies
   libpq-dev
 
+
+  
+RUN apt install -y gir1.2-gobject-2.0 python3-pip python3-cffi python3-brotli libpango-1.0-0 libpangoft2-1.0-0
+
+
 # Requirements are installed here to ensure they will be cached.
 COPY ./requirements .
 
@@ -22,8 +27,8 @@ RUN pip wheel --wheel-dir /usr/src/app/wheels  \
   -r ${BUILD_ENVIRONMENT}.txt
 
 
-RUN apt-get install -y  --no-install-recommends   gir1.2-gobject-2.0 libglib2.0-dev libcairo2-dev python3-pip python3-cffi python3-brotli libpango-1.0-0 libharfbuzz0b libpangoft2-1.0-0  libgtk2.0-dev libgirepository1.0-dev
 
+RUN pip install weasyprint
 # Python 'run' stage
 FROM python as python-run-stage
 
@@ -49,8 +54,6 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   # cleaning up unused files
   && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
   && rm -rf /var/lib/apt/lists/*
-  
-
 # All absolute dir copies ignore workdir instruction. All relative dir copies are wrt to the workdir instruction
 # copy python dependency wheels from python-build-stage
 COPY --from=python-build-stage /usr/src/app/wheels  /wheels/
