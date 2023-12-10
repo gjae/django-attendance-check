@@ -23,7 +23,7 @@
     <div class="row" style="padding: 0 !important; margin:  0 !important; z-index: 0; position: absolute;">
         <img src="/app/src/static/images/branding/layout_borde_carnet.png" style="width: 56.9mm; height: 85mm;" alt="" srcset="">
     </div>
-    <div class="container-flow" id="content" style="z-index: 9;">
+    <div class="container-flow" id="content" style="z-index: 9; padding-right: 4mm;">
 
         <div class="row">
             <div class="col-12" >
@@ -54,19 +54,19 @@
         <div class="row" >
             <div class="col-12">
                 <div style="max-width: 55mm; text-align: center;">
-                    <strong>{{current_carnet_data.position.position}}</strong>
+                    <strong style="font-size: 8.3pt;">{{current_carnet_data.position.position}}</strong>
                 </div>
             </div>
             <div class="col-12">
                 <div style="max-width: 55mm; text-align: center;">
-                    <strong class="text-dark">
+                    <strong class="text-dark" style="font-size: 6.3pt;">
                         {{current_carnet_data.department.name}}
                     </strong>
                 </div>
             </div>
         </div>
     </div>
-    <div style="page-break-before:always; max-width: 55mm; text-align: center; padding-top: 1mm; border: 0.5mm solid black; min-height: 83.5mm; font-size: 12pt;">
+    <div style="page-break-before:always; max-width: 55mm; text-align: center; padding-right: 1mm; border: 0.5mm solid black; min-height: 83.5mm; font-size: 11pt;">
         Este carnet es intransferible y solo acredita al portador, titular de la cédula de identidad N° <span style="text-decoration: underline;">{{current_carnet_data.cedula}}</span>,
         como trabajador de esta entidad de trabajo.
         <div class="row">

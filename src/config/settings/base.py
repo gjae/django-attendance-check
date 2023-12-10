@@ -332,8 +332,8 @@ STATICFILES_FINDERS += ["compressor.finders.CompressorFinder"]
 
 
 UNFOLD = {
-    "SITE_TITLE": "Sistema INPOMAR C.A",
-    "SITE_HEADER": "GESTIÓN INPOMARC.A",
+    "SITE_TITLE": "Sistema INPROMAR C.A",
+    "SITE_HEADER": "GESTIÓN INPROMAR C.A",
     "SITE_ICON": lambda request: static("images/branding/logo_inpromaro_lit.png"),
     "EXTENSIONS": {
         "modeltranslation": {
