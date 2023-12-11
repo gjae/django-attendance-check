@@ -8,6 +8,8 @@ from django.http.response import HttpResponseRedirect
 from django.utils.html import mark_safe
 from unfold.admin import ModelAdmin
 from django.contrib import messages
+from django.utils.html import format_html
+
 
 from src.clocking.models import DailyChecks
 from .models import Employee, EmployeePosition
@@ -90,7 +92,6 @@ class EmployeeAdmin(ModelAdmin):
         )
     )
 
-
     @admin.display(empty_value="Sin registro")
     def photo_tag(self, obj):
         if obj.picture is None:
@@ -102,7 +103,11 @@ class EmployeeAdmin(ModelAdmin):
                 f"</div>"
             )
         except:
-            return ""
+            return mark_safe(
+                f"<div>"
+                f'<img src="/static/images/branding/logo_inpromaro_lit.png" alt="default" class="w-10 h-10 rounded-full" loading="lazy" decoding="async">'
+                f"</div>"
+            )
     
     @admin.display(empty_value="Sin registro")
     def last_checking(self, obj):
@@ -140,3 +145,13 @@ class EmployeeAdmin(ModelAdmin):
     list_display = [
       "photo_tag",  "name", "last_name", "cedula", "position_user", "date_entry_job", "last_checking"
     ]
+
+
+    def name(self, obj):
+        return format_html(
+            "<a href='/admin/employees/employee/{}/change/'>{}</a>",
+            obj.id,
+            obj.name
+        )
+
+    name.short_description = "Nombre"

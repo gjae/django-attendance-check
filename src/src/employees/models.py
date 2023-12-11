@@ -10,7 +10,7 @@ from src.settings.models import Department
 # Create your models here.
 class EmployeePosition(TimeStampedModel):
     position = models.CharField(
-        "Cago",
+        "Cargo",
         max_length=255
     )
 
