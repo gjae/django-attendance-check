@@ -75,7 +75,7 @@ class EmployeeAdmin(ModelAdmin):
             "Información Personal", 
             {
                 "fields": (
-                    ("name", "last_name", "cedula"),
+                    ("name", "last_name", "cedula", "birthday_at"),
                 )
             }
         ),
@@ -86,7 +86,6 @@ class EmployeeAdmin(ModelAdmin):
                     ("date_entry_job", "position"),
                     "department",
                     "picture",
-
                 )
             }
         )
@@ -143,7 +142,7 @@ class EmployeeAdmin(ModelAdmin):
 
 
     list_display = [
-      "photo_tag",  "name", "last_name", "cedula", "position_user", "date_entry_job", "last_checking"
+      "photo_tag",  "name", "last_name", "cedula", "birthday_at", "position_user", "date_entry_job", "last_checking"
     ]
 
 

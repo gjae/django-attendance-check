@@ -121,7 +121,7 @@ class ReportByWorkerView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        context["employers"] = Employee.objects.only_actives()
+        context["employers"] = Employee.objects.only_actives().order_by("last_name", "name")
         return context
 
 
@@ -185,7 +185,7 @@ class ReportByDepartmentView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        context["departments"] = Department.objects.all()
+        context["departments"] = Department.objects.all().order_by("name")
         return context
 
 

@@ -33,6 +33,7 @@ class Employee(TimeStampedModel):
     cedula = models.PositiveIntegerField("Cédula", db_index=True, default=0)
     picture = models.ImageField("Foto", upload_to='pictures')
     date_entry_job = models.DateField("Fecha de ingreso", null=True, default=None, help_text="Formato: AAAA-MM-DD")
+    birthday_at = models.DateField("Fecha de cumpleaños", null=True, default=None, help_text="Formato: AAAA-MM-DD")
 
     position = models.ForeignKey(EmployeePosition, on_delete=models.CASCADE, related_name="employees", null=True, default=None)
 

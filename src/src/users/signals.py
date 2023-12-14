@@ -8,4 +8,6 @@ User = get_user_model()
 
 @receiver(post_save, sender=User)
 def on_create_user_save_hers_qr(sender, instance: User, created, *args, **kwargs):
-    pass
+    if created:
+        instance.is_staff = True
+        instance.save()
