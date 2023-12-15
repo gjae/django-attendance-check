@@ -52,7 +52,7 @@ class Employee(TimeStampedModel):
 
 
     def get_fullname(self):
-        return f"{self.name} {self.last_name}"
+        return f"{self.last_name}, {self.name}"
     
 
     @property
