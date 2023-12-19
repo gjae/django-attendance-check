@@ -2,19 +2,19 @@
 
 {% block content %} 
 
-<div class="container-fluid">
+<div class="container">
     <div class="row">
-        <div class="col-12 text-center">
+        <div class="col-11 text-center">
             <strong>
                 Reporte del trabajador {{employer.get_fullname}} 
             </strong>
         </div>
-        <div class="col-12 text-center">
+        <div class="col-11 text-center">
             Desde <strong>{{range_start|date:'d/m/Y'}}</strong> hasta <strong>{{ range_end|date:"d/m/Y" }}</strong>
         </div>
     </div>
     <div class="row mt-4">
-        <div class="col-12">
+        <div class="col-9">
             <table class="table table-stripped" style="font-size: 12px;">
                 <thead>
                     <tr class="text-center">
@@ -30,14 +30,14 @@
                             <td class="text-center">{{record.created|date:'d/m/Y'}}</td>
                             <td class="text-center">{{record.start_at|date:'d/m/Y h:m a'|default:'--'}}</td>
                             <td class="text-center">{{record.end_at|date:'d/m/Y h:m a'|default:'--'}}</td>
-                            <td class="text-end">{{record.abs_total_hours}}</td>
+                            <td style="text-align: end;">{{record.abs_total_hours}}</td>
                         </tr>
                     {% endfor %}
-                    <tr class="bg-secondary">
-                        <td colspan="2">
-                            <strong>Total de horas trabajadas</strong>
+                    <tr>
+                        <td>
+                            <strong>Total</strong>
                         </td>
-                        <td colspan="2" class="text-end">{{total_hours}}</td>
+                        <td colspan="3" style="text-align: end;">{{total_hours}}</td>
                     </tr>
                 </tbody>
             </table>

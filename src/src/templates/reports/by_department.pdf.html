@@ -4,15 +4,15 @@
 
 <div class="container-fluid">
     <div class="row">
-        <div class="col-12 text-center">
+        <div class="col-11 text-center">
             Departamento: <strong>{{department.name}}</strong>
         </div>
-        <div class="col-12 text-center">
+        <div class="col-11 text-center">
             Desde <strong>{{range_start|date:'d/m/Y'}}</strong> hasta <strong>{{ range_end|date:"d/m/Y" }}</strong>
         </div>
     </div>
     <div class="row mt-4">
-        <div class="col-12">
+        <div class="col-9">
             <table class="table table-stripped" style="font-size: 10px;">
                 <thead>
                     <tr class="text-center">
@@ -30,14 +30,14 @@
                             <td class="text-center">{{record.employer__name}}</td>
                             <td class="text-center">{{record.employer__last_name}}</td>
                             <td class="text-center">{{record.employer__position__position}}</td>
-                            <td class="text-end">{{record.total}}</td>
+                            <td style="text-align: end;">{{record.total}}</td>
                         </tr>
                     {% endfor %}
-                    <tr class="bg-secondary">
-                        <td colspan="2">
-                            <strong>Total de horas trabajadas</strong>
+                    <tr >
+                        <td >
+                            <strong>Total</strong>
                         </td>
-                        <td colspan="3" class="text-end">{{total_hours}}</td>
+                        <td colspan="4" style="text-align: end;">{{total_hours}}</td>
                     </tr>
                 </tbody>
             </table>
