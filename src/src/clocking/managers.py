@@ -87,7 +87,6 @@ class CheckingManager(models.Manager):
             .select_related("employee", "employee__position")
             .order_by("id", "employee_id")
         )
-        print(new_data)
         if user_id is not None:
             new_data = new_data.filter(employee_id=user_id)
         if department is not None:
@@ -103,7 +102,6 @@ class CheckingManager(models.Manager):
                 divided_by_user[data.employee_id] = []
             divided_by_user[data.employee_id].append(data)
 
-        print(f"Divided by: {divided_by_user}")
         for user_data in divided_by_user.keys():
             datas = divided_by_user[user_data]
             stack = list()
@@ -115,12 +113,10 @@ class CheckingManager(models.Manager):
                     data_pdf.append(self._build_report_object(report, use_for_database=use_for_database))
 
             for report in datas:
-                print(f"Reporte: {report}")
                 if len(stack) == 0 and report.checking_type == DailyChecks.CHECK_STATUS_CHOISE.entrada:
                     stack.append(report)
                 elif len(stack) > 0 and report.checking_type == DailyChecks.CHECK_STATUS_CHOISE.entrada:
                     last_element = stack.pop()
-                    print(f"Fallo: {last_element}")
                     if last_element.daily_id != report.daily_id:
                         data_pdf.append(self._build_report_object(last_element, use_for_database=use_for_database))
                         stack.append(report)

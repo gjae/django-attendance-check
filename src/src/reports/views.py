@@ -275,10 +275,10 @@ class ReportWorkerExcel(ReportBrandMixin, ReportExcelMixin):
     
     def process_row(self, record):
         return [
-            record.created.strftime("%d/%m/%Y"),
-            record.start_at,
-            record.end_at,
-            record.abs_total_hours
+            record["created"].strftime("%d/%m/%Y"),
+            record["start_at"],
+            record["end_at"],
+            record["abs_total_hours"]
         ]
 
     def get_sheet_title(self):
