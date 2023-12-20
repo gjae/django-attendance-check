@@ -18,6 +18,7 @@ from openpyxl.styles import Alignment, Font
 from src.employees.models import Employee
 from src.reports.models import TimeReport
 from src.settings.models import Department
+from src.clocking.models import DailyChecks
 
 class ReportLetterheadException(Exception):
     pass
@@ -88,19 +89,15 @@ class ReportByWorkerPdfView(BaseReportMixin, WeasyTemplateResponseMixin, Templat
         letterhead = super().get_letterhead_lines()
         
         return letterhead + (
-            "<strrong>Fecha de generación {date}</strong>".format(date=now.strftime("%d/%m/%Y %I:%m %p")),
+            "<strrong>Fecha de generación {date}</strong>".format(date=now.strftime("%d/%m/%Y %I:%M %p")),
         )
     
     def get_context_data(self):
         context = super().get_context_data()
-        data, total_hours = (
-            TimeReport
-            .objects
-            .report_by_worker(
-                self.request.POST.get("start_at"),
-                self.request.POST.get("end_at"),
-                int(self.request.POST.get("employer"))
-            )
+        data, total_hours = DailyChecks.objects.report_by_employee(
+            int(self.request.POST.get("employer")), 
+            self.request.POST.get("start_at"), 
+            self.request.POST.get("end_at")
         )
 
         context["data"] = data
@@ -151,22 +148,14 @@ class ReportByDepartmentPdfView(BaseReportMixin, WeasyTemplateResponseMixin, Tem
         letterhead = super().get_letterhead_lines()
         
         return letterhead + (
-            "<strrong>Fecha de generación {date}</strong>".format(date=now.strftime("%d/%m/%Y %I:%m %p")),
+            "<strrong>Fecha de generación {date}</strong>".format(date=now.strftime("%d/%m/%Y %I:%M %p")),
         )
     
     def get_context_data(self):
         context = super().get_context_data()
-        data, total_hours = (
-            TimeReport
-            .objects
-            .report_by_department(
-                self.request.POST.get("start_at"),
-                self.request.POST.get("end_at"),
-                int(self.request.POST.get("department"))
-            )
-        )
+        data, total_hours = DailyChecks.objects.report_by_employee(None, self.request.POST.get("start_at"), self.request.POST.get("end_at"), department=int(self.request.POST.get("department")))
 
-
+        print(data)
         context["data"] = data
         context["total_hours"] = total_hours
         context["department"] = Department.objects.select_related().get(id=int(self.request.POST.get("department")))
@@ -287,8 +276,8 @@ class ReportWorkerExcel(ReportBrandMixin, ReportExcelMixin):
     def process_row(self, record):
         return [
             record.created.strftime("%d/%m/%Y"),
-            record.start_at.strftime("%d/%m/%Y %I:%M %p"),
-            record.end_at.strftime("%d/%m/%Y %I:%M %p"),
+            record.start_at,
+            record.end_at,
             record.abs_total_hours
         ]
 
@@ -301,18 +290,8 @@ class ReportWorkerExcel(ReportBrandMixin, ReportExcelMixin):
         )
 
     def get_report_content(self):
-        return (
-            TimeReport
-            .objects
-            .report_by_worker(
-                self.request.POST.get("start_at"),
-                self.request.POST.get("end_at"),
-                int(self.request.POST.get("employer"))
-            )
-        )
+        return DailyChecks.objects.report_by_employee( int(self.request.POST.get("employer")), self.request.POST.get("start_at"), self.request.POST.get("end_at"))
     
-
-
 class ReportDepartmentExcel(ReportBrandMixin, ReportExcelMixin):
 
     def get_headlines(self, department, model_id):
@@ -337,11 +316,11 @@ class ReportDepartmentExcel(ReportBrandMixin, ReportExcelMixin):
     
     def process_row(self, record):
         return [
-            record["employer__cedula"],
-            record["employer__name"],
-            record["employer__last_name"],
-            record["employer__position__position"],
-            record["total"]
+            record["employer"].cedula,
+            record["employer"].name,
+            record["employer"].last_name,
+            record["employer"].position.position,
+            record["abs_total_hours"]
         ]
 
     def get_sheet_title(self):
@@ -353,12 +332,9 @@ class ReportDepartmentExcel(ReportBrandMixin, ReportExcelMixin):
         )
     
     def get_report_content(self):
-        return (
-            TimeReport
-            .objects
-            .report_by_department(
-                self.request.POST.get("start_at"),
-                self.request.POST.get("end_at"),
-                int(self.request.POST.get("department"))
-            )
+        return DailyChecks.objects.report_by_employee(
+            None, 
+            self.request.POST.get("start_at"), 
+            self.request.POST.get("end_at"), 
+            department=int(self.request.POST.get("department"))
         )

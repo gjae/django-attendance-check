@@ -28,8 +28,8 @@
                     {% for record in data %}
                         <tr>
                             <td class="text-center">{{record.created|date:'d/m/Y'}}</td>
-                            <td class="text-center">{{record.start_at|date:'d/m/Y h:m a'|default:'--'}}</td>
-                            <td class="text-center">{{record.end_at|date:'d/m/Y h:m a'|default:'--'}}</td>
+                            <td class="text-center">{{record.start_at}}</td>
+                            <td class="text-center">{{record.end_at}}</td>
                             <td style="text-align: end;">{{record.abs_total_hours}}</td>
                         </tr>
                     {% endfor %}

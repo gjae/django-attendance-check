@@ -27,31 +27,20 @@ def hour_counter_task():
     checks = (
         DailyChecks
         .objects
-        .filter(
-            Q(checking_time__date=yesterday.date()) 
-            | Q(checking_time__date=today.date(), checking_type=DailyChecks.CHECK_STATUS_CHOISE.salida)
-        )
-        .order_by("employee_id", "-id")
-        .select_related("employee")
+        .report_by_employee(None, yesterday, yesterday, use_for_database=True)
     )
 
     log.info(f"Reporte para la fecha {yesterday} - {today}: {checks}")
     for check in checks:
-        if len(stack) == 0:
-            stack.append(check)
-        else:
-            if stack[0].employee_id == check.employee_id:
-                prev = stack.pop()
-                total_hours = (check.checking_time - prev.checking_time ).total_seconds() / 60 / 60
-                reports.append(
-                    TimeReport(
-                        employer_id=check.employee_id, 
-                        total_hours=total_hours, 
-                        created=yesterday,
-                        end_at=check.checking_time,
-                        start_at=prev.checking_time
-                    )
-                )
+        reports.append(
+            TimeReport(
+                employer_id=check["employer"].id, 
+                total_hours=check["abs_total_hours"] * 1.0, 
+                created=yesterday,
+                end_at=check["start_at"],
+                start_at=check["end_at"]
+            )
+        )
 
 
     if len(reports) > 0:
