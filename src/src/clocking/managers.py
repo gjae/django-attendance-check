@@ -123,7 +123,7 @@ class CheckingManager(models.Manager):
                 elif len(stack) > 0 and report.checking_type == DailyChecks.CHECK_STATUS_CHOISE.salida:
                     last_element = stack.pop()
                     total_hours = (report.checking_time - last_element.checking_time).total_seconds() / 60 / 60
-                    total_hours_acumulateds += total_hours
+                    total_hours_acumulateds += math.ceil(total_hours)
                     if department is not None:
                         pdf_deque.append(self._build_report_object(last_element, report, math.ceil(total_hours), use_for_database=use_for_database))
                     else:
