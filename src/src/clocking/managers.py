@@ -78,7 +78,6 @@ class CheckingManager(models.Manager):
     
     def report_by_employee(self, user_id = None, from_date = None, until_date = None, use_for_database = False, department = None):
         from src.clocking.models import DailyChecks
-        print(f"Departamento {department}")
         new_data = (
             self
             .filter(daily__date_day__range=[
@@ -108,7 +107,10 @@ class CheckingManager(models.Manager):
             stack = list()
             if len(datas) == 1:
                 report = datas[0]
-                data_pdf.append(self._build_report_object(report, use_for_database=use_for_database))
+                if department is not None:
+                    pdf_deque.append(self._build_report_object(report, use_for_database=use_for_database))
+                else:
+                    data_pdf.append(self._build_report_object(report, use_for_database=use_for_database))
 
             for report in datas:
                 if len(stack) == 0 and report.checking_type == DailyChecks.CHECK_STATUS_CHOISE.entrada:
@@ -125,6 +127,16 @@ class CheckingManager(models.Manager):
                         pdf_deque.append(self._build_report_object(last_element, report, math.ceil(total_hours), use_for_database=use_for_database))
                     else:
                         data_pdf.append(self._build_report_object(last_element, report, math.ceil(total_hours), use_for_database=use_for_database))
+           
+
+            if len(stack) == 1:
+                report = stack.pop()
+                if department is not None:
+                    pdf_deque.append(self._build_report_object(report, use_for_database=use_for_database))
+                else:
+                    data_pdf.append(self._build_report_object(report, use_for_database=use_for_database))
+                
+
 
         if department is not None:
             users = {}
