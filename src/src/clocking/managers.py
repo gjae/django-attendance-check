@@ -122,7 +122,7 @@ class CheckingManager(models.Manager):
                     last_element = stack.pop()
                     print(f"Fallo: {last_element}")
                     if last_element.daily_id != report.daily_id:
-                        data_pdf.append(self._build_report_object(report, use_for_database=use_for_database))
+                        data_pdf.append(self._build_report_object(last_element, use_for_database=use_for_database))
                         stack.append(report)
                 elif len(stack) > 0 and report.checking_type == DailyChecks.CHECK_STATUS_CHOISE.salida:
                     last_element = stack.pop()
