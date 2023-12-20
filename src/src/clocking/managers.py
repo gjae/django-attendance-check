@@ -103,6 +103,7 @@ class CheckingManager(models.Manager):
                 divided_by_user[data.employee_id] = []
             divided_by_user[data.employee_id].append(data)
 
+        print(f"Divided by: {divided_by_user}")
         for user_data in divided_by_user.keys():
             datas = divided_by_user[user_data]
             stack = list()
@@ -119,6 +120,7 @@ class CheckingManager(models.Manager):
                     stack.append(report)
                 elif len(stack) > 0 and report.checking_type == DailyChecks.CHECK_STATUS_CHOISE.entrada:
                     last_element = stack.pop()
+                    print(f"Fallo: {last_element}")
                     if last_element.daily_id != report.daily_id:
                         data_pdf.append(self._build_report_object(report, use_for_database=use_for_database))
                 elif len(stack) > 0 and report.checking_type == DailyChecks.CHECK_STATUS_CHOISE.salida:
