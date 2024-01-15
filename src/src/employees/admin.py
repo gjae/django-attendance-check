@@ -69,6 +69,7 @@ class EmployeeAdmin(ModelAdmin):
     inlines = [EmployerCheckingRecord, ]
     actions = [print_carnet, ]
     form = EmployerModelForm
+    list_filter = ["department", "position"]
 
     fieldsets = (
         (
