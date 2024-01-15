@@ -143,7 +143,7 @@ class EmployeeAdmin(ModelAdmin):
 
 
     list_display = [
-      "photo_tag",  "name", "last_name", "cedula", "birthday_at", "position_user", "date_entry_job", "last_checking"
+      "photo_tag",  "name", "last_name", "cedula", "department", "birthday_at", "position_user", "date_entry_job", "last_checking"
     ]
 
 
