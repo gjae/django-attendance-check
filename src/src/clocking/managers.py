@@ -86,6 +86,7 @@ class CheckingManager(models.Manager):
             ])
             .select_related("employee", "employee__position")
             .order_by("id", "employee_id")
+            .distinct("id")
         )
         if user_id is not None:
             new_data = new_data.filter(employee_id=user_id)
@@ -111,24 +112,24 @@ class CheckingManager(models.Manager):
                     pdf_deque.append(self._build_report_object(report, use_for_database=use_for_database))
                 else:
                     data_pdf.append(self._build_report_object(report, use_for_database=use_for_database))
-
-            for report in datas:
-                if len(stack) == 0 and report.checking_type == DailyChecks.CHECK_STATUS_CHOISE.entrada:
-                    stack.append(report)
-                elif len(stack) > 0 and report.checking_type == DailyChecks.CHECK_STATUS_CHOISE.entrada:
-                    last_element = stack.pop()
-                    if last_element.daily_id != report.daily_id:
-                        data_pdf.append(self._build_report_object(last_element, use_for_database=use_for_database))
+            else:
+                for report in datas:
+                    if len(stack) == 0 and report.checking_type == DailyChecks.CHECK_STATUS_CHOISE.entrada:
                         stack.append(report)
-                elif len(stack) > 0 and report.checking_type == DailyChecks.CHECK_STATUS_CHOISE.salida:
-                    last_element = stack.pop()
-                    total_hours = (report.checking_time - last_element.checking_time).total_seconds() / 60 / 60
-                    total_hours_acumulateds += math.ceil(total_hours)
-                    if department is not None:
-                        pdf_deque.append(self._build_report_object(last_element, report, math.ceil(total_hours), use_for_database=use_for_database))
-                    else:
-                        data_pdf.append(self._build_report_object(last_element, report, math.ceil(total_hours), use_for_database=use_for_database))
-           
+                    elif len(stack) > 0 and report.checking_type == DailyChecks.CHECK_STATUS_CHOISE.entrada:
+                        last_element = stack.pop()
+                        if last_element.daily_id != report.daily_id:
+                            data_pdf.append(self._build_report_object(last_element, use_for_database=use_for_database))
+                            stack.append(report)
+                    elif len(stack) > 0 and report.checking_type == DailyChecks.CHECK_STATUS_CHOISE.salida:
+                        last_element = stack.pop()
+                        total_hours = (report.checking_time - last_element.checking_time).total_seconds() / 60 / 60
+                        total_hours_acumulateds += math.ceil(total_hours)
+                        if department is not None:
+                            pdf_deque.append(self._build_report_object(last_element, report, math.ceil(total_hours), use_for_database=use_for_database))
+                        else:
+                            data_pdf.append(self._build_report_object(last_element, report, math.ceil(total_hours), use_for_database=use_for_database))
+            
 
             if len(stack) == 1:
                 report = stack.pop()
