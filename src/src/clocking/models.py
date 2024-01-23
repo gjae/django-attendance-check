@@ -1,4 +1,6 @@
+from uuid import uuid4
 from django.db import models
+from django.conf import settings
 from model_utils.models import TimeStampedModel
 from model_utils import Choices
 from model_utils.fields import StatusField
@@ -53,3 +55,26 @@ class DailyChecks(TimeStampedModel):
     @property
     def fecha(self):
         return f"{self.daily.date_day.strftime('%d/%m/%Y')}"
+    
+
+
+
+class DailyCalendarObservation(TimeStampedModel):
+    OBSERVATION_TYPE_CHOICES = Choices(
+        (1, "checkin", "Entrada"),
+        (2, "checkout", "Salida"),
+        (3, "checkin_out", "Entrada y salida")
+    )
+
+    calendar_day = models.ForeignKey(DailyCalendar, on_delete=models.RESTRICT, related_name="observations", verbose_name="Día del calendario")
+    employer = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="calendar_observations", verbose_name="Trabajador")
+    description = models.TextField("Descripción")
+    support = models.FileField("Soporte", upload_to="uploads/dailycalendarsupports/", null=True, default=None)
+    check_type = models.PositiveSmallIntegerField("Tipo de observación", choices=OBSERVATION_TYPE_CHOICES, default=OBSERVATION_TYPE_CHOICES.checkin_out)
+
+    class Meta:
+        verbose_name = "Observación de chequeo"
+        verbose_name_plural = "Observaciones de chequeos"
+
+    def __str__(self):
+        return f"{self.employer}; {self.calendar_day.date_day.strftime('%d/%m/%Y')}"

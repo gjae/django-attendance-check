@@ -4,6 +4,9 @@ from django.core.exceptions import ObjectDoesNotExist
 
 class EmployerManager(models.Manager):
 
+    def get_queryset(self):
+        return super().get_queryset().filter(deleted_at__isnull=True)
+
     def allow_checking(self, cedula: int) -> bool:
         """
         Verifica si, dado un número de cédula, el trabajador puede marcar 

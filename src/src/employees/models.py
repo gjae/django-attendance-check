@@ -33,13 +33,14 @@ class Employee(TimeStampedModel):
     cedula = models.PositiveIntegerField("Cédula", db_index=True, default=0)
     picture = models.ImageField("Foto", upload_to='pictures')
     date_entry_job = models.DateField("Fecha de ingreso", null=True, default=None, help_text="Formato: AAAA-MM-DD")
-    birthday_at = models.DateField("Fecha de cumpleaños", null=True, default=None, help_text="Formato: AAAA-MM-DD")
+    birthday_at = models.DateField("Fecha de nacimiento", null=True, default=None, help_text="Formato: AAAA-MM-DD")
 
     position = models.ForeignKey(EmployeePosition, on_delete=models.CASCADE, related_name="employees", null=True, default=None, verbose_name="Cargo")
 
     status = StatusField(default="actived")
     department = models.ForeignKey(Department, on_delete=models.RESTRICT, related_name="employers", null=True, default=None, verbose_name="Departamento")
     objects = EmployerManager()
+    deleted_at = models.DateTimeField("Eliminado", null=True, default=None)
 
     class Meta:
         verbose_name = "Trabajador"

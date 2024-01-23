@@ -1,4 +1,5 @@
 from typing import Any
+from datetime import datetime
 from django.urls import reverse
 from django.contrib import admin
 from django.contrib.admin.options import InlineModelAdmin
@@ -121,8 +122,8 @@ class EmployeeAdmin(ModelAdmin):
             f'</div>'
         )
     
-    def has_delete_permission(self, request: HttpRequest, obj=None) -> bool:
-        return False
+    def delete_queryset(self, request, queryset):
+        queryset.update(deleted_at=datetime.now())
 
     def get_queryset(self, request: HttpRequest) -> QuerySet[Any]:
         return super().get_queryset(request).select_related("position", "department").prefetch_related("daily_checks", "daily_checks__daily")
