@@ -21,7 +21,6 @@ def on_create_observation_save_checking(sender, instance: DailyCalendarObservati
     now = datetime(instance.calendar_day.date_day.year, instance.calendar_day.date_day.month, instance.calendar_day.date_day.day, 8,0,0,0)
     end = now + timedelta(hours=8)
 
-    print(now, end)
     if check_counter == 0 and instance.check_type == 3:
         d1 = DailyChecks.objects.create(
             employee=instance.employer,

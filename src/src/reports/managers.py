@@ -52,5 +52,4 @@ class TimeReportManager(models.Manager):
         for record in data:
             total_hours  += record["total"]
 
-        print(data)
         return data, total_hours

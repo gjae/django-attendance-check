@@ -21,6 +21,5 @@ class PrintCartnetView(WeasyTemplateResponseMixin, MyDetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["current_carnet_data"] = Employee.objects.filter(id=self.kwargs.get("pk")).first()
-        print(context)
         return context
     
