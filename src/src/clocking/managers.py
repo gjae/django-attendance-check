@@ -98,6 +98,8 @@ class CheckingManager(models.Manager):
         pdf_deque = deque()
         total_hours_acumulateds = 0
 
+        print(new_data)
+
         for data in new_data:
             if data.employee_id not in divided_by_user:
                 divided_by_user[data.employee_id] = []

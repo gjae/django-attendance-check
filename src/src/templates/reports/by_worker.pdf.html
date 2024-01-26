@@ -43,6 +43,34 @@
             </table>
         </div>
     </div>
+    <div style="page-break-before:always">
+    </div>
+    <div class="row">
+        <div class="col-9">
+        <strong>Observaciones</strong>
+
+            <table class="table table-borderer table-stripped mt-4 w-100" style="font-size: 12px;">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Observación</th>
+                    </tr>
+                </thead>
+                <tbody style="font-size: 9px;">
+                    {% for ob in observations %}
+                        <tr>
+                            <td  width="2%">
+                                {{ob.calendar_day.date_day|date:"d/m/Y"}}
+                            </td>
+                            <td>
+                                {{ob.description}}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
 {% endblock content %}

@@ -1,4 +1,5 @@
 import csv
+from datetime import datetime
 from django.db import transaction
 from django.core.management.base import BaseCommand, CommandError
 
@@ -11,9 +12,6 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         files = [
             "/app/src/preloads/concepcion.csv",
-            "/app/src/preloads/destajos.csv",
-            "/app/src/preloads/fijos.csv",
-            "/app/src/preloads/nuevos_ingresos.csv",
         ]
         departments = {}
         charges = {}
@@ -23,10 +21,10 @@ class Command(BaseCommand):
                 with open(file, newline='') as csvfile:
                     reader = csv.reader(csvfile, delimiter=",")
                     for row in reader:
-                        department = row[3]
-                        charge = row[2]
-                        idcard = int(row[1].replace("V-", "").replace(".", "").replace("V", ""))
-                        name, last_name = row[0].split(",")
+                        department = row[4]
+                        charge = row[3]
+                        idcard = int(row[2].replace("V", "").strip())
+                        name, last_name = row[0], row[1]
                         if department not in departments:
                             departments[department], _ = Department.objects.get_or_create(name=department)
                         if charge not in charges:
@@ -38,7 +36,9 @@ class Command(BaseCommand):
                                 "name": name.strip(),
                                 "last_name": last_name.strip(),
                                 "position_id": charges[charge].id,
-                                "department_id": departments[department].id
+                                "department_id": departments[department].id,
+                                "birthday_at": datetime.strptime(row[6], "%d/%m/%Y"),
+                                "date_entry_job": datetime.strptime(row[5], "%d/%m/%Y"),
                             }
                         )
                         

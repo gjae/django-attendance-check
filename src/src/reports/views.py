@@ -18,7 +18,8 @@ from openpyxl.styles import Alignment, Font
 from src.employees.models import Employee
 from src.reports.models import TimeReport
 from src.settings.models import Department
-from src.clocking.models import DailyChecks
+from src.clocking.models import DailyChecks, DailyCalendarObservation
+
 
 class ReportLetterheadException(Exception):
     pass
@@ -105,6 +106,14 @@ class ReportByWorkerPdfView(BaseReportMixin, WeasyTemplateResponseMixin, Templat
         context["employer"] = Employee.objects.select_related().get(id=int(self.request.POST.get("employer")))
         context["range_start"] = datetime.strptime(self.request.POST.get("start_at"), "%Y-%m-%d")
         context["range_end"] = datetime.strptime(self.request.POST.get("end_at"), "%Y-%m-%d")
+        context["observations"] = DailyCalendarObservation.objects.select_related("employer", "calendar_day").filter(
+            employer_id=int(self.request.POST.get("employer")),
+            calendar_day__date_day__range=[ 
+                self.request.POST.get("start_at"), 
+                self.request.POST.get("end_at")
+            ]
+        )
+
         return context
     
     def post(self, request, *args, **kwargs):
@@ -155,12 +164,18 @@ class ReportByDepartmentPdfView(BaseReportMixin, WeasyTemplateResponseMixin, Tem
         context = super().get_context_data()
         data, total_hours = DailyChecks.objects.report_by_employee(None, self.request.POST.get("start_at"), self.request.POST.get("end_at"), department=int(self.request.POST.get("department")))
 
-        print(data)
         context["data"] = data
         context["total_hours"] = total_hours
         context["department"] = Department.objects.select_related().get(id=int(self.request.POST.get("department")))
         context["range_start"] = datetime.strptime(self.request.POST.get("start_at"), "%Y-%m-%d")
         context["range_end"] = datetime.strptime(self.request.POST.get("end_at"), "%Y-%m-%d")
+        context["observations"] = DailyCalendarObservation.objects.select_related("employer", "calendar_day").filter(
+            employer__department_id=int(self.request.POST.get("department")),
+            calendar_day__date_day__range=[ 
+                self.request.POST.get("start_at"), 
+                self.request.POST.get("end_at")
+            ]
+        )
         return context
     
     def post(self, request, *args, **kwargs):
