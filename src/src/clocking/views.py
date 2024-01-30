@@ -46,6 +46,6 @@ class ClientMarkCheckFormView(JSONResponseMixin, FormView):
                 "name": cheecking.employee.get_fullname(),
                 "position": cheecking.employee.position.position,
                 "department": "SISTEMAS",
-                "photo": cheecking.employee.picture.url
+                "photo": cheecking.employee.picture.url if cheecking.employee.picture is not None and cheecking.employee.picture.name else None
             }
         })
