@@ -61,7 +61,7 @@ class DailyChecks(TimeStampedModel):
 
 class DailyCalendarObservation(TimeStampedModel):
     OBSERVATION_TYPE_CHOICES = Choices(
-        (1, "checkin", "Entrada"),
+        # (1, "checkin", "Entrada"),
         (2, "checkout", "Salida"),
         (3, "checkin_out", "Entrada y salida")
     )
