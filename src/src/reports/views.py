@@ -209,6 +209,8 @@ class ReportExcelMixin(LoginRequiredMixin, View):
     def before(self, ws):
         pass
 
+    def post_processing(self, data, sheet, wb):
+        pass
 
     def post(self, request, *args, **kwargs):
         workbook = Workbook()
@@ -224,6 +226,9 @@ class ReportExcelMixin(LoginRequiredMixin, View):
             ws.append(self.process_row(record))
 
         ws.append(self.get_footer(total_hours))
+
+        self.post_processing(data, ws, workbook)
+
 
         dim_holder = DimensionHolder(worksheet=ws)
 
@@ -307,6 +312,35 @@ class ReportWorkerExcel(ReportBrandMixin, ReportExcelMixin):
     def get_report_content(self):
         return DailyChecks.objects.report_by_employee( int(self.request.POST.get("employer")), self.request.POST.get("start_at"), self.request.POST.get("end_at"))
     
+    def post_processing(self, data, sheet, wb):
+        observations = DailyCalendarObservation.objects.select_related("employer", "calendar_day").filter(
+            employer_id=int(self.request.POST.get("employer")),
+            calendar_day__date_day__range=[ 
+                self.request.POST.get("start_at"), 
+                self.request.POST.get("end_at")
+            ]
+        )
+        
+        observation_sheet = wb.create_sheet("Observaciones")
+        observation_sheet.append([
+            "Nombre y apellido",
+            "Cédula",
+            "Fecha",
+            "Descripción",
+        ])
+        for observation in observations:
+            observation_sheet.append([
+                observation.employer.get_fullname(),
+                observation.employer.cedula,
+                observation.calendar_day.date_day.strftime("%d/%m/%Y"),
+                observation.description
+            ])
+
+        dim_holder = DimensionHolder(worksheet=observation_sheet)
+        for col in range(observation_sheet.min_column, observation_sheet.max_column + 1):
+            dim_holder[get_column_letter(col)] = ColumnDimension(observation_sheet, min=col, max=col, width=20)
+        
+    
 class ReportDepartmentExcel(ReportBrandMixin, ReportExcelMixin):
 
     def get_headlines(self, department, model_id):
@@ -353,3 +387,34 @@ class ReportDepartmentExcel(ReportBrandMixin, ReportExcelMixin):
             self.request.POST.get("end_at"), 
             department=int(self.request.POST.get("department"))
         )
+    
+    
+    def post_processing(self, data, sheet, wb):
+        observations = DailyCalendarObservation.objects.select_related("employer", "calendar_day").filter(
+            employer__department_id=int(self.request.POST.get("department")),
+            calendar_day__date_day__range=[ 
+                self.request.POST.get("start_at"), 
+                self.request.POST.get("end_at")
+            ]
+        )
+        
+        observation_sheet = wb.create_sheet("Observaciones")
+        observation_sheet.append([
+            "Nombre y apellido",
+            "Cédula",
+            "Fecha",
+            "Descripción",
+        ])
+        for observation in observations:
+            observation_sheet.append([
+                observation.employer.get_fullname(),
+                observation.employer.cedula,
+                observation.calendar_day.date_day.strftime("%d/%m/%Y"),
+                observation.description
+            ])
+
+        dim_holder = DimensionHolder(worksheet=observation_sheet)
+        for col in range(observation_sheet.min_column, observation_sheet.max_column + 1):
+            dim_holder[get_column_letter(col)] = ColumnDimension(observation_sheet, min=col, max=col, width=20)
+        
+    
