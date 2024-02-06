@@ -17,6 +17,7 @@ from openpyxl.styles import Alignment, Font
 
 from src.employees.models import Employee
 from src.reports.models import TimeReport
+from src.reports.utils import has_observation
 from src.settings.models import Department
 from src.clocking.models import DailyChecks, DailyCalendarObservation
 
@@ -205,6 +206,9 @@ class ReportExcelMixin(LoginRequiredMixin, View):
         fields.append(total_hours)
 
         return fields
+    
+    def before_process(self):
+        pass
 
     def before(self, ws):
         pass
@@ -213,6 +217,7 @@ class ReportExcelMixin(LoginRequiredMixin, View):
         pass
 
     def post(self, request, *args, **kwargs):
+        self.before_process()
         workbook = Workbook()
         headers = self.get_headers()
         ws = workbook.active
@@ -252,7 +257,7 @@ class ReportBrandMixin:
     def before(self, ws):
         now = timezone.now()
         ws.merge_cells("A1:A6")
-        img = Image("/app/src/static/images/branding/logo_inpromaro_lit.png")
+        img = Image("/app/src/static/images/branding/logo_inpromaro_lit_backup.png")
         ws.add_image(img, "A1")
         ws.merge_cells("B1:G6")
         department = None
@@ -271,6 +276,16 @@ class ReportBrandMixin:
 
 
 class ReportWorkerExcel(ReportBrandMixin, ReportExcelMixin):
+
+    def before_process(self):
+        self.observations = DailyCalendarObservation.objects.select_related("employer", "calendar_day").filter(
+            employer_id=int(self.request.POST.get("employer")),
+            calendar_day__date_day__range=[ 
+                self.request.POST.get("start_at"), 
+                self.request.POST.get("end_at")
+            ]
+        )
+
     def get_headlines(self, department, model_id):
         now = timezone.now()
         
@@ -290,14 +305,17 @@ class ReportWorkerExcel(ReportBrandMixin, ReportExcelMixin):
             "Fecha", 
             "Hora de entrada",
             "Hora de salida",
+            "Observación",
             "Total de horas"
         ]
     
     def process_row(self, record):
+        observation = has_observation(record, self.observations)
         return [
             record["created"].strftime("%d/%m/%Y"),
             record["start_at"],
             record["end_at"],
+            "Si" if observation else "No",
             record["abs_total_hours"]
         ]
 
@@ -313,14 +331,6 @@ class ReportWorkerExcel(ReportBrandMixin, ReportExcelMixin):
         return DailyChecks.objects.report_by_employee( int(self.request.POST.get("employer")), self.request.POST.get("start_at"), self.request.POST.get("end_at"))
     
     def post_processing(self, data, sheet, wb):
-        observations = DailyCalendarObservation.objects.select_related("employer", "calendar_day").filter(
-            employer_id=int(self.request.POST.get("employer")),
-            calendar_day__date_day__range=[ 
-                self.request.POST.get("start_at"), 
-                self.request.POST.get("end_at")
-            ]
-        )
-        
         observation_sheet = wb.create_sheet("Observaciones")
         observation_sheet.append([
             "Nombre y apellido",
@@ -328,7 +338,7 @@ class ReportWorkerExcel(ReportBrandMixin, ReportExcelMixin):
             "Fecha",
             "Descripción",
         ])
-        for observation in observations:
+        for observation in self.observations:
             observation_sheet.append([
                 observation.employer.get_fullname(),
                 observation.employer.cedula,
@@ -342,6 +352,15 @@ class ReportWorkerExcel(ReportBrandMixin, ReportExcelMixin):
         
     
 class ReportDepartmentExcel(ReportBrandMixin, ReportExcelMixin):
+
+    def before_process(self):
+        self.observations = DailyCalendarObservation.objects.select_related("employer", "calendar_day").filter(
+            employer__department_id=int(self.request.POST.get("department")),
+            calendar_day__date_day__range=[ 
+                self.request.POST.get("start_at"), 
+                self.request.POST.get("end_at")
+            ]
+        )
 
     def get_headlines(self, department, model_id):
         now = timezone.now()
@@ -360,15 +379,18 @@ class ReportDepartmentExcel(ReportBrandMixin, ReportExcelMixin):
             "Nombre",
             "Apellido",
             "Cargo",
+            "Observación",
             "Total de horas"
         ]
     
     def process_row(self, record):
+        observation = has_observation(record, self.observations)
         return [
             record["employer"].cedula,
             record["employer"].name,
             record["employer"].last_name,
             record["employer"].position.position,
+            "Si" if observation else "No",
             record["abs_total_hours"]
         ]
 
@@ -390,14 +412,6 @@ class ReportDepartmentExcel(ReportBrandMixin, ReportExcelMixin):
     
     
     def post_processing(self, data, sheet, wb):
-        observations = DailyCalendarObservation.objects.select_related("employer", "calendar_day").filter(
-            employer__department_id=int(self.request.POST.get("department")),
-            calendar_day__date_day__range=[ 
-                self.request.POST.get("start_at"), 
-                self.request.POST.get("end_at")
-            ]
-        )
-        
         observation_sheet = wb.create_sheet("Observaciones")
         observation_sheet.append([
             "Nombre y apellido",
@@ -405,7 +419,7 @@ class ReportDepartmentExcel(ReportBrandMixin, ReportExcelMixin):
             "Fecha",
             "Descripción",
         ])
-        for observation in observations:
+        for observation in self.observations:
             observation_sheet.append([
                 observation.employer.get_fullname(),
                 observation.employer.cedula,

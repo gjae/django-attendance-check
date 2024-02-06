@@ -115,9 +115,9 @@ AUTHENTICATION_BACKENDS = [
 # https://docs.djangoproject.com/en/dev/ref/settings/#auth-user-model
 AUTH_USER_MODEL = "users.User"
 # https://docs.djangoproject.com/en/dev/ref/settings/#login-redirect-url
-LOGIN_REDIRECT_URL = "users:redirect"
+LOGIN_REDIRECT_URL = "/admin"
 # https://docs.djangoproject.com/en/dev/ref/settings/#login-url
-LOGIN_URL = "account_login"
+LOGIN_URL = "/admin"
 
 # PASSWORDS
 # ------------------------------------------------------------------------------
@@ -370,3 +370,5 @@ WEASYPRINT_BASEURL = '/'
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_AGE = 600 # set just 10 seconds to test
 SESSION_SAVE_EVERY_REQUEST = True
+LOGOUT_REDIRECT_URL = "/admin"
+SESSION_TIMEOUT_REDIRECT  = "/admin"

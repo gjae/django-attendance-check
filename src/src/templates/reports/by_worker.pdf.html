@@ -1,4 +1,5 @@
 {% extends 'reports/base.html' %}
+{% load reports_utils %}
 
 {% block content %} 
 
@@ -21,15 +22,24 @@
                         <th>Fecha</th>
                         <th>Hora de entrada</th>
                         <th>Hora de salida</th>
+                        <th>Observación</th>
                         <th>Total de horas</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for record in data %}
+                        {% day_has_observation record observations as has_observation %}
                         <tr>
                             <td class="text-center">{{record.created|date:'d/m/Y'}}</td>
                             <td class="text-center">{{record.start_at}}</td>
                             <td class="text-center">{{record.end_at}}</td>
+                            <td class="text-center">
+                                {% if has_observation %}
+                                    <strong class="text-primary">Si</strong>
+                                    {% else %}
+                                    <strong>No</strong>
+                                {% endif %}
+                            </td>
                             <td style="text-align: end;">{{record.abs_total_hours}}</td>
                         </tr>
                     {% endfor %}
@@ -37,7 +47,7 @@
                         <td>
                             <strong>Total</strong>
                         </td>
-                        <td colspan="3" style="text-align: end;">{{total_hours}}</td>
+                        <td colspan="4" style="text-align: end;">{{total_hours}}</td>
                     </tr>
                 </tbody>
             </table>

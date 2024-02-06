@@ -65,7 +65,8 @@ class CheckingManager(models.Manager):
             "total_hours": 0,
             "start_at": entry.checking_time.strftime("%d/%m/%Y %I:%M %p") if not use_for_database else entry.checking_time,
             "end_at": "SIN MARCAR" if out is None else out.checking_time.strftime("%d/%m/%Y %I:%M %p"),
-            "abs_total_hours": total_hours
+            "abs_total_hours": total_hours,
+            "daily_id": entry.daily_id
         }
 
         if out is not None and use_for_database:
