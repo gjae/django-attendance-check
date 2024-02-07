@@ -108,6 +108,8 @@
     return {
       timer: null,
       errorTyped: false,
+      interval: null,
+      initialized: false,
       data: {
         id: "",
         personal : {
@@ -138,20 +140,56 @@
         this.bepEffect.play()
       },
       initialize() {
+        if (this.initialized) {
+          return
+        }
+
+        this.initialized = true
         this.audioEffect()
         this.cargarReloj()
         this.errorTyped = false
+        console.info("App has been initialized")
         // document.getElementById("reader").focus()
         window.addEventListener("keyup", (e)=> {
           if (parseInt(e.key) >= 0 && parseInt(e.key) <= 9) {
             this.data.id = `${this.data.id}${e.key}`
           } else if (e.key == "enter" || e.keyCode == 13) {
+            let currentDate = new Date()
+            console.log("Ultimo chequeo marcado ", {currentDate})
+            localStorage.setItem("last_checking", currentDate)
             if (this.data.id != "") {
               this.$refs["idDisplayer"].value = this.data.id
               this.sendForm()
             }
+            setTimeout(()=> {
+              this.data.id = ""
+            }, 2000)
           }
         })
+
+        
+        /**
+        * Al pasar un minuto soe verifica si hay una 
+        * diferencia de cierta cantidad de minutos, en caso de haberlo
+        * se refresca automaticamente la vista para evitar bugs por tiempo muerto
+        */
+        this.interval = setInterval(()=> {
+          let lastCheck = localStorage.getItem("last_checking")
+          let now = new Date()
+          if (lastCheck == null) {
+            return
+          }
+          
+          let diff = (now - new Date(lastCheck))
+          let diffInMinutes = (diff / 1000) / 60
+          console.log({diffInMinutes})
+          if (diffInMinutes >= 3) {
+            console.log("Refrescando vista por tiempo muerto")
+            localStorage.setItem("last_checking", new Date())
+            location.reload()
+          }
+
+        }, 60000)
       },
       sendForm() {
         const form = document.getElementById("checkingForm")
