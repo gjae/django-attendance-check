@@ -21,7 +21,6 @@
                         <th>Nombre</th>
                         <th>Apellido</th>
                         <th>Cargo</th>
-                        <th>Observación</th>
                         <th>Total de horas</th>
                     </tr>
                 </thead>
@@ -33,13 +32,6 @@
                             <td class="text-center">{{record.employer.name}}</td>
                             <td class="text-center">{{record.employer.last_name}}</td>
                             <td class="text-center">{{record.employer.position.position}}</td>
-                            <td class="text-center">
-                                {% if has_observation %}
-                                    <strong class="text-primary">Si</strong>
-                                    {% else %}
-                                    <strong>No</strong>
-                                {% endif %}
-                            </td>
                             <td style="text-align: end;">{{record.abs_total_hours}}</td>
                         </tr>
                     {% endfor %}
@@ -47,7 +39,7 @@
                         <td >
                             <strong>Total</strong>
                         </td>
-                        <td colspan="5" style="text-align: end;">{{total_hours}}</td>
+                        <td colspan="4" style="text-align: end;">{{total_hours}}</td>
                     </tr>
                 </tbody>
             </table>

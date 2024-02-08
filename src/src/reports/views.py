@@ -379,7 +379,6 @@ class ReportDepartmentExcel(ReportBrandMixin, ReportExcelMixin):
             "Nombre",
             "Apellido",
             "Cargo",
-            "Observación",
             "Total de horas"
         ]
     
@@ -390,7 +389,6 @@ class ReportDepartmentExcel(ReportBrandMixin, ReportExcelMixin):
             record["employer"].name,
             record["employer"].last_name,
             record["employer"].position.position,
-            "Si" if observation else "No",
             record["abs_total_hours"]
         ]
 
