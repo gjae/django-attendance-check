@@ -27,7 +27,13 @@ class EmployerManager(models.Manager):
             return False
         
         return employer.allow_checking
-    
+
+    def absences_between_dates(self, start_at, end_at):
+        from src.clocking.models import DailyChecks
+
+
+        return []
+
 
     def only_actives(self):
         from src.employees.models import Employee

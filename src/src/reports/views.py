@@ -115,6 +115,9 @@ class ReportByWorkerPdfView(BaseReportMixin, WeasyTemplateResponseMixin, Templat
             ]
         )
 
+        # context de inasistencias del empleado
+        context["absences"] = Employee.objects.absences_between_dates(self.request.POST.get("start_at"), self.request.POST.get("end_at"))
+
         return context
     
     def post(self, request, *args, **kwargs):
