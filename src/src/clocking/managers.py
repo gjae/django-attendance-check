@@ -125,11 +125,11 @@ class CheckingManager(models.Manager):
                     elif len(stack) > 0 and report.checking_type == DailyChecks.CHECK_STATUS_CHOISE.salida:
                         last_element = stack.pop()
                         total_hours = (report.checking_time - last_element.checking_time).total_seconds() / 60 / 60
-                        total_hours_acumulateds += total_hours
+                        total_hours_acumulateds += round(total_hours, 2)
                         if department is not None:
-                            pdf_deque.append(self._build_report_object(last_element, report, total_hours, use_for_database=use_for_database))
+                            pdf_deque.append(self._build_report_object(last_element, report, round(total_hours, 2), use_for_database=use_for_database))
                         else:
-                            data_pdf.append(self._build_report_object(last_element, report, total_hours, use_for_database=use_for_database))
+                            data_pdf.append(self._build_report_object(last_element, report, round(total_hours, 2), use_for_database=use_for_database))
             
 
             if len(stack) == 1:
@@ -154,4 +154,4 @@ class CheckingManager(models.Manager):
 
             data_pdf = list(users.values())
 
-        return data_pdf, total_hours_acumulateds
+        return data_pdf, round(total_hours_acumulateds, 2)
