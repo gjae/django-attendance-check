@@ -27,6 +27,15 @@ def print_carnet(modeladmin, request, queryset):
 
         return False
     
+    employer: Employee = queryset.first()
+    if employer.picture.name == '':
+        modeladmin.message_user(
+            request,
+            f"El trabajador {employer.get_fullname()} no tiene cargada una foto, por lo que su carnet no puede ser generado",
+            messages.ERROR
+        )
+        return False
+
 
     return HttpResponseRedirect(
         reverse("carnets.print", kwargs={"pk": queryset.first().id})
