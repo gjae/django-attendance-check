@@ -146,7 +146,7 @@ class CheckingManager(models.Manager):
             total_hours_acumulateds = 0
             while pdf_deque:
                 element = pdf_deque.popleft()
-                total_hours_acumulateds += element["abs_total_hours"]
+                total_hours_acumulateds += round(element["abs_total_hours"], 2)
                 if element["employer"].id not in users:
                     users[element["employer"].id] = element
                     continue
