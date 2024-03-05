@@ -124,7 +124,7 @@ class CheckingManager(models.Manager):
                             stack.append(report)
                     elif len(stack) > 0 and report.checking_type == DailyChecks.CHECK_STATUS_CHOISE.salida:
                         last_element = stack.pop()
-                        total_hours = (report.checking_time - last_element.checking_time).total_seconds() / 60 / 60
+                        total_hours = round((report.checking_time - last_element.checking_time).total_seconds() / 60 / 60, 2)
                         total_hours_acumulateds += round(total_hours, 2)
                         if department is not None:
                             pdf_deque.append(self._build_report_object(last_element, report, round(total_hours, 2), use_for_database=use_for_database))
@@ -150,7 +150,7 @@ class CheckingManager(models.Manager):
                 if element["employer"].id not in users:
                     users[element["employer"].id] = element
                     continue
-                users[element["employer"].id]["abs_total_hours"] += element["abs_total_hours"]
+                users[element["employer"].id]["abs_total_hours"] += round(element["abs_total_hours"], 2)
 
             data_pdf = list(users.values())
 
