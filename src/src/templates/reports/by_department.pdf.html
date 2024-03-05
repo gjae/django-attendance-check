@@ -32,7 +32,7 @@
                             <td class="text-center">{{record.employer.name}}</td>
                             <td class="text-center">{{record.employer.last_name}}</td>
                             <td class="text-center">{{record.employer.position.position}}</td>
-                            <td style="text-align: end;">{{record.abs_total_hours|floatformat }}</td>
+                            <td style="text-align: end;">{{record.abs_total_hours|floatformat:2 }}</td>
                         </tr>
                     {% endfor %}
                     <tr >
