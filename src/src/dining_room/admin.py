@@ -28,3 +28,17 @@ class DiningCheckingModelAdmin(ModelAdmin):
     @admin.display(empty_value="Sin registro")
     def employer_last_name(self, obj):
         return obj.employer.last_name
+    
+    
+    def has_add_permission(self, request) -> bool:
+        return False
+    
+    def has_delete_permission(self, request, obj=None) -> bool:
+        return False
+
+    def has_change_permission(self, request, obj=None) -> bool:
+        return False
+    
+
+    employer_last_name.short_description = "Apellido"
+    employer_name.short_description = "Nombre"
