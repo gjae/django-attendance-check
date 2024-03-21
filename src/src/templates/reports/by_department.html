@@ -1,61 +1,58 @@
+{% extends 'reports/base_html.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
-    <script src="/static/unfold/js/alpine.js" defer=""></script>
-    <title>Generador de reporte por trabajador</title>
-</head>
-<body x-data="{ form: 'pdf' }">
-    <div class="container-fluid">
-        <form :action="form == 'pdf' ? '/reports/department/pdf/': '/reports/department/excel/'" method="post">
-            {% csrf_token %}
+
+{% block head %}
+<script src="/static/unfold/js/alpine.js" defer=""></script>
+{% endblock %}
+
+{% block title %}Generador de reporte por departamento{% endblock %}
+{% block report_identify %}Reporte por departamento{% endblock %}
+{% block body %}
+<div x-data="{ form: 'pdf' }" class="container-fluid">
+    <form :action="form == 'pdf' ? '/reports/department/pdf/': '/reports/department/excel/'" method="post">
+        {% csrf_token %}
+        <div class="row">
+            <div class="col-sm-12 col-lg-4">
+                <label for="employer_id">
+                    <strong>Departamento <span class="text-danger">*</span> </strong>
+                </label>
+                <select name="department" required id="employer_id" class="form-control select2bs5">
+                    <option value="">--</option>
+                    {% for department in departments %}
+                        <option value="{{department.id}}">{{department.name}}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-sm-12 col-lg-4">
+                <label for="employer_id">
+                    <strong>Fecha desde <span class="text-danger">*</span> </strong>
+                </label>
+                <input type="date" required name="start_at" id="id_start_at" class="form-control">
+            </div>
+            <div class="col-sm-12 col-lg-4">
+                <label for="employer_id">
+                    <strong>Fecha hasta <span class="text-danger">*</span> </strong>
+                </label>
+                <input type="date" required name="end_at" id="id_end_at" class="form-control">
+            </div>
             <div class="row">
-                <div class="col-sm-12 col-lg-4">
-                    <label for="employer_id">
-                        <strong>Departamento <span class="text-danger">*</span> </strong>
+                <div class="col-sm-12 col-md-3 col-lg-3">
+                    <label for="id_report_type_1">
+                        <input type="radio" name="report_type" @click="form = 'pdf'" value="1" checked id="id_type_report_1"> Generar PDF
                     </label>
-                    <select name="department" required id="employer_id" class="form-control">
-                        <option value="">--</option>
-                        {% for department in departments %}
-                            <option value="{{department.id}}">{{department.name}}</option>
-                        {% endfor %}
-                    </select>
                 </div>
-                <div class="col-sm-12 col-lg-4">
-                    <label for="employer_id">
-                        <strong>Fecha desde <span class="text-danger">*</span> </strong>
+                <div class="col-sm-12 col-md-3 col-lg-3">
+                    <label for="id_report_type_2">
+                        <input type="radio" name="report_type" @click="form = 'excel'" value="2" id="id_type_report_2"> Generar en EXCEL
                     </label>
-                    <input type="date" required name="start_at" id="id_start_at" class="form-control">
-                </div>
-                <div class="col-sm-12 col-lg-4">
-                    <label for="employer_id">
-                        <strong>Fecha hasta <span class="text-danger">*</span> </strong>
-                    </label>
-                    <input type="date" required name="end_at" id="id_end_at" class="form-control">
-                </div>
-                <div class="row">
-                    <div class="col-sm-12 col-md-3 col-lg-3">
-                        <label for="id_report_type_1">
-                            <input type="radio" name="report_type" @click="form = 'pdf'" value="1" checked id="id_type_report_1"> Generar PDF
-                        </label>
-                    </div>
-                    <div class="col-sm-12 col-md-3 col-lg-3">
-                        <label for="id_report_type_2">
-                            <input type="radio" name="report_type" @click="form = 'excel'" value="2" id="id_type_report_2"> Generar en EXCEL
-                        </label>
-                    </div>
-                </div>
-                <div class="col-12 mt-2">
-                    <button class="btn btn-primary">
-                        <i class="fas fa-download"></i> Generar
-                    </button>
                 </div>
             </div>
-        </form>
-    </div>
-
-</body>
-</html> 
+            <div class="col-12 mt-2">
+                <button class="btn btn-primary">
+                    <i class="fas fa-download"></i> Generar
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock body %}

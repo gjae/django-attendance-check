@@ -39,7 +39,7 @@
 </nav>
 <main id="main-container" x-data="app()" x-cloak x-init="$nextTick(() => initialize())" class="pt-4 bg-light h-100">
   
-  <div class="container">
+  <div class="container" x-show="!isOffline">
     <div class="row">
       <div class="col-sm-12 col-6">
         <div id="relojnumerico" class="reloj" >
@@ -83,6 +83,20 @@
       </div>
     </div>
   </div>
+  <div class="container" x-show="isOffline">
+    <div class="col d-flex flex-row align-self-center justify-content-center align-ittems-center">
+      <img src="/static/images/plug_connection.png" class="float-start" alt="...">
+    </div>
+    <div class="row mt-4">
+      <div class="col-6 offset-3">
+        <div class="alert alert-danger text-center" >
+          <strong>
+            La conexión con el servidor se ha perdido
+          </strong>
+        </div>
+      </div>
+    </div>
+  </div>
   <form action="{% url 'clocking.checking' %}" method="post" id="checkingForm">
     {% csrf_token %}
     <input type="hidden" name="cedula" :value="data.id">
@@ -110,6 +124,7 @@
       errorTyped: false,
       interval: null,
       initialized: false,
+      isOffline: false,
       data: {
         id: "",
         personal : {
@@ -143,6 +158,16 @@
         if (this.initialized) {
           return
         }
+        window.addEventListener("offline", (e) => {
+          this.isOffline = true
+        });
+
+        window.addEventListener("online", (e) => {
+          if (this.isOffline) {
+            location.reload()
+          }
+          this.isOffline = false
+        });
 
         this.initialized = true
         this.audioEffect()
