@@ -1,0 +1,390 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+  <script src="{% static 'js/alpine.min.js' %}" defer></script>
+  <title>Sistema degestión de asistencias</title>
+
+  <style>
+    [x-cloak] { display: none !important; }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    } 
+    .reloj {
+        color: #0d1420;
+        font-size: 40px;
+        font-family: Arial;
+        letter-spacing: 5px;
+        text-align: center;
+        background-color: #e6e6e6;
+        border: 2px solid #434547;
+        border-radius: 20px;
+    }
+  </style>
+</head>
+<body class="bg-light d-flex flex-column justify-content-between px-0">
+
+<nav class="navbar text-with">
+  <div class="container-fluid">
+    <span class="navbar-brand mb-0 h1">
+      <img src="{% static 'images/branding/logo_inpromaro_lit.png' %}" alt=""> 
+    </span>
+  </div>
+</nav>
+<main id="main-container" x-data="app()" x-cloak x-init="$nextTick(() => initialize())" class="bg-light h-100">
+  
+  <div class="container" x-show="!isOffline">
+    <div class="row">
+      <div class="col-sm-12 col-6">
+        <div id="relojnumerico" class="reloj" >
+          <!-- Acá mostraremos el reloj desde JavaScript --> 
+      </div>
+      </div>
+    </div>
+    <div class="row mb-2 mt-2">
+      <div class="col d-flex flex-row align-self-center justify-content-center align-ittems-center">
+        <img :src="data.defaultImage" x-show="data.formIsValid === null || !data.formIsValid" class="rounded-circle float-start" alt="...">
+        <img :src="data.personal.photo" style="height: 200px; width: 200px;" x-show="data.formIsValid !== null && data.formIsValid" class="rounded-circle float-start" alt="...">
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-6 offset-3">
+        <input type="text" name="" id="reader"  x-ref="idDisplayer"  :class="{'form-control': true, 'text-center': true, 'is-valid text-success fw-bold': data.formIsValid !== null && data.formIsValid,'is-invalid text-danger fw-bold': data.formIsValid !== null && !data.formIsValid}">
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-12">        
+        <form action="/dining_room/:cedula/check/" method="post" id="checkingForm">
+          {% csrf_token %}
+          <input type="hidden" name="cedula" :value="data.id">
+        </form>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-sm-12 col-md-6 col-lg-6">
+        <div class="col-sm-12 col-6">
+          <div class="row">
+            <label for="name">
+              <strong>Nombre</strong>
+            </label>
+            <input type="text" disabled readonly id="name" class="form-control">
+          </div>
+          <div class="row">
+            <label for="lastname">
+              <strong>Apellido</strong>
+            </label>
+            <input type="text" disabled readonly id="lastname" class="form-control">
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-12 col-md-6 col-lg-6">
+        <div class="row">
+          <label for="name">
+            <strong>Oficina</strong>
+          </label>
+          <input type="text" disabled readonly id="department" class="form-control">
+        </div>
+        <div class="row">
+          <label for="lastname">
+            <strong>Cargo</strong>
+          </label>
+          <input type="text" disabled readonly id="position" class="form-control">
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-12 px-0 mt-2">
+        <table class="table table-striped w-100">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nombre</th>
+              <th>Apellido</th>
+              <th>Hora de chequeo</th>
+              <th>Beneficio</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="employer in checks">
+              <tr>
+                <td x-text="employer.id"></td>
+                <td x-text="employer.name"></td>
+                <td x-text="employer.lastname"></td>
+                <td x-text="employer.check_at"></td>
+                <td x-text="employer.check_turn"></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="container" x-show="isOffline">
+    <div class="col d-flex flex-row align-self-center justify-content-center align-ittems-center">
+      <img src="/static/images/plug_connection.png" class="float-start" alt="...">
+    </div>
+    <div class="row mt-4">
+      <div class="col-6 offset-3">
+        <div class="alert alert-danger text-center" >
+          <strong>
+            La conexión con el servidor se ha perdido
+          </strong>
+        </div>
+      </div>
+    </div>
+  </div>
+  <form action="/dining_room/:cedula/check/" method="post" id="checkingForm">
+    {% csrf_token %}
+    <input type="hidden" name="cedula" :value="data.id">
+  </form>
+
+</main><!-- Remove the container if you want to extend the Footer to full width. -->
+<div class="container-fluid px-0">
+
+  <footer class="bg-light text-center">
+    <div class="text-center p-3" style="background-color: rgba(0, 0, 0, 0.2);">
+      <small>
+        © 2023 Copyright:
+        Este sistema fue desarrollado por <a href="mailto:gjavilae@gmail.com"><strong>Giovanny Avila</strong></a>  / <a href="tel:+584125723883">+584124723883</a>
+      </small>
+    </div>
+  </footer>
+
+</div>
+<!-- End of .container -->
+<script src="{% static 'js/bootstrap.min.js' %}"></script>
+<script>
+  function app() {
+    return {
+      timer: null,
+      errorTyped: false,
+      interval: null,
+      initialized: false,
+      isOffline: false,
+      checks: [],
+      data: {
+        id: "",
+        personal : {
+          name: "Giovanny Avila",
+          position: "Programador",
+          department: "",
+          photo: ""
+        },
+        showFullId: "",
+        defaultImage: "/static/images/default_assistent_image.jpg",
+        formIsValid: null,
+        errorTyped: false,
+        greeting: "Descanse y reponga sus energias. ¡Hasta mañana!",
+        welcomeMessages: [
+          "¡Chequeo exitoso!",
+        ],
+        goodBayMessages: [
+          "¡Chequeo exitoso!",
+        ],
+        bepEffect: null,
+        
+      },
+      audioEffect() {
+        this.bepEffect = new Audio("/static/audio/checking_effect.wav")
+      },
+      playBep() {
+        this.bepEffect.load()
+        this.bepEffect.play()
+      },
+      initialize() {
+        if (this.initialized) {
+          return
+        }
+        window.addEventListener("offline", (e) => {
+          this.isOffline = true
+        });
+
+        window.addEventListener("online", (e) => {
+          if (this.isOffline) {
+            location.reload()
+          }
+          this.isOffline = false
+        });
+
+        this.initialized = true
+        this.audioEffect()
+        this.cargarReloj()
+        this.errorTyped = false
+        console.info("App has been initialized")
+        // document.getElementById("reader").focus()
+        window.addEventListener("keyup", (e)=> {
+          if (parseInt(e.key) >= 0 && parseInt(e.key) <= 9) {
+            this.data.id = `${this.data.id}${e.key}`
+          } else if (e.key == "enter" || e.keyCode == 13) {
+            let currentDate = new Date()
+            console.log("Ultimo chequeo marcado ", {currentDate})
+            localStorage.setItem("last_checking", currentDate)
+            if (this.data.id != "") {
+              this.$refs["idDisplayer"].value = this.data.id
+              this.sendForm()
+            }
+            setTimeout(()=> {
+              this.data.id = ""
+            }, 2000)
+          }
+        })
+
+        
+        /**
+        * Al pasar un minuto soe verifica si hay una 
+        * diferencia de cierta cantidad de minutos, en caso de haberlo
+        * se refresca automaticamente la vista para evitar bugs por tiempo muerto
+        */
+        this.interval = setInterval(()=> {
+          let lastCheck = localStorage.getItem("last_checking")
+          let now = new Date()
+          if (lastCheck == null) {
+            return
+          }
+          
+          let diff = (now - new Date(lastCheck))
+          let diffInMinutes = (diff / 1000) / 60
+          console.log({diffInMinutes})
+          if (diffInMinutes >= 3) {
+            console.log("Refrescando vista por tiempo muerto")
+            localStorage.setItem("last_checking", new Date())
+            location.reload()
+          }
+
+        }, 60000)
+
+        /**
+         * Buscar los checks diarios para la fecha actual
+         * */
+        fetch(
+          "/dining_room/todayChecks/"
+        ).then(resp=> resp.json()).then(resp => {
+          console.log(resp)
+          this.checks = resp.data
+        })
+      },
+      sendForm() {
+        const form = document.getElementById("checkingForm")
+        const formData = new FormData(form)
+        let url = form.action
+        url = url.replace(":cedula", this.data.id)
+
+        fetch(
+          url,
+          {
+            method: "POST",
+            body: formData
+          }
+        )
+        .then(resp => resp.json())
+        .then(resp => {
+          console.log(resp)
+          if (this.timer !== null) {
+            clearTimeout(this.timer)
+            this.timer = null
+          }
+          this.data.id = ""
+          if (!resp.error) {
+            const {employer} = resp
+            this.checks = [resp.employer, ...this.checks]
+            if (this.checks.length > 40) {
+              this.checks = this.checks.slice(0, 39)
+            }
+            document.getElementById("name").value = employer.name
+            document.getElementById("lastname").value = employer.lastname
+            document.getElementById("department").value = employer.department
+            document.getElementById("position").value = employer.position
+            this.noticeCheckStatus(false, "Entrega verificada", "ENTRADA", {photo: employer.avatar}, false)
+          } else {
+            this.noticeCheckStatus(true, "Trabajador no tiene beneficio asignado o no existe", "ENTRADA", {}, true)
+          }
+          // this.noticeCheckStatus(resp.error, resp.message, resp.checking_type, resp.user_data, resp.error_type)
+        })
+      },
+      noticeCheckStatus(hasError, message, checking_type, user_data, errorType = null) {
+        this.playBep()
+        if (hasError) {
+          this.data.formIsValid = false
+          this.data.greeting = message
+          if (errorType !== null ){
+            this.errorTyped = true
+          }
+        } else  {
+          let greeting = []
+          if (checking_type == "ENTRADA") {
+            greeting =  this.data.welcomeMessages
+          } else {
+            greeting = this.data.goodBayMessages
+          }
+          this.data.greeting = greeting[Math.floor(Math.random()*greeting.length)];
+          this.data.formIsValid = true
+          this.data.personal = user_data
+        }
+
+        this.timer = setTimeout(() => {
+          this.$refs["idDisplayer"].value = ""
+          this.data.formIsValid = null
+          this.data.id = ""
+          this.errorTyped = false
+            document.getElementById("name").value = ""
+            document.getElementById("lastname").value = ""
+            document.getElementById("department").value = ""
+            document.getElementById("position").value = ""
+        }, 5000)
+      },
+      cargarReloj(){
+        // Haciendo uso del objeto Date() obtenemos la hora, minuto y segundo 
+        var fechahora = new Date();
+        var hora = fechahora.getHours(); 
+        var minuto = fechahora.getMinutes(); 
+        var segundo = fechahora.getSeconds(); 
+
+        // Variable meridiano con el valor 'AM' 
+        var meridiano = "AM";
+        
+        
+        // Si la hora es igual a 0, declaramos la hora con el valor 12 
+        if(hora == 0){
+
+            hora = 12;
+            
+        }
+        
+        // Si la hora es mayor a 12, restamos la hora - 12 y mostramos la variable meridiano con el valor 'PM' 
+        if(hora > 12) {
+
+            hora = hora - 12;
+
+            // Variable meridiano con el valor 'PM' 
+            meridiano = "PM";
+
+        }
+        
+        // Formateamos los ceros '0' del reloj 
+        hora = (hora < 10) ? "0" + hora : hora;
+        minuto = (minuto < 10) ? "0" + minuto : minuto;
+        segundo = (segundo < 10) ? "0" + segundo : segundo;
+        
+        // Enviamos la hora a la vista HTML 
+        var tiempo = hora + ":" + minuto + ":" + segundo + " " + meridiano;    
+        document.getElementById("relojnumerico").innerText = tiempo;
+        document.getElementById("relojnumerico").textContent = tiempo;
+
+        // Cargamos el reloj a los 500 milisegundos 
+        setTimeout(() => {
+          this.cargarReloj()
+        }, 500);
+        
+      }
+
+    }
+  }
+</script>
+</body>
+</html>

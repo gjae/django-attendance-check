@@ -1,13 +1,16 @@
+from datetime import time
 from django.db import models
 from model_utils.models import TimeStampedModel
 
 from src.employees.models import Employee
 from src.indentities.models import Identity
+
+from src.dining_room.managers import CheckDiningRoomManager
 # Create your models here.
 
 class ConfDiningRoom(TimeStampedModel):
     check_name = models.CharField(
-        "Tipo de checkeos"
+        "Beneficio"
     )
 
     start_time = models.TimeField(
@@ -29,7 +32,14 @@ class ConfDiningRoom(TimeStampedModel):
         help_text=(
             "Si esta opción está activada, este tipo de chequeo podra ser usada todo el día por lo tanto anula las horas limites pero además, será solo aplicada "
             "el día indicado en el campo -fecha desde que se aplica el horario- "
-        )
+        ),
+        default=False
+    )
+
+    is_active = models.DateTimeField(
+        "Turno desactivado",
+        null=True,
+        default=None
     )
 
     class Meta:
@@ -40,13 +50,19 @@ class ConfDiningRoom(TimeStampedModel):
     def __str__(self):
         return self.check_name
 
+    def save(self, *args, **kwargs):
+        if self.end_time == time(0,0):
+            self.end_time = time(23, 59, 59)
+        
+        super(ConfDiningRoom, self).save(*args, **kwargs)
 
 
 class DiningChecking(TimeStampedModel):
     conf_dining_room = models.ForeignKey(ConfDiningRoom, on_delete=models.RESTRICT, related_name="checkings")
-    identity = models.ForeignKey(Identity, on_delete=models.RESTRICT, related_name="dining_room_checkings")
+    identity = models.ForeignKey(Identity, on_delete=models.RESTRICT, null=True, default=None, related_name="dining_room_checkings")
     employer = models.ForeignKey(Employee, on_delete=models.RESTRICT, related_name="dining_room_checkings")
 
+    objects = CheckDiningRoomManager()
 
     class Meta:
         verbose_name = "Chequeo de comedor"

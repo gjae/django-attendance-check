@@ -1,3 +1,4 @@
+from datetime import datetime, date
 from django.db import models
 from model_utils.models import TimeStampedModel
 from model_utils.fields import StatusField
@@ -63,3 +64,13 @@ class Employee(TimeStampedModel):
         
 
         return True
+    
+    @property
+    def is_birthday(self):
+        today = date.today()
+
+        if self.birthday_at is None:
+            return False
+        
+        birth = self.birthday_at
+        return birth.day == today.day and birth.month == today.month
