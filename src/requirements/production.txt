@@ -11,3 +11,4 @@ django-anymail==10.1  # https://github.com/anymail/django-anymail
 
 django-unfold==0.12.0
 django-compressor==4.4 
+django-debug-toolbar==4.2.0  # https://github.com/jazzband/django-debug-toolbar
