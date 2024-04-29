@@ -42,6 +42,17 @@ def print_carnet(modeladmin, request, queryset):
     )
 
 
+@admin.action(description="Eliminar registro")
+def delete_objects(modeladmin, request, queryset):
+    queryset.update(is_removed=True)
+    modeladmin.message_user(
+        request,
+        "El/Los registros seleccionados fueron correctamente eliminados",
+        messages.SUCCESS,
+    )
+
+    return True
+
 class EmployerCheckingRecord(admin.TabularInline):
     model = DailyChecks
     can_delete = False
@@ -77,7 +88,7 @@ class EmployeeAdmin(ModelAdmin):
     search_fields = ["name", "last_name", "cedula"]
     list_per_page = 32
     inlines = [EmployerCheckingRecord, ]
-    actions = [print_carnet, ]
+    actions = [print_carnet, delete_objects]
     form = EmployerModelForm
     list_filter = ["department", "position"]
 
@@ -156,6 +167,9 @@ class EmployeeAdmin(ModelAdmin):
       "photo_tag",  "name", "last_name", "cedula", "department", "birthday_at", "position_user", "date_entry_job", "last_checking"
     ]
 
+    def has_delete_permission(self, request, obj=None):
+        return False
+    
 
     def name(self, obj):
         return format_html(

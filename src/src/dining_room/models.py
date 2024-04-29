@@ -58,9 +58,9 @@ class ConfDiningRoom(TimeStampedModel):
 
 
 class DiningChecking(TimeStampedModel):
-    conf_dining_room = models.ForeignKey(ConfDiningRoom, on_delete=models.RESTRICT, related_name="checkings")
-    identity = models.ForeignKey(Identity, on_delete=models.RESTRICT, null=True, default=None, related_name="dining_room_checkings")
-    employer = models.ForeignKey(Employee, on_delete=models.RESTRICT, related_name="dining_room_checkings")
+    conf_dining_room = models.ForeignKey(ConfDiningRoom, on_delete=models.CASCADE, related_name="checkings")
+    identity = models.ForeignKey(Identity, on_delete=models.CASCADE, null=True, default=None, related_name="dining_room_checkings")
+    employer = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="dining_room_checkings")
 
     objects = CheckDiningRoomManager()
 

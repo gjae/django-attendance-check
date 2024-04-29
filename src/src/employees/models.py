@@ -1,6 +1,6 @@
 from datetime import datetime, date
 from django.db import models
-from model_utils.models import TimeStampedModel
+from model_utils.models import TimeStampedModel, SoftDeletableModel
 from model_utils.fields import StatusField
 from model_utils import Choices
 
@@ -23,7 +23,7 @@ class EmployeePosition(TimeStampedModel):
         return self.position
 
 
-class Employee(TimeStampedModel):
+class Employee(TimeStampedModel, SoftDeletableModel):
     STATUS = Choices(
         ('actived', "Activo"), 
         ('suspended', "Suspendido"), 

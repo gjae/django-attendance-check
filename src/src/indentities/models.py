@@ -21,7 +21,7 @@ class Identity(TimeStampedModel):
 
     employer = models.ForeignKey(
         Employee,
-        on_delete=models.RESTRICT,
+        on_delete=models.CASCADE,
         related_name="identities",
         verbose_name="Carnet del trabajador"
     )

@@ -26,8 +26,8 @@ class DailyCalendar(TimeStampedModel):
 
 class DailyChecks(TimeStampedModel):
     CHECK_STATUS_CHOISE = Choices((0, "entrada", "Entrada"), (1, "salida", "Salida"))
-    employee = models.ForeignKey(Employee, on_delete=models.RESTRICT, related_name="daily_checks", verbose_name="Trabajador")
-    daily = models.ForeignKey(DailyCalendar, on_delete=models.RESTRICT, related_name="daily_user_checks")
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="daily_checks", verbose_name="Trabajador")
+    daily = models.ForeignKey(DailyCalendar, on_delete=models.CASCADE, related_name="daily_user_checks")
 
     time = models.TimeField("Hora de chequeo", auto_now_add=True)
     checking_time = models.DateTimeField("Fecha de checkeo", auto_now_add=True)
@@ -66,7 +66,7 @@ class DailyCalendarObservation(TimeStampedModel):
         (3, "checkin_out", "Entrada y salida")
     )
 
-    calendar_day = models.ForeignKey(DailyCalendar, on_delete=models.RESTRICT, related_name="observations", verbose_name="Día del calendario")
+    calendar_day = models.ForeignKey(DailyCalendar, on_delete=models.CASCADE, related_name="observations", verbose_name="Día del calendario")
     employer = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="calendar_observations", verbose_name="Trabajador")
     description = models.TextField("Descripción")
     support = models.FileField("Soporte", upload_to="uploads/dailycalendarsupports/", null=True, default=None)
