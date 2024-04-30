@@ -11,7 +11,7 @@ from .managers import ClockingManager, CheckingManager
 
 
 class DailyCalendar(TimeStampedModel):
-    date_day = models.DateField("Calendario de checkeos", db_index=True)
+    date_day = models.DateField("Calendario de chequeos", db_index=True)
 
     objects = ClockingManager()
 
@@ -33,7 +33,7 @@ class DailyChecks(TimeStampedModel):
     checking_time = models.DateTimeField("Fecha de checkeo", auto_now_add=True)
 
     checking_type = models.IntegerField(
-        "Tipo de checqueo",
+        "Tipo de chequeo",
         choices=CHECK_STATUS_CHOISE,
         default=CHECK_STATUS_CHOISE.entrada
     )

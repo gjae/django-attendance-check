@@ -29,7 +29,7 @@ def default_today_last_checks(request, *args, **kwargs):
             "avatar": check.employer.picture.url if check.employer is not None and check.employer.picture.name else '',
             "is_birthday": check.employer.is_birthday,
             "check_turn": check.conf_dining_room.check_name,
-            "check_at": check.created.strftime("%H:%M")
+            "check_at": check.created.strftime("%I:%M %p")
         })
         
     return JsonResponse({
@@ -71,6 +71,6 @@ def check_dining_employer(request, card_id, *args, **kwargs):
             "avatar": emp.picture.url if emp is not None and emp.picture.name else '',
             "is_birthday": emp.is_birthday,
             "check_turn": check.conf_dining_room.check_name,
-            "check_at": check.created.strftime("%H:%M a")
+            "check_at": check.created.strftime("%I:%M %p")
         }
     })
