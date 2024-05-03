@@ -22,6 +22,7 @@ services:
       - ./.envs/.production/.django
       - ./.envs/.production/.postgres
     command: /start
+    restart: always
     
   postgres:
     build:
@@ -33,24 +34,29 @@ services:
       - /home/.inpromar/postgres/backups:/backups
     env_file:
       - ./.envs/.production/.postgres
+    restart: always
 
   redis:
     image: redis:6
+    restart: always
 
   celeryworker:
     <<: *django
     image: src_production_celeryworker
     command: /start-celeryworker
+    restart: always
 
   celerybeat:
     <<: *django
     image: src_production_celerybeat
     command: /start-celerybeat
+    restart: always
 
   flower:
     <<: *django
     image: src_production_flower
     command: /start-flower
+    restart: always
 
   nginx:
     build:
@@ -63,3 +69,4 @@ services:
       - production_django_media:/usr/share/nginx/media:ro
     ports:
       - "0.0.0.0:80:80"
+    restart: always
