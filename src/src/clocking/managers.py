@@ -98,12 +98,17 @@ class CheckingManager(models.Manager):
         data_pdf = []
         pdf_deque = deque()
         total_hours_acumulateds = 0
+        total_days_by_user = {}
 
         for data in new_data:
             if data.employee_id not in divided_by_user:
                 divided_by_user[data.employee_id] = []
             divided_by_user[data.employee_id].append(data)
 
+        for t in divided_by_user.keys():
+            total_days_by_user[t] = int(round(len(divided_by_user[t]) / 2, 0))
+
+        print(total_days_by_user, divided_by_user)
         for user_data in divided_by_user.keys():
             datas = divided_by_user[user_data]
             stack = list()
@@ -154,4 +159,4 @@ class CheckingManager(models.Manager):
 
             data_pdf = list(users.values())
 
-        return data_pdf, round(total_hours_acumulateds, 2)
+        return data_pdf, round(total_hours_acumulateds, 2), total_days_by_user

@@ -21,6 +21,7 @@
                         <th>Nombre</th>
                         <th>Apellido</th>
                         <th>Cargo</th>
+                        <th>Días Marcados</th>
                         <th>Total de horas</th>
                     </tr>
                 </thead>
@@ -32,6 +33,9 @@
                             <td class="text-center">{{record.employer.name}}</td>
                             <td class="text-center">{{record.employer.last_name}}</td>
                             <td class="text-center">{{record.employer.position.position}}</td>
+                            <td class="text-center">
+                                {{record.employer|get_total_days_by_user:total_days_by_user}}
+                            </td>
                             <td style="text-align: end;">{{record.abs_total_hours|floatformat:2 }}</td>
                         </tr>
                     {% endfor %}
@@ -39,7 +43,7 @@
                         <td >
                             <strong>Total</strong>
                         </td>
-                        <td colspan="4" style="text-align: end;">{{total_hours}}</td>
+                        <td colspan="5" style="text-align: end;">{{total_hours}}</td>
                     </tr>
                 </tbody>
             </table>

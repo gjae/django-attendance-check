@@ -8,3 +8,8 @@ register = template.Library()
 def day_has_observation(context, day, observations):
     print(f"Dia: {day} / {observations}")
     return has_observation(day, observations)
+
+
+@register.filter
+def get_total_days_by_user(user, counters):
+    return counters[user.id]
