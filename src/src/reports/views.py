@@ -96,7 +96,7 @@ class ReportByWorkerPdfView(BaseReportMixin, WeasyTemplateResponseMixin, Templat
     
     def get_context_data(self):
         context = super().get_context_data()
-        data, total_hours = DailyChecks.objects.report_by_employee(
+        data, total_hours, _ = DailyChecks.objects.report_by_employee(
             int(self.request.POST.get("employer")), 
             self.request.POST.get("start_at"), 
             self.request.POST.get("end_at")
