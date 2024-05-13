@@ -229,7 +229,7 @@ class ReportExcelMixin(LoginRequiredMixin, View):
         ws.title = self.get_sheet_title()
 
         ws.append(headers)
-        data, total_hours = self.get_report_content() 
+        data, total_hours, _ = self.get_report_content() 
 
         for record in data:
             ws.append(self.process_row(record))
