@@ -229,10 +229,10 @@ class ReportExcelMixin(LoginRequiredMixin, View):
         ws.title = self.get_sheet_title()
 
         ws.append(headers)
-        data, total_hours, _ = self.get_report_content() 
+        data, total_hours, days_checkeds = self.get_report_content() 
 
         for record in data:
-            ws.append(self.process_row(record))
+            ws.append(self.process_row(record, days_checkeds=days_checkeds))
 
         ws.append(self.get_footer(total_hours))
 
@@ -313,7 +313,7 @@ class ReportWorkerExcel(ReportBrandMixin, ReportExcelMixin):
             "Total de horas"
         ]
     
-    def process_row(self, record):
+    def process_row(self, record, *args, **kwargs):
         observation = has_observation(record, self.observations)
         return [
             record["created"].strftime("%d/%m/%Y"),
@@ -383,16 +383,19 @@ class ReportDepartmentExcel(ReportBrandMixin, ReportExcelMixin):
             "Nombre",
             "Apellido",
             "Cargo",
+            "Días Marcados",
             "Total de horas"
         ]
     
-    def process_row(self, record):
+    def process_row(self, record, *args, **kwargs):
         observation = has_observation(record, self.observations)
+        days_checkeds = kwargs.get("days_checkeds", None)[record["employer"].id] if kwargs.get("days_checkeds", None) is not None else "--"
         return [
             record["employer"].cedula,
             record["employer"].name,
             record["employer"].last_name,
             record["employer"].position.position,
+            days_checkeds,
             record["abs_total_hours"]
         ]
 
