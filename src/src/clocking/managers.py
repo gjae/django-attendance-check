@@ -106,7 +106,7 @@ class CheckingManager(models.Manager):
             divided_by_user[data.employee_id].append(data)
 
         for t in divided_by_user.keys():
-            total_days_by_user[t] = int(round(len(divided_by_user[t]) / 2, 0))
+            total_days_by_user[t] = 0
 
         print(total_days_by_user, divided_by_user)
         for user_data in divided_by_user.keys():
@@ -128,6 +128,7 @@ class CheckingManager(models.Manager):
                             data_pdf.append(self._build_report_object(last_element, use_for_database=use_for_database))
                             stack.append(report)
                     elif len(stack) > 0 and report.checking_type == DailyChecks.CHECK_STATUS_CHOISE.salida:
+                        total_days_by_user[user_data] = total_days_by_user[user_data] + 1
                         last_element = stack.pop()
                         total_hours = round((report.checking_time - last_element.checking_time).total_seconds() / 60 / 60, 2)
                         total_hours_acumulateds += round(total_hours, 2)
