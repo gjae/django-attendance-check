@@ -61,3 +61,26 @@ class Department(TimeStampedModel):
     
     def __str__(self):
         return self.name
+    
+
+class Timetable(TimeStampedModel):
+    department = models.ForeignKey(Department, on_delete=models.RESTRICT, related_name="timetables", verbose_name="Departamento")
+    start_time = models.TimeField("Hora de inicio del turno")
+    end_time = models.TimeField("Hora de salida del turno")
+    is_active = models.BooleanField("Configuracion activa", default=True)
+
+    
+    class Meta:
+        verbose_name = "Configuraciones de horario"
+        verbose_name_plural = "Configuración horaria"
+
+
+    def get_correct_time_range(self):
+        """
+        Para hacer un calculo de horas se necesita restar el tiempo final al tiempo inicial
+        """
+        
+        if self.start_time > self.end_time:
+            return self.end_time, self.start_time
+        
+        return self.start_time, self.end_time

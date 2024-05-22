@@ -1,6 +1,6 @@
 import math
 from collections import deque
-from datetime import timedelta
+from datetime import timedelta, datetime
 from django.utils import timezone
 from django.db import models
 from .exceptions import CheckingTooRecentException
@@ -23,6 +23,15 @@ class ClockingManager(models.Manager):
 
 class CheckingManager(models.Manager):
 
+    def raise_exception_is_checktimeout(self, checking):
+        print(f"Raise exception para {checking}")
+        checking_timeout = checking.checking_time + timedelta(minutes=3)
+
+        # Si el tiempo en que el usuario ha realizado el chequeo es menor a 3 minutos
+        # no permite que se realice un nuevo chequeo hasta pasados esos 3 minutos
+        if timezone.now() <= checking_timeout:
+            raise CheckingTooRecentException()
+
     def checking_user(self, employee):
         """
         Realiza un check para el usuario para el día actual. Si el usuario
@@ -36,21 +45,33 @@ class CheckingManager(models.Manager):
 
         from src.clocking.models import DailyCalendar, DailyChecks
         
-        daily = DailyCalendar.objects.get_or_create_clocking_day()
+
+
+        # Consultar el ultimo registro de chequeo del usuario y verificar si el ultimo registro es una entrada
+        # en caso de ser una entrada entonces se verifica si esa entrada fue hace menos de 24 horas, en ese 
+        # caso se marca la salida correspondiente.
+        # Si la ultima entrada fue hace mas de 24 horas entonces se marca una entrada del dia actual
+        last_employer_check = DailyChecks.objects.filter(employee=employee).order_by("id").last()
+        last_24_hours = datetime.now() - timedelta(hours=24)
         
+        if last_employer_check is not None and last_employer_check.checking_type == DailyChecks.CHECK_STATUS_CHOISE.entrada and last_employer_check.created >= last_24_hours:
+            self.raise_exception_is_checktimeout(last_employer_check)
+            check_daily = last_employer_check.daily
+            return DailyChecks.objects.create(employee=employee, daily=check_daily, checking_type=DailyChecks.CHECK_STATUS_CHOISE.salida)
+
+
+
+        daily = DailyCalendar.objects.get_or_create_clocking_day()
         employee_calendar = DailyChecks.objects.filter(employee=employee, daily=daily)
 
         if not employee_calendar.exists():
             return DailyChecks.objects.create(employee=employee, daily=daily)
         
+        
+        
         elif employee_calendar.exists() and employee_calendar.first().checking_type == DailyChecks.CHECK_STATUS_CHOISE.entrada:
             checking = employee_calendar.first()
-            checking_timeout = checking.checking_time + timedelta(minutes=3)
-
-            # Si el tiempo en que el usuario ha realizado el chequeo es menor a 3 minutos
-            # no permite que se realice un nuevo chequeo hasta pasados esos 3 minutos
-            if timezone.now() <= checking_timeout:
-                raise CheckingTooRecentException()
+            self.raise_exception_is_checktimeout(checking)
             
 
             return DailyChecks.objects.create(employee=employee, daily=daily, checking_type=DailyChecks.CHECK_STATUS_CHOISE.salida)
