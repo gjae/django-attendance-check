@@ -15,7 +15,7 @@ def on_create_observation_save_checking(sender, instance: DailyCalendarObservati
     if check_counter == 2:
         return None
     
-    if check_counter == 1 and instance.check_type == DailyCalendarObservation.OBSERVATION_TYPE_CHOICES.checkin:
+    if check_counter == 1 and instance.check_type == DailyCalendarObservation.OBSERVATION_TYPE_CHOICES.checkin_out:
         return None
     
     now = datetime(instance.calendar_day.date_day.year, instance.calendar_day.date_day.month, instance.calendar_day.date_day.day, 8,0,0,0)
