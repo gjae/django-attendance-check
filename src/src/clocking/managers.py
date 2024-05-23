@@ -107,8 +107,7 @@ class CheckingManager(models.Manager):
                 until_date
             ])
             .select_related("employee", "employee__position")
-            .order_by("id", "daily__date_day", "employee_id")
-            .distinct("id")
+            .order_by("daily__date_day", "employee_id")
         )
         if user_id is not None:
             new_data = new_data.filter(employee_id=user_id)
