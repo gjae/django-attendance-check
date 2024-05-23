@@ -107,7 +107,7 @@ class CheckingManager(models.Manager):
                 until_date
             ])
             .select_related("employee", "employee__position")
-            .order_by("id", "employee_id")
+            .order_by("id", "daily__date_day", "employee_id")
             .distinct("id")
         )
         if user_id is not None:
