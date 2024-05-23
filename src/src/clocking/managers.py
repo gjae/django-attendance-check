@@ -115,6 +115,7 @@ class CheckingManager(models.Manager):
         if department is not None:
             new_data = new_data.filter(employee__department_id=department)
 
+        print("DATA REPORTE", new_data)
         divided_by_user = {}
         data_pdf = []
         pdf_deque = deque()
