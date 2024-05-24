@@ -54,7 +54,7 @@ class CheckingManager(models.Manager):
         last_employer_check = DailyChecks.objects.filter(employee=employee).order_by("id").last()
         last_24_hours = datetime.now() - timedelta(hours=24)
         
-        if last_employer_check is not None and last_employer_check.checking_type == DailyChecks.CHECK_STATUS_CHOISE.entrada and last_employer_check.created >= last_24_hours:
+        if last_employer_check is not None and last_employer_check.checking_type == DailyChecks.CHECK_STATUS_CHOISE.entrada and (datetime.now() - last_employer_check.created).days < 1:
             self.raise_exception_is_checktimeout(last_employer_check)
             check_daily = last_employer_check.daily
             return DailyChecks.objects.create(employee=employee, daily=check_daily, checking_type=DailyChecks.CHECK_STATUS_CHOISE.salida)
