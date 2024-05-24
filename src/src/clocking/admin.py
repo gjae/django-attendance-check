@@ -23,7 +23,7 @@ class CheckingCalendarAdmin(admin.TabularInline):
     
     def get_readonly_fields(self, request: HttpRequest, obj):
         if obj:
-            return ["employee", 'time', 'checking_type']
+            return ["employee", 'checking_time', 'checking_type']
         else:  # When object is created
             return [] # no editable field
     
