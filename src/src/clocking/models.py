@@ -30,7 +30,7 @@ class DailyChecks(TimeStampedModel):
     daily = models.ForeignKey(DailyCalendar, on_delete=models.CASCADE, related_name="daily_user_checks")
 
     time = models.TimeField("Hora de chequeo", auto_now_add=True)
-    checking_time = models.DateTimeField("Fecha de checkeo", auto_now_add=True)
+    checking_time = models.DateTimeField("Fecha de chequeo", auto_now_add=True)
 
     checking_type = models.IntegerField(
         "Tipo de chequeo",
