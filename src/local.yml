@@ -91,3 +91,13 @@ services:
     ports:
       - '5555:5555'
     command: /start-flower
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: inpromar@pgadmin4.com
+      PGADMIN_DEFAULT_PASSWORD: inpromar_local
+    ports: 
+      - "9001:80"
+    depends_on: 
+      - postgres
