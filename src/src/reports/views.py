@@ -166,7 +166,7 @@ class ReportByDepartmentPdfView(BaseReportMixin, WeasyTemplateResponseMixin, Tem
     
     def get_context_data(self):
         context = super().get_context_data()
-        data, total_hours, total_days_by_user = DailyChecks.objects.report_by_employee(None, self.request.POST.get("start_at"), self.request.POST.get("end_at"), department=int(self.request.POST.get("department", "1")))
+        data, total_hours, total_days_by_user = DailyChecks.objects.report_by_department(from_date=self.request.POST.get("start_at"), until_date=self.request.POST.get("end_at"), department=int(self.request.POST.get("department", "1")))
 
         context["data"] = data
         context["total_hours"] = total_hours

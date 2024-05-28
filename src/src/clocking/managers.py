@@ -3,7 +3,9 @@ from collections import deque
 from datetime import timedelta, datetime
 from django.utils import timezone
 from django.db import models
+from django.db.models import Q, Prefetch
 from .exceptions import CheckingTooRecentException
+import logging
 
 
 class ClockingManager(models.Manager):
@@ -96,6 +98,83 @@ class CheckingManager(models.Manager):
             obj["end_at"] = None
 
         return obj
+    
+    def list_chunks(self, l: list, n, *, total_checks = 0): 
+        response = []
+
+        for idx, check in enumerate(l.copy()):
+            try:
+                if check.daily_id == l[idx + 1].daily_id and check.checking_type != l[idx + 1].checking_type:
+                    response.append(check)
+                    response.append(l[idx + 1])
+            except:
+                pass
+
+
+        for i in range(0, len(response), n):  
+            yield response[i:i + n] 
+
+    def report_by_department(self, *, department, from_date, until_date):
+        from src.employees.models import Employee
+        from src.clocking.models import DailyChecks
+        logger = logging.getLogger("weasyprint")
+        logger.addHandler(logging.NullHandler())
+        logger.setLevel(40) 
+        response = []
+        days_checked_by_employer = {}
+        hours_accumulateds = 0
+
+        employers = (
+            Employee
+            .objects
+            .select_related("position")
+            .filter(department_id=department)
+            .prefetch_related(
+                Prefetch(
+                    "daily_checks",
+                    queryset=(
+                        DailyChecks
+                        .objects
+                        .filter(
+                            daily__date_day__range=[from_date, until_date]
+                        )
+                        .order_by("daily_id", "id")
+                    ),
+                    to_attr="checks"
+                )
+            )
+        )
+
+        for e in employers:
+            total_hours = 0
+
+            checks = list(self.list_chunks(e.checks, 2, total_checks=0))
+
+            if e.cedula not in days_checked_by_employer:
+                days_checked_by_employer[e.id] = len(checks)
+
+            for idx, sublist in enumerate(checks):
+                salida, entrada = sublist[1], sublist[0]
+                if salida.id < entrada.id:
+                    salida, entrada = salida, entrada
+                # if e.id == 678:
+                #    print(f"{salida} ({salida.daily_id}) - {entrada} ({entrada.daily_id}) = {round((salida.checking_time - entrada.checking_time).total_seconds() / 60 / 60, 2)}" )
+                total_hours +=  round((salida.checking_time - entrada.checking_time).total_seconds() / 60 / 60, 2)
+
+            hours_accumulateds += total_hours
+            response.append({
+                "created": e.checks[0].created.strftime("%d-%m-%Y") if len(e.checks) > 0 else "",
+                "employer": e,
+                "total_hours": total_hours,
+                "start_at": "",
+                "end_at": "SIN MARCAR" ,
+                "abs_total_hours": round(total_hours, 2),
+                "daily_id": -1
+            })
+
+            
+
+        return response, round(hours_accumulateds, 2), days_checked_by_employer
 
     
     def report_by_employee(self, user_id = None, from_date = None, until_date = None, use_for_database = False, department = None):
@@ -129,7 +208,6 @@ class CheckingManager(models.Manager):
         for t in divided_by_user.keys():
             total_days_by_user[t] = 0
 
-        print(total_days_by_user, divided_by_user)
         for user_data in divided_by_user.keys():
             datas = divided_by_user[user_data]
             stack = list()
