@@ -408,10 +408,9 @@ class ReportDepartmentExcel(ReportBrandMixin, ReportExcelMixin):
         )
     
     def get_report_content(self):
-        return DailyChecks.objects.report_by_employee(
-            None, 
-            self.request.POST.get("start_at"), 
-            self.request.POST.get("end_at"), 
+        return DailyChecks.objects.report_by_department(
+            from_date=self.request.POST.get("start_at"), 
+            until_date=self.request.POST.get("end_at"), 
             department=int(self.request.POST.get("department"))
         )
     
