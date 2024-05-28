@@ -43,7 +43,7 @@ class DailyChecks(TimeStampedModel):
 
 
     class Meta:
-        ordering = ["-daily__date_day", "-checking_time", "employee_id", "-id"]
+        ordering = ["-daily__date_day", "employee_id", "-id"]
         verbose_name = "Chequeo del día"
         verbose_name_plural = "Chequeos diarios"
 
