@@ -44,10 +44,16 @@ def print_carnet(modeladmin, request, queryset):
 
 @admin.action(description="Eliminar registro")
 def delete_objects(modeladmin, request, queryset):
-    queryset.update(is_removed=True)
+    updates = []
+    for emp in queryset:
+        emp.is_removed = True
+        emp.deleted_at = datetime.now()
+        emp.cedula = emp.id
+        emp.save()
+
     modeladmin.message_user(
         request,
-        "El/Los registros seleccionados fueron correctamente eliminados",
+        "El/Los registros seleccionados fueron correctamente desactivados",
         messages.SUCCESS,
     )
 
