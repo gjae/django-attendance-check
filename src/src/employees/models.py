@@ -31,7 +31,7 @@ class Employee(TimeStampedModel, SoftDeletableModel):
     )
     name = models.CharField("Nombre", blank=True, max_length=255)
     last_name = models.CharField("Apellido", blank=True, max_length=255, default='') 
-    cedula = models.PositiveIntegerField("Cédula", db_index=True, default=0)
+    cedula = models.PositiveIntegerField("Cédula", db_index=True, default=0, unique=True)
     picture = models.ImageField("Foto", upload_to='pictures')
     date_entry_job = models.DateField("Fecha de ingreso", null=True, default=None, help_text="Formato: AAAA-MM-DD")
     birthday_at = models.DateField("Fecha de nacimiento", null=True, default=None, help_text="Formato: AAAA-MM-DD")
