@@ -194,7 +194,7 @@ class ReportByDepartmentView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        context["departments"] = Department.objects.all().order_by("name")
+        context["departments"] = Department.objects.all().filter(is_actived=True).order_by("name")
         return context
 
 
