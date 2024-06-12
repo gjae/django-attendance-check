@@ -69,9 +69,15 @@ class CheckingManager(models.Manager):
         if not employee_calendar.exists():
             return DailyChecks.objects.create(employee=employee, daily=daily)
         
+        if employee_calendar.exists():
+            checking = employee_calendar.first()
+            checking_timeout = checking.checking_time + timedelta(minutes=3)
+            # Si el tiempo en que el usuario ha realizado el chequeo es menor a 3 minutos
+            # no permite que se realice un nuevo chequeo hasta pasados esos 3 minutos
+            if timezone.now() <= checking_timeout:
+                raise CheckingTooRecentException()
         
-        
-        elif employee_calendar.exists() and employee_calendar.first().checking_type == DailyChecks.CHECK_STATUS_CHOISE.entrada:
+        if employee_calendar.exists() and employee_calendar.first().checking_type == DailyChecks.CHECK_STATUS_CHOISE.entrada:
             checking = employee_calendar.first()
             self.raise_exception_is_checktimeout(checking)
             
