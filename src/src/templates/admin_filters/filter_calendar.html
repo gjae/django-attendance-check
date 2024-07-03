@@ -1,0 +1,40 @@
+{% load static %}
+
+<link rel="stylesheet" href="{% static 'css/vanilla_calendar.min.css' %}">
+<script src="{% static 'js/vanilla_calendar.js' %}"></script>
+<div class="font-medium mb-4 text-gray-700 text-sm dark:text-gray-200">
+    <strong>Buscar por fecha: </strong>
+</div>
+<div class="w-auto flex justify-center">
+    <div id="calendar"></div>
+</div>
+<input type="hidden" value="{{choices.0.query_string}}" id="current_querystring">
+<script>
+    window.onload = e  => {
+        const options = {
+            settings: {
+                lang: 'define',
+                visibility: {
+                    theme: 'light',
+                },
+            },
+            locale: {
+                months: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
+                weekday: ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'],
+            },
+            actions: {
+                clickDay(event, self) {
+                    let querystring = document.getElementById("current_querystring").value
+                    if (querystring.trim() == "?q=" || querystring.trim() == "?q") {
+                        querystring = "?"
+                    } else if (querystring.trim().length > 1 && querystring.trim() != "?q=" && querystring.trim() != "?q") {
+                        querystring = `${querystring}&`
+                    }
+                    location.href = `/admin/clocking/dailychecks/${querystring}datelookup=${self.selectedDates}`
+                },
+            },
+        };
+        const calendar = new VanillaCalendar('#calendar', options);
+        calendar.init();
+    }
+</script>

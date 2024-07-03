@@ -1,4 +1,5 @@
 from typing import Any
+from datetime import datetime, timedelta
 from django.contrib import admin
 from django.db.models.query import QuerySet
 from django.db.models import Count, Q
@@ -8,6 +9,11 @@ from unfold.admin import ModelAdmin
 from django.utils.html import format_html
 
 
+from unfold.contrib.filters.admin import (
+    RangeDateFilter,
+    RangeDateTimeFilter,
+)
+
 # Register your models here.
 
 
@@ -15,7 +21,7 @@ class CheckingCalendarAdmin(admin.TabularInline):
     model = DailyChecks
 
     def get_queryset(self, request: HttpRequest) -> QuerySet[Any]:
-        return super().get_queryset(request).select_related(
+        return super().get_queryset(request).order_by("-created").select_related(
             "employee", 
             "employee__position",
             "daily"
@@ -25,8 +31,8 @@ class CheckingCalendarAdmin(admin.TabularInline):
         if obj:
             return ["employee", 'checking_time', 'checking_type']
         else:  # When object is created
-            return [] # no editable field
-    
+            return [] # no editable field    
+
 @admin.register(DailyCalendar)
 class DailyCalendarAdmin(ModelAdmin):
     list_display = ["date_day", "checkings"]
@@ -77,3 +83,46 @@ class DailyCalendarObservationAdmin(ModelAdmin):
         )
     
     soporte.short_description = "Soporte"
+
+
+class FilterByDateCalendar(admin.SimpleListFilter):
+    title = "Buscar por fecha"
+    parameter_name = "datelookup"
+    template = "admin_filters/filter_calendar.html"
+
+    def lookups(self, request, model_admin):
+        hours_ago_24 = datetime.now() - timedelta(hours=24)
+        return [
+            (hours_ago_24.strftime("%Y-%m-%d"), "Ayer"),
+            (datetime.now().strftime("%Y-%m-%d"), "Hoy"),
+        ]
+
+    def queryset(self, request, queryset):
+        if self.value() == "" or self.value() is None:
+            return queryset
+        return queryset.filter(daily__date_day=self.value())
+
+
+
+@admin.register(DailyChecks)
+class DailyChecksModelAdmin(ModelAdmin):
+    list_display = ["employee_name", "employee_last_name", "daily_day",  "checking_time", "checking_type"]
+    search_fields = ['employee__name', "employee__last_name", "daily__date_day"]
+    list_filter = ["checking_type", FilterByDateCalendar]
+    list_per_page  = 15
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("employee", "daily").order_by("-checking_time")
+    
+    def employee_name(self, obj):
+        return obj.employee.name
+
+    def employee_last_name(self, obj):
+        return obj.employee.last_name
+    
+    def daily_day(self, obj):
+        return obj.daily.date_day.strftime("%d/%m/%Y")
+    
+    employee_name.short_description = "Nombre"
+    employee_last_name.short_description = "Apellido"
+    daily_day.short_description = "Día"
