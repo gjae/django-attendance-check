@@ -70,3 +70,13 @@ services:
     ports:
       - "0.0.0.0:80:80"
     restart: always
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: inpromar@pgadmin4.com
+      PGADMIN_DEFAULT_PASSWORD: inpromar_local
+    ports: 
+      - "9001:80"
+    depends_on: 
+      - postgres
