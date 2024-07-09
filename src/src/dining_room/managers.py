@@ -1,7 +1,7 @@
 from typing import Optional
 from datetime import datetime
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, Count
 
 
 
@@ -24,6 +24,16 @@ class CheckDiningRoomManager(models.Manager):
         ).first()
 
         return current_checking_turn
+    
+    def statistics_of(self, *, date = None):
+        from src.clocking.models import DailyChecks
+        if date is None:
+            date = datetime.now()
+
+        return DailyChecks.objects.filter(daily__date_day=date.date()).aggregate(
+            assistants=Count(1, filter=Q(checking_type=DailyChecks.CHECK_STATUS_CHOISE.entrada)),
+            retired=Count(1, filter=Q(checking_type=DailyChecks.CHECK_STATUS_CHOISE.salida))
+        )
     
 
     def can_empoloyer_check(self, employer: models.Model, *args, **kwargs):

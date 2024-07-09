@@ -1,0 +1,55 @@
+{% extends "admin/base_site.html" %}
+
+{% block title %} 
+   Gestión de comedor | {{ site_title|default:_('Django site admin') }}
+{% endblock %}
+
+
+
+{% block custom_breadcrumbs  %}
+{{block.super}} 
+<li class="text-gray-500 text-xs dark:text-gray-400">
+   Gestión de comedor
+</li>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto">
+   <div class="flex flex-row">
+      <div class="w-100">
+         <a href="{% url 'dining_room.today_report_xlsx' %}" target="_blank" class="bg-white hover:bg-gray-100 text-gray-800 font-semibold py-2 px-4 border border-gray-400 rounded shadow flex items-center  space-x-4 ">
+            Descargar reporte
+            <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+               <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 13V4M7 14H5a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1h-2m-1-5-4 5-4-5m9 8h.01"/>
+             </svg>             
+         </a>
+      </div>
+   </div>
+   
+   <div class="flex flex-col">
+      <div class="w-100">
+         <hr class="w-48 h-1 mx-auto my-4 bg-gray-100 border-0 rounded md:my-10 dark:bg-gray-700">
+      </div>
+   </div>
+   <div class="flex flex-row gap-4">
+      <div class="w-full sm:w-1/2 md:w-1/3 lg:w-1/3 xl:w-1/3">
+         <div class="shadow-lg xl:p-6 p-4 sm:w-auto w-full bg-white sm:absolute relative z-20 sm:mt-0 mt-4 left-0 xl:ml-56 sm:ml-12 xl:-mt-40 sm:-mt-12">
+            <p class="text-3xl font-semibold text-gray-800">{{today_statistics.assistants}}</p>
+            <p class="text-base leading-4 xl:mt-4 mt-2 text-gray-600">Personal Ingresado</p>
+         </div>
+      </div>
+      <div class="w-full sm:w-1/2 md:w-1/3 lg:w-1/3 xl:w-1/3">
+         <div class="shadow-lg xl:p-6 p-4 sm:w-auto w-full bg-white sm:absolute relative z-20 sm:mt-0 mt-4 left-0 xl:ml-56 sm:ml-12 xl:-mt-40 sm:-mt-12">
+            <p class="text-3xl font-semibold text-gray-800">{{today_statistics.retired}}</p>
+            <p class="text-base leading-4 xl:mt-4 mt-2 text-gray-600">Personal Retirado</p>
+         </div>
+      </div>
+      <div class="w-full sm:w-1/2 md:w-1/3 lg:w-1/3 xl:w-1/3">
+         <div class="shadow-lg xl:p-6 p-4 sm:w-auto w-full bg-white sm:absolute relative z-20 sm:mt-0 mt-4 left-0 xl:ml-56 sm:ml-12 xl:-mt-40 sm:-mt-12">
+            <p class="text-3xl font-semibold text-gray-800">{{today_statistics.presents}}</p>
+            <p class="text-base leading-4 xl:mt-4 mt-2 text-gray-600">Personal Presente</p>
+         </div>
+      </div>
+   </div>
+</div>
+{% endblock %}
