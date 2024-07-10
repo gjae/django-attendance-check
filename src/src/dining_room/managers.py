@@ -16,7 +16,6 @@ class CheckDiningRoomManager(models.Manager):
     def get_current_checking_turn(self,  employer: models.Model, *args, **kwargs):
         from src.dining_room.models import ConfDiningRoom
         current_time = self._get_current_time(**kwargs)
-
         current_checking_turn = ConfDiningRoom.objects.filter(
             Q(start_time__lte=current_time)
             & Q(end_time__gte=current_time) 
@@ -44,13 +43,16 @@ class CheckDiningRoomManager(models.Manager):
         """
         current_checking_turn = self.get_current_checking_turn(employer, **kwargs)
 
+        print(f"current_checking_turn 2 {current_checking_turn}")
         if current_checking_turn is None:
             return False
         
         # Verifica si el empleado no tiene un chqueo con el turno actual
         # entonces retorna que si puede hacer un chequeo
-        return not self.filter(employer=employer).filter(conf_dining_room=current_checking_turn).exists()
+        has = not self.filter(employer=employer).filter(conf_dining_room=current_checking_turn).exists()
 
+        print(f"HAS: {has}")
+        return has
 
     def make_check_if_can(self, employer: models.Model, credential_card_id: Optional[int] = None, *args, **kwargs):
         """
