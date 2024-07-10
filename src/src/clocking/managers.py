@@ -4,7 +4,7 @@ from datetime import timedelta, datetime
 from django.utils import timezone
 from django.db import models
 from django.db.models import Q, Prefetch
-from .exceptions import CheckingTooRecentException
+from .exceptions import CheckingTooRecentException, CheckingOutputTooRecentException
 import logging
 
 
@@ -32,7 +32,12 @@ class CheckingManager(models.Manager):
         # Si el tiempo en que el usuario ha realizado el chequeo es menor a 3 minutos
         # no permite que se realice un nuevo chequeo hasta pasados esos 3 minutos
         if timezone.now() <= checking_timeout:
-            raise CheckingTooRecentException()
+            print("CHECK TYPE", checking.checking_type)
+            if checking.checking_type == 0:
+                raise CheckingTooRecentException()
+            else:
+                raise CheckingOutputTooRecentException()
+
 
     def checking_user(self, employee):
         """
@@ -75,7 +80,10 @@ class CheckingManager(models.Manager):
             # Si el tiempo en que el usuario ha realizado el chequeo es menor a 3 minutos
             # no permite que se realice un nuevo chequeo hasta pasados esos 3 minutos
             if timezone.now() <= checking_timeout:
-                raise CheckingTooRecentException()
+                if checking.checking_type == 0:
+                    raise CheckingTooRecentException()
+                else:
+                    raise CheckingOutputTooRecentException()
         
         if employee_calendar.exists() and employee_calendar.first().checking_type == DailyChecks.CHECK_STATUS_CHOISE.entrada:
             checking = employee_calendar.first()

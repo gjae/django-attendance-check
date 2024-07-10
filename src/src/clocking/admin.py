@@ -4,15 +4,10 @@ from django.contrib import admin
 from django.db.models.query import QuerySet
 from django.db.models import Count, Q
 from django.http.request import HttpRequest
-from .models import DailyCalendar, DailyChecks, DailyCalendarObservation
+from .models import DailyCalendar, DailyChecks, DailyCalendarObservation, DailyChecksProxyModelAdmin
 from unfold.admin import ModelAdmin
 from django.utils.html import format_html
 
-
-from unfold.contrib.filters.admin import (
-    RangeDateFilter,
-    RangeDateTimeFilter,
-)
 
 # Register your models here.
 
@@ -104,7 +99,7 @@ class FilterByDateCalendar(admin.SimpleListFilter):
 
 
 
-@admin.register(DailyChecks)
+@admin.register(DailyChecksProxyModelAdmin)
 class DailyChecksModelAdmin(ModelAdmin):
     list_display = ["employee_name", "employee_last_name", "daily_day",  "checking_time", "checking_type"]
     search_fields = ['employee__name', "employee__last_name", "daily__date_day"]

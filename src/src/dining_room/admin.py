@@ -1,12 +1,26 @@
 from datetime import datetime
+from django.urls import path
 from django.contrib import admin
 from django.utils.html import mark_safe
 from unfold.admin import ModelAdmin
 from django.contrib import messages
+from django.contrib import admin
+
+
+_admin_site_get_urls = admin.site.get_urls
 
 # Register your models here.
 from .models import DiningChecking, ConfDiningRoom
 from .forms import ConfDiningRoomForm
+from .views import ReportAdminView
+
+
+class DiningRoomProxyModel(ConfDiningRoom):
+    class Meta:
+        proxy = True
+        verbose_name = "Gestión"
+        verbose_name_plural = "Gestión de comedor"
+        
 
 @admin.action(description="Desactivar Turno")
 def action_disabled_turn(modeladmin, request, queryset):
@@ -27,6 +41,16 @@ def action_denable_turn(modeladmin, request, queryset):
         messages.SUCCESS,
     )
 
+@admin.register(DiningRoomProxyModel)
+class ConfDiningRoomReportModelView(ModelAdmin):
+    change_list_template = "unfold/dining/management.html"
+
+    def changelist_view(self, request, extra_context=None):
+        extra_context = {}
+        extra_context['today_statistics'] = DiningChecking.objects.statistics_of()
+        extra_context['today_statistics']["presents"] = extra_context['today_statistics']["assistants"] - extra_context['today_statistics']["retired"]
+
+        return super().changelist_view(request, extra_context=extra_context)
 
 @admin.register(ConfDiningRoom)
 class ConfDiningRoomModelAdmin(ModelAdmin):
@@ -83,3 +107,21 @@ class DiningCheckingModelAdmin(ModelAdmin):
 
     employer_last_name.short_description = "Apellido"
     employer_name.short_description = "Nombre"
+
+
+class ReportModelAdmin(ModelAdmin):
+    def get_urls(self):
+        urls = super().get_urls()
+
+        return urls + [
+            path("dining_room/reports/", ReportAdminView.as_view(model_admin=self), name="dining_room.reports"),
+        ]
+
+def get_urls():        
+    urls = _admin_site_get_urls()
+    urls = urls +  [
+         path("dining_room/reports/", admin.site.admin_view(ReportAdminView.as_view()), name="dining_room.reports"),
+    ]
+    return urls
+
+admin.site.get_urls = get_urls

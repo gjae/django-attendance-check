@@ -30,7 +30,7 @@
                     } else if (querystring.trim().length > 1 && querystring.trim() != "?q=" && querystring.trim() != "?q") {
                         querystring = `${querystring}&`
                     }
-                    location.href = `/admin/clocking/dailychecks/${querystring}datelookup=${self.selectedDates}`
+                    location.href = `/admin/clocking/dailychecksproxymodeladmin/${querystring}datelookup=${self.selectedDates}`
                 },
             },
         };

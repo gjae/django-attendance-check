@@ -1,4 +1,5 @@
 from uuid import uuid4
+from datetime import datetime
 from django.db import models
 from django.conf import settings
 from model_utils.models import TimeStampedModel
@@ -30,7 +31,7 @@ class DailyChecks(TimeStampedModel):
     daily = models.ForeignKey(DailyCalendar, on_delete=models.CASCADE, related_name="daily_user_checks")
 
     time = models.TimeField("Hora de chequeo", auto_now_add=True)
-    checking_time = models.DateTimeField("Fecha de chequeo", auto_now_add=True)
+    checking_time = models.DateTimeField("Fecha de chequeo", null=True, default=None)
 
     checking_type = models.IntegerField(
         "Tipo de chequeo",
@@ -55,7 +56,22 @@ class DailyChecks(TimeStampedModel):
     @property
     def fecha(self):
         return f"{self.daily.date_day.strftime('%d/%m/%Y')}"
+        
+
+    def save(self, *args, **kwargs):
+        if self.checking_time is None:
+            self.checking_time = datetime.now()
+            
+        return super().save(*args, **kwargs)
     
+
+class DailyChecksProxyModelAdmin(DailyChecks):
+    class Meta:
+        ordering = ["-daily__date_day", "employee_id", "-id"]
+        verbose_name = "Asignar chequeos"
+        verbose_name_plural = "Asignar chequeos"
+        proxy = True
+
 
 
 

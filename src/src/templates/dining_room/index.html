@@ -99,7 +99,7 @@
       </div>
     </div>
     <div class="row">
-      <div class="col-12 px-0 mt-2">
+      <div class="col-12 px-0 mt-2" style="max-height: 250px; overflow: auto;">
         <table class="table table-striped w-100">
           <thead>
             <tr>
@@ -266,7 +266,7 @@
           "/dining_room/todayChecks/"
         ).then(resp=> resp.json()).then(resp => {
           console.log(resp)
-          this.checks = resp.data
+          this.checks = resp.data.slice(0, 10)
         })
       },
       sendForm() {
@@ -293,8 +293,8 @@
           if (!resp.error) {
             const {employer} = resp
             this.checks = [resp.employer, ...this.checks]
-            if (this.checks.length > 40) {
-              this.checks = this.checks.slice(0, 39)
+            if (this.checks.length > 10) {
+              this.checks = this.checks.slice(0, 10)
             }
             document.getElementById("name").value = employer.name
             document.getElementById("lastname").value = employer.lastname

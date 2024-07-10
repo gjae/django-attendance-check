@@ -5,7 +5,7 @@ from src.clocking.forms import ClientMarkCheckForm
 from src.clocking.mixins import JSONResponseMixin
 from src.clocking.models import DailyChecks
 
-from src.clocking.exceptions import CheckingTooRecentException
+from src.clocking.exceptions import CheckingTooRecentException, CheckingOutputTooRecentException
 
 class ClientMarkCheckFormView(JSONResponseMixin, FormView):
     form_class = ClientMarkCheckForm
@@ -36,7 +36,18 @@ class ClientMarkCheckFormView(JSONResponseMixin, FormView):
                 },
                 "checking_type": None
             })
-            
+        except CheckingOutputTooRecentException as e:
+            log.exception(e)
+            return self.render_to_json_response({
+                "error": True,
+                "error_type": "timeout",
+                "message": {
+                    "cedula": [{"message": "Su salida ya fue marcada, debe esperar al menos 3 minutos para volver a marcar su próximo entrada"}, ]
+                },
+                "checking_type": None
+            })
+        
+
         return self.render_to_json_response({
             "error": False,
             "message": "Chequeo realizado correctamente",
