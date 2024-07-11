@@ -1,6 +1,6 @@
 {% extends 'admin/base.html' %}
 
-{% load cache humanize i18n %}
+{% load cache humanize i18n clocking  %}
 
 {% block breadcrumbs %}{% endblock %}
 
@@ -16,20 +16,23 @@
 
 {% block  content %}
 {{ block.super }}
-<div class="flex flex-row" x-data="alpine()">
-    <div class="flex flex-col items-start justify-center rounded-2xl bg-white bg-clip-border px-3 py-4  shadow shadow-md dark:!bg-navy-700 dark:shadow-none mr-1 px-2 hover:bg-sky-700" style="cursor: pointer;" @click="reportByWorker">
-        <p class="text-sm text-gray-600">Reportes</p>
-        <p class="text-base font-medium text-navy-700 dark:text-white">
-            Reporte por trabajador
-        </p>
+    {%  has_clocking_permissions as has_permission%}
+    {% if has_permission %}
+    <div class="flex flex-row" x-data="alpine()">
+        <div class="flex flex-col items-start justify-center rounded-2xl bg-white bg-clip-border px-3 py-4  shadow shadow-md dark:!bg-navy-700 dark:shadow-none mr-1 px-2 hover:bg-sky-700" style="cursor: pointer;" @click="reportByWorker">
+            <p class="text-sm text-gray-600">Reportes</p>
+            <p class="text-base font-medium text-navy-700 dark:text-white">
+                Reporte por trabajador
+            </p>
+        </div>
+        <div class="flex flex-col items-start justify-center rounded-2xl bg-white bg-clip-border px-3 py-4  shadow shadow-md dark:!bg-navy-700 dark:shadow-none px-2" style="cursor: pointer;" @click="reportByDepartment">
+            <p class="text-sm text-gray-600">Reportes</p>
+            <p class="text-base font-medium text-navy-700 dark:text-white">
+                Reporte por departamento 
+            </p>
+        </div>
     </div>
-    <div class="flex flex-col items-start justify-center rounded-2xl bg-white bg-clip-border px-3 py-4  shadow shadow-md dark:!bg-navy-700 dark:shadow-none px-2" style="cursor: pointer;" @click="reportByDepartment">
-        <p class="text-sm text-gray-600">Reportes</p>
-        <p class="text-base font-medium text-navy-700 dark:text-white">
-            Reporte por departamento 
-        </p>
-    </div>
-</div>
+    {% endif %}
 {% endblock %}
 
 {% block extrahead %}
