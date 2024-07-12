@@ -9,4 +9,5 @@ class ConfDiningRoomForm(forms.ModelForm):
         exclude = [
             "is_active",
             "is_all_day",
+            "is_removed"
         ]

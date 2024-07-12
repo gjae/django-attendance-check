@@ -1,6 +1,6 @@
 from datetime import time
 from django.db import models
-from model_utils.models import TimeStampedModel
+from model_utils.models import TimeStampedModel, SoftDeletableModel
 
 from src.employees.models import Employee
 from src.indentities.models import Identity
@@ -8,7 +8,7 @@ from src.indentities.models import Identity
 from src.dining_room.managers import CheckDiningRoomManager
 # Create your models here.
 
-class ConfDiningRoom(TimeStampedModel):
+class ConfDiningRoom(TimeStampedModel, SoftDeletableModel):
     check_name = models.CharField(
         "Beneficio"
     )
@@ -57,7 +57,7 @@ class ConfDiningRoom(TimeStampedModel):
         super(ConfDiningRoom, self).save(*args, **kwargs)
 
 
-class DiningChecking(TimeStampedModel):
+class DiningChecking(TimeStampedModel, SoftDeletableModel):
     conf_dining_room = models.ForeignKey(ConfDiningRoom, on_delete=models.CASCADE, related_name="checkings")
     identity = models.ForeignKey(Identity, on_delete=models.CASCADE, null=True, default=None, related_name="dining_room_checkings")
     employer = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="dining_room_checkings")
