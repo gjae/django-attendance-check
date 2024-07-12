@@ -1,6 +1,6 @@
 from django import template
 from django.contrib.contenttypes.models import ContentType
-from django.contrib.auth.models import Permission
+from django.contrib.auth.models import Permission, Group
 from src.clocking.models import DailyCalendar, DailyChecks, DailyCalendarObservation, DailyChecksProxyModelAdmin
 from src.employees.models import Employee, EmployeePosition
 
@@ -24,4 +24,8 @@ def has_clocking_permissions(context):
     ]
 
     perms = context["user"].user_permissions.filter(content_type__in=content_type)
+    if not perms.exists():
+        groups = Group.objects.filter(user__id=context["user"].id).filter(permissions__content_type__in=content_type)
+        return groups.exists()
+    
     return perms.exists()
