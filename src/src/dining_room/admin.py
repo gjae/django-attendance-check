@@ -55,7 +55,7 @@ class ConfDiningRoomReportModelView(ModelAdmin):
 @admin.register(ConfDiningRoom)
 class ConfDiningRoomModelAdmin(ModelAdmin):
     list_display = ["id", "created", "check_name", "start_time", "end_time", "actived"]
-    actions = [action_disabled_turn, action_denable_turn]
+    actions = [action_disabled_turn, action_denable_turn, "remove_configuration"]
     form = ConfDiningRoomForm
 
 
@@ -64,6 +64,22 @@ class ConfDiningRoomModelAdmin(ModelAdmin):
             return "Si"
         
         return "No"
+    
+    def has_delete_permission(self, *args, **kwargs):
+        return False
+    
+    @admin.action(description="Eliminar registros seleccionados")
+    def remove_configuration(self, request, queryset):
+        for record in queryset:
+            subrecords = record.checkings.all()
+            subrecords.update(is_removed=True)
+        
+        queryset.update(is_removed=True)
+        self.message_user(
+            request,
+            "Los registros seleccionados fueron correctamente removidos",
+            messages.SUCCESS,
+        )
     
     actived.short_description = "Turno activo"
 
@@ -83,8 +99,6 @@ class DiningCheckingModelAdmin(ModelAdmin):
     @admin.display(empty_value="Sin registro")
     def employer_name(self, obj):
         return obj.employer.name
-    
-
 
     @admin.display(empty_value="Sin registro")
     def employer_last_name(self, obj):
