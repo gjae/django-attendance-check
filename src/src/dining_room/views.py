@@ -31,7 +31,7 @@ def report_dining_today_excel(request, *args, **kwargs):
     workbook = Workbook()
     ws = workbook.active
     current_date = datetime.now()
-    today_data = DiningChecking.objects.select_related("employer", "conf_dining_room", "employer__department").filter(created__date=current_date.date()).annotate(
+    today_data = DiningChecking.objects.select_related("employer", "conf_dining_room", "employer__department").filter(created__date=current_date.date(), conf_dining_room__isnull=False , conf_dining_room__is_removed=False).annotate(
         row_number=Window(
             RowNumber(),
             order_by=["employer__last_name", "employer__name", "-created"]

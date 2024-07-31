@@ -1,0 +1,53 @@
+{% extends 'reports/base.html' %}
+{% load reports_utils %}
+
+{% block content %} 
+
+<div class="container-fluid">
+    <div class="row">
+        {% if only_department %}
+        <div class="col-11 text-center">
+            Departamento: <strong>{{department.name}}</strong>
+        </div>
+        {% endif %}
+        <div class="col-11 text-center">
+            Desde <strong>{{range_start}}</strong> hasta <strong>{{ range_end }}</strong>
+        </div>
+    </div>
+        <div class="col-9">
+            <table class="table table-stripped w-100" style="font-size: 10px;">
+                <thead>
+                    <tr class="text-center">
+                        <th>Cédula</th>
+                        <th>Nombre</th>
+                        <th>Apellido</th>
+                        <th>Cargo</th>
+                        {% if not only_department %}
+                            <th>Departamento</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in data %}
+                        <tr>
+                            <td class="text-end">{{record.employee.cedula}}</td>
+                            <td class="text-center">{{record.employee.name}}</td>
+                            <td class="text-center">{{record.employee.last_name}}</td>
+                            <td class="text-center">{{record.employee.position.position}}</td>
+                            {% if not only_department %}
+                            <td class="text-center">{{record.employee.department.name}}</td>
+                            {% endif %}
+                        </tr>
+                    {% endfor %}
+                    <tr >
+                        <td >
+                            <strong>Total</strong>
+                        </td>
+                        <td colspan="5" style="text-align: end;">{{total_hours}}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+</div>
+
+{% endblock content %}

@@ -1,0 +1,63 @@
+{% extends 'reports/base_html.html' %}
+{% load static %}
+
+{% block head %}
+<script src="/static/unfold/js/alpine.js" defer=""></script>
+{% endblock %}
+
+{% block title %}Generador de reporte de asistencia{% endblock %}
+{% block report_identify %}Reporte de asistencia{% endblock %}
+{% block body %}
+<div x-data="{ form: 'pdf',  enable_office: false}" class="container-fluid">
+    <form :action="form == 'pdf' ? '/reports/attendance/pdf/': '/reports/attendance/excel/'" method="post">
+        {% csrf_token %}
+        <div class="row">
+            <div class="col-sm-12 col-lg-4">
+                <label for="employer_id">
+                    <strong>Departamento <span class="text-danger">*</span> </strong>
+                </label>
+                <select name="department" x-bind:disabled="!enable_office" required id="employer_id" class="form-control select2bs5">
+                    <option value="">--</option>
+                    {% for department in departments %}
+                        <option value="{{department.id}}">{{department.name}}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-sm-12 col-lg-4">
+                <label for="employer_id">
+                    <strong>Fecha desde <span class="text-danger">*</span> </strong>
+                </label>
+                <input type="date" required name="start_at" id="id_start_at" class="form-control">
+            </div>
+            <div class="col-sm-12 col-lg-4">
+                <label for="employer_id">
+                    <strong>Fecha hasta <span class="text-danger">*</span> </strong>
+                </label>
+                <input type="date" required name="end_at" id="id_end_at" class="form-control">
+            </div>
+            <div class="row">
+                <div class="col-sm-12 col-md-3 col-lg-3">
+                    <label for="id_report_type_1">
+                        <input type="radio" name="report_type" @click="form = 'pdf'" value="1" checked id="id_type_report_1"> Generar PDF
+                    </label>
+                </div>
+               <div class="col-sm-12 col-md-3 col-lg-3">
+                    <label for="id_report_type_2">
+                        <input type="radio" name="report_type" @click="form = 'excel'" value="2" id="id_type_report_2"> Generar en EXCEL
+                    </label>
+                </div>
+                <div class="col-sm-12 col-md-3 col-lg-3">
+                    <label for="id_report_type_3">
+                        <input type="checkbox" x-model="enable_office" name="by_office" @click="enable_office = !enable_office" :value="`${enable_office ? 1 : 0}`"> Por departamento
+                    </label>
+                </div>
+            </div>
+            <div class="col-12 mt-2">
+                <button class="btn btn-primary">
+                    <i class="fas fa-download"></i> Generar
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock body %}

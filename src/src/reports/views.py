@@ -198,6 +198,64 @@ class ReportByDepartmentView(LoginRequiredMixin, TemplateView):
         return context
 
 
+class AttendanceReport(LoginRequiredMixin, TemplateView):
+    template_name = "reports/by_attendance.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        context["departments"] = Department.objects.all().filter(is_actived=True).order_by("name")
+        return context
+
+class ReportByAttendancePdfView(BaseReportMixin, WeasyTemplateResponseMixin, TemplateView):
+    template_name = "reports/by_attendance.pdf.html"
+    pdf_attachment = False
+    report_type = "trabajador"
+    branding_logo = "/app/src/static/images/branding/logo_inpromaro_lit.png"
+    pdf_stylesheets = [
+        '/app/src/static/css/bootstrap.min.css',
+    ]
+    letterhead_lines = (
+        "INPROMAR C.A",
+        "Reporte de asistencia por departamento",
+    )
+
+
+    def get_pdf_filename(self):
+        now = timezone.now()
+        return (
+            "departamento-{at}.pdf".format(at=now.strftime("%d-%m-%Y"), )
+        )
+    
+
+    def get_letterhead_lines(self):
+        now = timezone.now()
+        letterhead = super().get_letterhead_lines()
+        
+        return letterhead + (
+            "<strrong>Fecha de generación {date}</strong>".format(date=now.strftime("%d/%m/%Y %I:%M %p")),
+        )
+    
+    def get_context_data(self):
+        context = super().get_context_data()
+        records = DailyChecks.objects.select_related("employee", "employee__position", "employee__department").filter(checking_time__date__range=[
+            self.request.POST.get("start_at"),
+            self.request.POST.get("end_at")
+        ])
+        if int(self.request.POST.get("by_office", 0)) == 1:
+            records = records.filter(employee__department_id=int(self.request.POST.get("department")))
+            context["department"] = Department.objects.filter(id=int(self.request.POST.get("department"))).first()
+
+        context["data"] = records.order_by("employee__last_name", "id").distinct("employee__last_name")
+        context["range_start"] = datetime.strptime(self.request.POST.get("start_at"), "%Y-%m-%d").strftime("%d/%m/%Y")
+        context["range_end"] = datetime.strptime(self.request.POST.get("end_at"), "%Y-%m-%d").strftime("%d/%m/%Y")
+        context["only_department"] = int(self.request.POST.get("by_office", 0)) == 1
+        return context
+    
+    def post(self, request, *args, **kwargs):
+        return self.render_to_response(self.get_context_data())
+
+
 class ReportExcelMixin(LoginRequiredMixin, View):
 
     def get_footer(self, total_hours):
@@ -435,4 +493,111 @@ class ReportDepartmentExcel(ReportBrandMixin, ReportExcelMixin):
         for col in range(observation_sheet.min_column, observation_sheet.max_column + 1):
             dim_holder[get_column_letter(col)] = ColumnDimension(observation_sheet, min=col, max=col, width=20)
         
+    
+
+
+class ReportAttendanceExcel(ReportBrandMixin, ReportExcelMixin):
+
+ 
+    def post(self, request, *args, **kwargs):
+        self.before_process()
+        workbook = Workbook()
+        headers = self.get_headers()
+        ws = workbook.active
+        self.before(ws)
+        ws.title = self.get_sheet_title()
+
+        ws.append(headers)
+        data = self.get_report_content() 
+
+        for record in data:
+            ws.append(self.process_row(record))
+
+        self.post_processing(data, ws, workbook)
+
+
+        dim_holder = DimensionHolder(worksheet=ws)
+
+        for col in range(ws.min_column, ws.max_column + 1):
+            dim_holder[get_column_letter(col)] = ColumnDimension(ws, min=col, max=col, width=20)
+        
+        ws.column_dimensions = dim_holder
+        file_name = self.get_file_name()
+        response = HttpResponse(content_type="application/ms-excel")
+        content = "attachment; filename = {0}".format(file_name)
+        response["Content-Disposition"] = content
+        workbook.save(response)
+        return response
+    
+    def before(self, ws):
+        now = timezone.now()
+        ws.merge_cells("A1:A6")
+        img = Image("/app/src/static/images/branding/logo_inpromaro_lit_backup.png")
+        ws.add_image(img, "A1")
+        ws.merge_cells("B1:G6")
+        department = None
+        if int(self.request.POST.get("by_office", 0)) == 1:
+            department = Department.objects.get(id=self.request.POST.get("department"))            
+            ws["B1"].alignment = Alignment(horizontal="center", vertical="center")
+            ws["B1"].font = Font(bold=True, size=13, name="Arial")
+
+        ws["B1"].value = self.get_headlines(department, int(self.request.POST.get("department", 0)))
+        for i in range(6):
+            ws.append([" ", " ", " ", " ", " ", " ", " "])
+            
+    def get_headlines(self, department, model_id):
+        now = timezone.now()
+        
+        start_at = datetime.strptime(self.request.POST.get("start_at"), "%Y-%m-%d")
+        end_at = datetime.strptime(self.request.POST.get("end_at"), "%Y-%m-%d")
+
+        department_header = f"Departamento: {department.name} \n" if department is not None else ""
+        return (
+            " Reporte de asistencias \n"
+            f"{department_header}"
+            f"Desde {start_at.strftime('%d/%m/%Y')} hasta {end_at.strftime('%d/%m/%Y')} \n"
+            "Fecha de generación: {0} \n ".format(now.strftime("%d/%m/%Y"))
+        )
+    
+    def get_headers(self):
+        return [
+            "Cedula", 
+            "Nombre",
+            "Apellido",
+            "Cargo",
+            "Departamento"
+        ]
+    
+    def process_row(self, record, *args, **kwargs):
+        return [
+            record.employee.cedula,
+            record.employee.name,
+            record.employee.last_name,
+            record.employee.position.position,
+            record.employee.department.name
+        ]
+
+    def get_sheet_title(self):
+        return "Reporte por trabajador"
+
+    def get_file_name(self):
+        return "{at}_reporte_de_asistencia.xlsx".format(
+            at=calendar.timegm(timezone.now().timetuple())
+        )
+
+    def get_report_content(self):
+        self.context = {}
+        records = DailyChecks.objects.select_related("employee", "employee__position", "employee__department").filter(checking_time__date__range=[
+            self.request.POST.get("start_at"),
+            self.request.POST.get("end_at")
+        ])
+        if int(self.request.POST.get("by_office", 0)) == 1:
+            records = records.filter(employee__department_id=int(self.request.POST.get("department")))
+            self.context["department"] = Department.objects.filter(id=int(self.request.POST.get("department"))).first()
+
+        self.context["data"] = records.order_by("employee__last_name", "id").distinct("employee__last_name")
+        self.context["range_start"] = datetime.strptime(self.request.POST.get("start_at"), "%Y-%m-%d").strftime("%d/%m/%Y")
+        self.context["range_end"] = datetime.strptime(self.request.POST.get("end_at"), "%Y-%m-%d").strftime("%d/%m/%Y")
+        self.context["only_department"] = int(self.request.POST.get("by_office", 0)) == 1
+        return self.context["data"]
     
