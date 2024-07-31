@@ -31,6 +31,12 @@
                 Reporte por departamento 
             </p>
         </div>
+        <div class="ml-2 flex flex-col items-start justify-center rounded-2xl bg-white bg-clip-border px-3 py-4  shadow shadow-md dark:!bg-navy-700 dark:shadow-none px-2" style="cursor: pointer;" @click="reportByDepartment">
+            <p class="text-sm text-gray-600">Reportes</p>
+            <p class="text-base font-medium text-navy-700 dark:text-white">
+                Reporte de asistencia
+            </p>
+        </div>
     </div>
     {% endif %}
 {% endblock %}
@@ -43,7 +49,10 @@
                 window.open("/reports/worker/", 'Reporte por trabajador', 'width=700,height=800')
             },
             reportByDepartment() {
-                window.open("/reports/department/", 'Reporte por depaartamento', 'width=700,height=800')
+                window.open("/reports/department/", 'Reporte por departamento', 'width=700,height=800')
+            },
+            reportByDepartment() {
+                window.open("/reports/attendance/", 'Reporte de asistencia', 'width=700,height=800')
             }
         }
     }

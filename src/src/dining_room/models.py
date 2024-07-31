@@ -8,6 +8,9 @@ from src.indentities.models import Identity
 from src.dining_room.managers import CheckDiningRoomManager
 # Create your models here.
 
+class ConfDiningRoomManager(models.Manager):
+    pass
+
 class ConfDiningRoom(TimeStampedModel, SoftDeletableModel):
     check_name = models.CharField(
         "Beneficio"
@@ -41,6 +44,8 @@ class ConfDiningRoom(TimeStampedModel, SoftDeletableModel):
         null=True,
         default=None
     )
+
+    removeds = ConfDiningRoomManager()
 
     class Meta:
         verbose_name = "Configuracíon de turno"
