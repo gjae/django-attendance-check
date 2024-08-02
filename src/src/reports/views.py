@@ -8,6 +8,8 @@ from django.views.generic.base import ContextMixin
 from django.http.response import HttpResponse
 from django_weasyprint import WeasyTemplateResponseMixin
 from django.views.generic import TemplateView, DetailView, View
+from django.db.models import Window, Count, Q
+from django.db.models.functions import RowNumber
 from openpyxl import Workbook
 from openpyxl.worksheet.dimensions import ColumnDimension, DimensionHolder
 from openpyxl.utils import get_column_letter
@@ -238,15 +240,28 @@ class ReportByAttendancePdfView(BaseReportMixin, WeasyTemplateResponseMixin, Tem
     
     def get_context_data(self):
         context = super().get_context_data()
-        records = DailyChecks.objects.select_related("employee", "employee__position", "employee__department").filter(checking_time__date__range=[
-            self.request.POST.get("start_at"),
-            self.request.POST.get("end_at")
-        ])
+        records = Employee.objects.select_related("position", "department").annotate(
+            row=Window(
+                RowNumber(),
+                order_by=["last_name", "name", "cedula"]
+            ),
+            total_checks=Count(
+                "daily_checks",
+                filter=Q(
+                    daily_checks__checking_time__date__range=[
+                        self.request.POST.get("start_at"),
+                        self.request.POST.get("end_at")
+                    ]
+                )
+            )
+        ).filter(total_checks__gte=1)
         if int(self.request.POST.get("by_office", 0)) == 1:
-            records = records.filter(employee__department_id=int(self.request.POST.get("department")))
+            records = records.filter(department_id=int(self.request.POST.get("department")))
             context["department"] = Department.objects.filter(id=int(self.request.POST.get("department"))).first()
 
-        context["data"] = records.order_by("employee__last_name", "id").distinct("employee__last_name")
+        for r in records:
+            print(r.row, " ", r)
+        context["data"] = records.distinct()
         context["range_start"] = datetime.strptime(self.request.POST.get("start_at"), "%Y-%m-%d").strftime("%d/%m/%Y")
         context["range_end"] = datetime.strptime(self.request.POST.get("end_at"), "%Y-%m-%d").strftime("%d/%m/%Y")
         context["only_department"] = int(self.request.POST.get("by_office", 0)) == 1
@@ -570,11 +585,11 @@ class ReportAttendanceExcel(ReportBrandMixin, ReportExcelMixin):
     
     def process_row(self, record, *args, **kwargs):
         return [
-            record.employee.cedula,
-            record.employee.name,
-            record.employee.last_name,
-            record.employee.position.position,
-            record.employee.department.name
+            record.cedula,
+            record.name,
+            record.last_name,
+            record.position.position,
+            record.department.name
         ]
 
     def get_sheet_title(self):
@@ -587,15 +602,26 @@ class ReportAttendanceExcel(ReportBrandMixin, ReportExcelMixin):
 
     def get_report_content(self):
         self.context = {}
-        records = DailyChecks.objects.select_related("employee", "employee__position", "employee__department").filter(checking_time__date__range=[
-            self.request.POST.get("start_at"),
-            self.request.POST.get("end_at")
-        ])
+        records =  Employee.objects.select_related("position", "department").annotate(
+            row=Window(
+                RowNumber(),
+                order_by=["last_name", "name", "cedula"]
+            ),
+            total_checks=Count(
+                "daily_checks",
+                filter=Q(
+                    daily_checks__checking_time__date__range=[
+                        self.request.POST.get("start_at"),
+                        self.request.POST.get("end_at")
+                    ]
+                )
+            )
+        ).filter(total_checks__gte=1)
         if int(self.request.POST.get("by_office", 0)) == 1:
-            records = records.filter(employee__department_id=int(self.request.POST.get("department")))
+            records = records.filter(department_id=int(self.request.POST.get("department")))
             self.context["department"] = Department.objects.filter(id=int(self.request.POST.get("department"))).first()
 
-        self.context["data"] = records.order_by("employee__last_name", "id").distinct("employee__last_name")
+        self.context["data"] = records.distinct()
         self.context["range_start"] = datetime.strptime(self.request.POST.get("start_at"), "%Y-%m-%d").strftime("%d/%m/%Y")
         self.context["range_end"] = datetime.strptime(self.request.POST.get("end_at"), "%Y-%m-%d").strftime("%d/%m/%Y")
         self.context["only_department"] = int(self.request.POST.get("by_office", 0)) == 1

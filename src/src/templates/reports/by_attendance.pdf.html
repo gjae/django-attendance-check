@@ -30,12 +30,12 @@
                 <tbody>
                     {% for record in data %}
                         <tr>
-                            <td class="text-end">{{record.employee.cedula}}</td>
-                            <td class="text-center">{{record.employee.name}}</td>
-                            <td class="text-center">{{record.employee.last_name}}</td>
-                            <td class="text-center">{{record.employee.position.position}}</td>
+                            <td class="text-end">{{record.cedula}}</td>
+                            <td class="text-center">{{record.name}}</td>
+                            <td class="text-center">{{record.last_name}}</td>
+                            <td class="text-center">{{record.position.position}}</td>
                             {% if not only_department %}
-                            <td class="text-center">{{record.employee.department.name}}</td>
+                            <td class="text-center">{{record.department.name}}</td>
                             {% endif %}
                         </tr>
                     {% endfor %}
@@ -43,7 +43,7 @@
                         <td >
                             <strong>Total</strong>
                         </td>
-                        <td colspan="5" style="text-align: end;">{{total_hours}}</td>
+                        <td colspan="{% if only_department %}3{% else %}4{% endif %}" style="text-align: end;">{{data.count}}</td>
                     </tr>
                 </tbody>
             </table>
