@@ -18,6 +18,7 @@
             <table class="table table-stripped w-100" style="font-size: 10px;">
                 <thead>
                     <tr class="text-center">
+                        <th></th>
                         <th>Cédula</th>
                         <th>Nombre</th>
                         <th>Apellido</th>
@@ -30,6 +31,7 @@
                 <tbody>
                     {% for record in data %}
                         <tr>
+                            <td class="text-end">{{record.row}}</td>
                             <td class="text-end">{{record.cedula}}</td>
                             <td class="text-center">{{record.name}}</td>
                             <td class="text-center">{{record.last_name}}</td>
@@ -43,7 +45,7 @@
                         <td >
                             <strong>Total</strong>
                         </td>
-                        <td colspan="{% if only_department %}3{% else %}4{% endif %}" style="text-align: end;">{{data.count}}</td>
+                        <td colspan="{% if only_department %}4{% else %}5{% endif %}" style="text-align: end;">{{data.count}}</td>
                     </tr>
                 </tbody>
             </table>
