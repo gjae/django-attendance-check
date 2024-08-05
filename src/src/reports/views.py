@@ -243,7 +243,7 @@ class ReportByAttendancePdfView(BaseReportMixin, WeasyTemplateResponseMixin, Tem
         records = Employee.objects.select_related("position", "department").annotate(
             row=Window(
                 RowNumber(),
-                order_by=["last_name", "name", "cedula"]
+                order_by=["last_name", "name"]
             ),
             total_checks=Count(
                 "daily_checks",
@@ -259,9 +259,7 @@ class ReportByAttendancePdfView(BaseReportMixin, WeasyTemplateResponseMixin, Tem
             records = records.filter(department_id=int(self.request.POST.get("department")))
             context["department"] = Department.objects.filter(id=int(self.request.POST.get("department"))).first()
 
-        for r in records:
-            print(r.row, " ", r)
-        context["data"] = records.distinct()
+        context["data"] = records.distinct().order_by("row")
         context["range_start"] = datetime.strptime(self.request.POST.get("start_at"), "%Y-%m-%d").strftime("%d/%m/%Y")
         context["range_end"] = datetime.strptime(self.request.POST.get("end_at"), "%Y-%m-%d").strftime("%d/%m/%Y")
         context["only_department"] = int(self.request.POST.get("by_office", 0)) == 1
@@ -576,6 +574,7 @@ class ReportAttendanceExcel(ReportBrandMixin, ReportExcelMixin):
     
     def get_headers(self):
         return [
+            "",
             "Cedula", 
             "Nombre",
             "Apellido",
@@ -585,6 +584,7 @@ class ReportAttendanceExcel(ReportBrandMixin, ReportExcelMixin):
     
     def process_row(self, record, *args, **kwargs):
         return [
+            record.row,
             record.cedula,
             record.name,
             record.last_name,
@@ -605,7 +605,7 @@ class ReportAttendanceExcel(ReportBrandMixin, ReportExcelMixin):
         records =  Employee.objects.select_related("position", "department").annotate(
             row=Window(
                 RowNumber(),
-                order_by=["last_name", "name", "cedula"]
+                order_by=["last_name", "name", ]
             ),
             total_checks=Count(
                 "daily_checks",
@@ -621,7 +621,7 @@ class ReportAttendanceExcel(ReportBrandMixin, ReportExcelMixin):
             records = records.filter(department_id=int(self.request.POST.get("department")))
             self.context["department"] = Department.objects.filter(id=int(self.request.POST.get("department"))).first()
 
-        self.context["data"] = records.distinct()
+        self.context["data"] = records.distinct().order_by("row")
         self.context["range_start"] = datetime.strptime(self.request.POST.get("start_at"), "%Y-%m-%d").strftime("%d/%m/%Y")
         self.context["range_end"] = datetime.strptime(self.request.POST.get("end_at"), "%Y-%m-%d").strftime("%d/%m/%Y")
         self.context["only_department"] = int(self.request.POST.get("by_office", 0)) == 1
