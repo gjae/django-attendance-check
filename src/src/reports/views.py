@@ -248,11 +248,12 @@ class ReportByAttendancePdfView(BaseReportMixin, WeasyTemplateResponseMixin, Tem
             total_checks=Count(
                 "daily_checks",
                 filter=Q(
-                    daily_checks__checking_time__date__range=[
+                    daily_checks__daily__date_day__range=[
                         self.request.POST.get("start_at"),
                         self.request.POST.get("end_at")
                     ]
-                )
+                ),
+                distinct=True
             )
         ).filter(total_checks__gte=1)
         if int(self.request.POST.get("by_office", 0)) == 1:
@@ -610,11 +611,12 @@ class ReportAttendanceExcel(ReportBrandMixin, ReportExcelMixin):
             total_checks=Count(
                 "daily_checks",
                 filter=Q(
-                    daily_checks__checking_time__date__range=[
+                    daily_checks__daily__date_day__range=[
                         self.request.POST.get("start_at"),
                         self.request.POST.get("end_at")
                     ]
-                )
+                ),
+                distinct=True
             )
         ).filter(total_checks__gte=1)
         if int(self.request.POST.get("by_office", 0)) == 1:
