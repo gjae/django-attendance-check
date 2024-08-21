@@ -3,6 +3,8 @@ from datetime import datetime
 from django.db import models
 from django.db.models import Q, Count
 
+class EmployerNotPresentException(Exception):
+    pass
 
 
 class CheckDiningRoomManager(models.Manager):
@@ -59,8 +61,14 @@ class CheckDiningRoomManager(models.Manager):
         Hace un chequeo de parte del empleado 
         en caso de poder
         """
+        from src.clocking.models import DailyChecks
 
+        is_present = DailyChecks.objects.filter(employee_id=employer.id, daily__date_day=datetime.now().date()).count()
         current_checking_turn = self.get_current_checking_turn(employer)
+
+        if is_present == 0 or is_present % 2 == 0:
+            raise EmployerNotPresentException()
+    
 
         if current_checking_turn is None or not self.can_empoloyer_check(employer):
             return None
