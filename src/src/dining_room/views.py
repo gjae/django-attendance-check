@@ -165,12 +165,14 @@ def default_today_last_checks(request, *args, **kwargs):
 def check_dining_employer(request, card_id, *args, **kwargs):
     emp = Employee.objects.select_related("position", "department").filter(cedula=card_id).first()
     print(emp, card_id)
+    check = None
     if emp is None:
         return JsonResponse({
             "error": True, 
             "can_check": False, 
             "checked": False,
-            "employer": None
+            "employer": None,
+            "error_message": "Cédula no encontrada o no registrada"
         })
     
     try:
@@ -180,7 +182,8 @@ def check_dining_employer(request, card_id, *args, **kwargs):
             "error": True, 
             "can_check": True, 
             "checked": False,
-            "employer": None
+            "employer": None,
+            "error_message": "El trabajador no se encuentra asistente o ya ha marcado su salida"
         })
     
     if check is None:
@@ -188,7 +191,8 @@ def check_dining_employer(request, card_id, *args, **kwargs):
             "error": True, 
             "can_check": True, 
             "checked": False,
-            "employer": None
+            "employer": None,
+            "error_message": "No se ha encontrado configuración de beneficio para este horario"
         })
     
     return JsonResponse({

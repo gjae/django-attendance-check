@@ -58,6 +58,11 @@
         <input type="text" name="" id="reader"  x-ref="idDisplayer"  :class="{'form-control': true, 'text-center': true, 'is-valid text-success fw-bold': data.formIsValid !== null && data.formIsValid,'is-invalid text-danger fw-bold': data.formIsValid !== null && !data.formIsValid}">
       </div>
     </div>
+    <template x-if="error_message != null">
+      <div class="row mt-2">
+        <div class="col col-12 alert alert-danger" style="font-weight: bold;" x-text="error_message"></div>
+      </div>
+    </template>
     <div class="row">
       <div class="col-12">        
         <form action="/dining_room/:cedula/check/" method="post" id="checkingForm">
@@ -168,6 +173,7 @@
       initialized: false,
       isOffline: false,
       checks: [],
+      error_message: null,
       data: {
         id: "",
         personal : {
@@ -189,7 +195,6 @@
           "¡Chequeo exitoso!",
         ],
         bepEffect: null,
-        
       },
       audioEffect() {
         this.bepEffect = new Audio("/static/audio/checking_effect.wav")
@@ -255,7 +260,8 @@
               }
               clearTimeout(this.timeoutEnable)
               this.timeoutEnable = null
-            }, 1500)
+              this.error_message = null
+            }, 2500)
           } else {
             document.getElementById("cedula").value = this.data.id
             this.$refs["idDisplayer"].value = this.data.id
@@ -329,6 +335,11 @@
             document.getElementById("position").value = employer.position
             this.noticeCheckStatus(false, "Entrega verificada", "ENTRADA", {photo: employer.avatar}, false)
           } else {
+            console.log(resp, "aqui", typeof(resp.error_message))
+            if (typeof(resp.error_message) != "undefined") {
+              console.log("ERROR MESSAGE SET")
+              this.error_message = resp.error_message
+            }
             this.noticeCheckStatus(true, "Trabajador no tiene beneficio asignado o no existe", "ENTRADA", {}, true)
           }
           // this.noticeCheckStatus(resp.error, resp.message, resp.checking_type, resp.user_data, resp.error_type)
@@ -363,7 +374,7 @@
             document.getElementById("lastname").value = ""
             document.getElementById("department").value = ""
             document.getElementById("position").value = ""
-        }, 5000)
+        }, 2500)
       },
       cargarReloj(){
         // Haciendo uso del objeto Date() obtenemos la hora, minuto y segundo 
