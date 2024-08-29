@@ -1,5 +1,5 @@
 from django import forms
-from src.settings.models import ClientConfig
+from src.settings.models import ClientConfig, WorkCenter
 
 
 class ClientConfigModelForm(forms.ModelForm):
@@ -12,3 +12,8 @@ class ClientConfigModelForm(forms.ModelForm):
             "note": "Opcional: agregue una observación que pueda interesar recordar"
         }
     
+
+class WorkCenterCreateForm(forms.ModelForm):
+    class Meta:
+        model = WorkCenter
+        exclude = ["is_removed", ]

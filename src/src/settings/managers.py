@@ -27,4 +27,5 @@ class ClientConfigManager(models.Manager):
 
 
 class DepartmentManager(models.Manager):
-    pass
+    def get_queryset(self, *args, **kwargs):
+        return super().get_queryset(*args, **kwargs).select_related("work_center")
