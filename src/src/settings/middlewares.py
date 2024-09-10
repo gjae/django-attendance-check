@@ -22,6 +22,7 @@ class ClientMiddleware:
         log = logging.getLogger(__name__)
 
         log.info(f"Ip request: {request.META.get('REMOTE_ADDR', '0.0.0.0')} / {request.META.get('HTTP_X_REAL_IP', '0.0.0.0')}")
+        request.current_entrypoint = None
         if "admin" in request.get_full_path() or "error" in request.get_full_path() or "media" in request.get_full_path() or "employers" in request.get_full_path():
             return self.get_response(request)
         
@@ -31,7 +32,9 @@ class ClientMiddleware:
         if "reports" in request.get_full_path():
             return self.get_response(request)
         
-        if ClientConfig.objects.is_enabled(request.META.get("HTTP_X_REAL_IP", "0.0.0.0")):
+        enabled, point =  ClientConfig.objects.is_enabled(request.META.get("HTTP_X_REAL_IP", "0.0.0.0"))
+        if enabled:
+            request.current_entrypoint = point
             return self.get_response(request)
         
 

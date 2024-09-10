@@ -38,3 +38,4 @@ class EmployerManager(models.Manager):
     def only_actives(self):
         from src.employees.models import Employee
         return self.exclude(status=Employee.STATUS.rejected)
+    

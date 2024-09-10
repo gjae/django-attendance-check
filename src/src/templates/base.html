@@ -28,7 +28,7 @@
     }
   </style>
 </head>
-<body class="bg-light d-flex flex-column justify-content-between px-0">
+<body class="bg-light d-flex flex-column justify-content-between px-0" x-data="app()" x-cloak x-init="$nextTick(() => initialize())">
 
 <nav class="navbar text-with">
   <div class="container-fluid">
@@ -37,7 +37,7 @@
     </span>
   </div>
 </nav>
-<main id="main-container" x-data="app()" x-cloak x-init="$nextTick(() => initialize())" class="pt-4 bg-light h-100">
+<main id="main-container" class="pt-4 bg-light h-100">
   
   <div class="container" x-show="!isOffline">
     <div class="row">
@@ -100,6 +100,7 @@
   <form action="{% url 'clocking.checking' %}" method="post" id="checkingForm">
     {% csrf_token %}
     <input type="hidden" name="cedula" :value="data.id">
+    <input type="hidden" value="{{request.current_entrypoint.pk}}" name="entrypoint" id="entrypoint_pk">
   </form>
 
 </main><!-- Remove the container if you want to extend the Footer to full width. -->
@@ -125,6 +126,8 @@
       interval: null,
       initialized: false,
       isOffline: false,
+      entry_points: null,
+      currentEntrypoint: document.getElementById("entrypoint_pk").value,
       data: {
         id: "",
         personal : {
@@ -158,6 +161,8 @@
         if (this.initialized) {
           return
         }
+        this.loadEntryPoints()
+        this.checkForEntrypointHere()
         window.addEventListener("offline", (e) => {
           this.isOffline = true
         });
@@ -215,6 +220,26 @@
           }
 
         }, 60000)
+      },
+      loadEntryPoints() {
+        console.info("Cargando lista de puntos de entrada")
+        fetch(
+          `/clocking/listPoints/`
+        )
+        .then(resp => resp.json())
+        .then(resp => {
+          this.entry_points = new Set(resp.data)
+        })
+      },
+      checkForEntrypointHere() {
+        const entrypointDb = window.indexedDB.open("@entrypoint", 1);
+        entrypointDb.onerror = (error) => {
+
+        }
+
+        entrypointDb.onsuccess = (event) => {
+          console.log("Entrypoint DB", event.result)
+        }
       },
       sendForm() {
         const form = document.getElementById("checkingForm")

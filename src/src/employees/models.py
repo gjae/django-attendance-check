@@ -1,5 +1,7 @@
 from datetime import datetime, date
+from django.contrib import admin
 from django.db import models
+from django.contrib.auth import get_user_model
 from model_utils.models import TimeStampedModel, SoftDeletableModel
 from model_utils.fields import StatusField
 from model_utils import Choices
@@ -7,6 +9,8 @@ from model_utils import Choices
 from src.employees.managers import EmployerManager
 from src.settings.models import Department
 
+
+User = get_user_model()
 
 # Create your models here.
 class EmployeePosition(TimeStampedModel):
@@ -74,3 +78,41 @@ class Employee(TimeStampedModel, SoftDeletableModel):
         
         birth = self.birthday_at
         return birth.day == today.day and birth.month == today.month
+
+
+class Transfer(TimeStampedModel, SoftDeletableModel):
+    from_department = models.ForeignKey(
+        Department,
+        verbose_name="Departamento de origen",
+        on_delete=models.RESTRICT,
+        related_name="transfers_origin"
+    )
+
+    to_department = models.ForeignKey(
+        Department,
+        verbose_name="Departamento destino",
+        on_delete=models.RESTRICT,
+        related_name="transfer_destination"
+    )
+
+    employee = models.ForeignKey(
+        Employee,
+        on_delete=models.RESTRICT,
+        verbose_name="Empleado transferido",
+        related_name="transfers"
+    )
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.RESTRICT,
+        related_name="transfers_made",
+        verbose_name="Responsable"
+    )
+
+    note = models.TextField(
+        "Motivo de la transferencia"
+    )
+
+    class Meta:
+        verbose_name = "Traslado"
+        verbose_name_plural = "Traslado de empleados"

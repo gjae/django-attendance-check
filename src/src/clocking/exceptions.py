@@ -3,3 +3,6 @@ class CheckingTooRecentException(Exception):
 
 class CheckingOutputTooRecentException(Exception):
     pass
+
+class EmployeeDoenstBelongsToThisWorkCenterException(Exception):
+    pass
