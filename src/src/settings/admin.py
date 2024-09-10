@@ -49,7 +49,7 @@ class ClientConfigAdminModel(ModelAdmin):
     actions = [active_client_status, disable_client_status]
     
     list_display = [
-        "description", "created", "client_ip", "status"
+        "description", "work_center", "created", "client_ip", "status"
     ]
     search_fields = ["description", "client_ip"],
     list_filter = ["status", ]
@@ -65,6 +65,12 @@ class ClientConfigAdminModel(ModelAdmin):
             }
         ),
         (
+            "Configuración",
+            {"fields": (
+                ("work_center", "allow_qr_clocking", "allow_clocking_from_another_workcenter")
+            )}
+        ),
+        (
             "Observaciones",
             {
                 "fields": (
@@ -73,6 +79,10 @@ class ClientConfigAdminModel(ModelAdmin):
             }
         )
     )
+
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request).select_related("work_center")
+        return queryset
 
 @admin.register(WorkCenter)
 class WorkCenterModelAdmin(ModelAdmin):

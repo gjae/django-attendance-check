@@ -44,6 +44,18 @@ class WorkCenter(TimeStampedModel, SoftDeletableModel):
         default=None
     )
 
+    is_current_center = models.BooleanField(
+        "Marcar si este es el centro actual de la instancia",
+        default=True,
+        help_text=(
+            "Indica sí la instancia actual es la empresa/centro donde se encuentra actualmente"
+        )
+    )
+
+    allow_clocking_from_another_workcenter = models.BooleanField(
+        "Permitir chequeos de empleados de otra empresa",
+        default=False
+    )
 
     class Meta:
         verbose_name = "Empresa/Centro de trabajo"
@@ -74,6 +86,31 @@ class ClientConfig(TimeStampedModel, StatusModel):
         blank=True,
         default=''
     )
+
+    allow_qr_clocking = models.BooleanField(
+        "Permitir chequeo por QR",
+        default=True
+    )
+
+    allow_fingerprint_clocking = models.BooleanField(
+        "Permitir chequeo por huella",
+        default=False
+    )
+    
+    allow_clocking_from_another_workcenter = models.BooleanField(
+        "Permitir chequeos de empleados de otra empresa",
+        default=False
+    )
+
+    work_center = models.ForeignKey(
+        WorkCenter,
+        on_delete=models.RESTRICT,
+        related_name="entrypoints",
+        null=True,
+        default=None,
+        verbose_name="Empresa"
+    )
+    
 
     objects = ClientConfigManager()
 

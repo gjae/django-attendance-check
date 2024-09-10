@@ -1,11 +1,13 @@
 import logging
 from django.views.generic import FormView
+from django.http import JsonResponse
 
 from src.clocking.forms import ClientMarkCheckForm
 from src.clocking.mixins import JSONResponseMixin
 from src.clocking.models import DailyChecks
+from src.settings.models import ClientConfig
 
-from src.clocking.exceptions import CheckingTooRecentException, CheckingOutputTooRecentException
+from src.clocking.exceptions import CheckingTooRecentException, CheckingOutputTooRecentException, EmployeeDoenstBelongsToThisWorkCenterException
 
 class ClientMarkCheckFormView(JSONResponseMixin, FormView):
     form_class = ClientMarkCheckForm
@@ -46,6 +48,17 @@ class ClientMarkCheckFormView(JSONResponseMixin, FormView):
                 },
                 "checking_type": None
             })
+        except EmployeeDoenstBelongsToThisWorkCenterException as e:
+            log.exception(e)
+            return self.render_to_json_response({
+                "error": True,
+                "error_type": "timeout",
+                "message": {
+                    "cedula": [{"message": "El trabajador no pertenece a esta empresa y no se permite chequeos de asistencia para trabajadores de otras empresas"}, ]
+                },
+                "checking_type": None
+            })
+
         
 
         return self.render_to_json_response({
@@ -60,3 +73,23 @@ class ClientMarkCheckFormView(JSONResponseMixin, FormView):
                 "photo": cheecking.employee.picture.url if cheecking.employee.picture is not None and cheecking.employee.picture.name else None
             }
         })
+
+
+
+
+def list_clocking_points(request, *args, **kwargs):
+    clockings = ClientConfig.objects.select_related("work_center").filter(work_center__isnull=False)
+    response = []
+
+    for point in clockings:
+        response.append({
+            "id": point.pk,
+            "name": point.description,
+            "work_center": {
+                "id": point.work_center.pk,
+                "name": point.work_center.name
+            }
+        })
+
+
+    return JsonResponse({"data": response})

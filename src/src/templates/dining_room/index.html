@@ -168,6 +168,7 @@
       initialized: false,
       isOffline: false,
       checks: [],
+      entry_points: new Set(),
       data: {
         id: "",
         personal : {
@@ -212,6 +213,8 @@
           }
           this.isOffline = false
         });
+        
+        this.loadEntryPoints()
 
         this.initialized = true
         this.audioEffect()
@@ -294,6 +297,16 @@
         ).then(resp=> resp.json()).then(resp => {
           console.log(resp)
           this.checks = resp.data.slice(0, 10)
+        })
+      },
+      loadEntryPoints() {
+        console.info("Cargando lista de puntos de entrada")
+        fetch(
+          `/clocking/listPoints/`
+        )
+        .then(resp => resp.json())
+        .then(resp => {
+          this.entry_points = new Set(resp.data)
         })
       },
       sendForm() {

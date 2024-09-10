@@ -20,9 +20,9 @@ class ClientConfigManager(models.Manager):
         esta activo
         """
 
-        enableds = self.get_enabled_clients().values_list("client_ip", flat=True)
+        points = self.get_enabled_clients().values("client_ip", "pk").first()
 
-        return ip in list(enableds)
+        return points is not None , points
     
 
 
