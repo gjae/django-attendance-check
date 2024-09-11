@@ -20,7 +20,7 @@ class ClientConfigManager(models.Manager):
         esta activo
         """
 
-        points = self.get_enabled_clients().values("client_ip", "pk").first()
+        points = self.get_enabled_clients().filter(work_center__is_current_center=True).values("client_ip", "pk").first()
 
         return points is not None , points
     
