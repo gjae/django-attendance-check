@@ -22,6 +22,7 @@ class CheckDiningRoomManager(models.Manager):
             Q(start_time__lte=current_time)
             & Q(end_time__gte=current_time) 
             & Q(is_active__isnull=True)
+            & Q(is_removed=False)
         ).first()
 
         return current_checking_turn
