@@ -74,7 +74,7 @@ class ConfDiningRoomModelAdmin(ModelAdmin):
     def remove_configuration(self, request, queryset):
         for record in queryset:
             subrecords = record.checkings.all()
-            subrecords.update(is_removed=True)
+            subrecords.delete()
         
         queryset.update(is_removed=True)
         self.message_user(
