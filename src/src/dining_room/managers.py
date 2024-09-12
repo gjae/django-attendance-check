@@ -52,7 +52,7 @@ class CheckDiningRoomManager(models.Manager):
         
         # Verifica si el empleado no tiene un chqueo con el turno actual
         # entonces retorna que si puede hacer un chequeo
-        has = not self.filter(employer=employer).filter(conf_dining_room=current_checking_turn).exists()
+        has = not self.filter(employer=employer).filter(created__date=datetime.now().date()).filter(conf_dining_room=current_checking_turn).exists()
 
         print(f"HAS: {has}")
         return has
