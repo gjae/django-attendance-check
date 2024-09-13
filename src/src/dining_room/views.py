@@ -15,7 +15,7 @@ from openpyxl.styles import Alignment, Font
 from src.dining_room.models import DiningChecking , ConfDiningRoom
 from src.employees.models import Employee
 from src.clocking.models import DailyChecks
-from src.dining_room.managers import EmployerNotPresentException
+from src.dining_room.managers import EmployerNotPresentException, EmployerHasBeenCheckedException
 from unfold.views import UnfoldModelAdminViewMixin
 
 # Create your views here.
@@ -177,6 +177,15 @@ def check_dining_employer(request, card_id, *args, **kwargs):
     
     try:
         check = DiningChecking.objects.make_check_if_can(emp)
+    except EmployerHasBeenCheckedException:
+        return JsonResponse({
+            "error": True, 
+            "can_check": True, 
+            "checked": False,
+            "employer": None,
+            "error_message": "El trabajador ya ha recibido el beneficio"
+        })
+
     except EmployerNotPresentException:
         return JsonResponse({
             "error": True, 
