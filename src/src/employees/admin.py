@@ -13,8 +13,13 @@ from django.utils.html import format_html
 
 
 from src.clocking.models import DailyChecks
+<<<<<<< Updated upstream
 from .models import Employee, EmployeePosition
 from .forms import EmployerModelForm
+=======
+from .models import Employee, EmployeePosition, Transfer, Department
+from .forms import EmployerModelForm, TransferModelForm
+>>>>>>> Stashed changes
 
 @admin.action(description="Generar e imprimir carnet")
 def print_carnet(modeladmin, request, queryset):
@@ -185,3 +190,43 @@ class EmployeeAdmin(ModelAdmin):
         )
 
     name.short_description = "Nombre"
+<<<<<<< Updated upstream
+=======
+
+
+@admin.register(Transfer)
+class TransferModelAdmin(ModelAdmin):
+    model = Transfer
+    form = TransferModelForm
+    list_display = [
+        "from_department",
+        "to_department",
+        "employee",
+        "user",
+        "note"
+    ]
+    fieldsets = (
+        ("Origen y destino", {
+            "fields": (
+                "from_department",
+                "to_department"
+            ),
+        }),
+        ("Detalles", {
+            "fields": (
+                "employee",
+                "note",
+                "user"
+            )
+        })
+    )
+    
+    exclude = ["is_removed", ]
+
+    def get_changeform_initial_data(self, request):
+        return {"user": request.user.id, "from_department": Department.objects.first().id}
+
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        return queryset.select_related()
+>>>>>>> Stashed changes

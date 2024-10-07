@@ -74,3 +74,44 @@ class Employee(TimeStampedModel, SoftDeletableModel):
         
         birth = self.birthday_at
         return birth.day == today.day and birth.month == today.month
+<<<<<<< Updated upstream
+=======
+
+
+class Transfer(TimeStampedModel, SoftDeletableModel):
+    from_department = models.ForeignKey(
+        Department,
+        verbose_name="Departamento de origen",
+        on_delete=models.RESTRICT,
+        related_name="transfers_origin",
+    )
+
+    to_department = models.ForeignKey(
+        Department,
+        verbose_name="Departamento destino",
+        on_delete=models.RESTRICT,
+        related_name="transfer_destination"
+    )
+
+    employee = models.ForeignKey(
+        Employee,
+        on_delete=models.RESTRICT,
+        verbose_name="Empleado transferido",
+        related_name="transfers"
+    )
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.RESTRICT,
+        related_name="transfers_made",
+        verbose_name="Responsable"
+    )
+
+    note = models.TextField(
+        "Motivo de la transferencia"
+    )
+
+    class Meta:
+        verbose_name = "Traslado"
+        verbose_name_plural = "Traslado de empleados"
+>>>>>>> Stashed changes

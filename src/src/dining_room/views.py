@@ -133,11 +133,16 @@ def report_dining_today_excel(request, *args, **kwargs):
 
 def index(request, *args, **kwargs):
     today_checks = DiningChecking.objects.today_checks()
+    context = {}
+    context['today_statistics'] = DiningChecking.objects.statistics_of()
+    context['today_statistics']["presents"] = context['today_statistics']["assistants"] - context['today_statistics']["retired"]
 
     return render(
         request, 
         "dining_room/index.html", 
-        {"today_checks": today_checks}
+        {"today_checks": today_checks, 
+        "statistics": context['today_statistics'],
+        "total_checks": today_checks.count()}
     )
 
 def default_today_last_checks(request, *args, **kwargs):

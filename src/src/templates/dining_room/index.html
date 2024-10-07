@@ -33,13 +33,57 @@
 <nav class="navbar text-with">
   <div class="container-fluid">
     <span class="navbar-brand mb-0 h1">
-      <img src="{% static 'images/branding/logo_inpromaro_lit.png' %}" alt=""> 
+      <img src="{% static 'images/branding/logo_inpromaro_lit.png' %}" style="height: 90px;" alt=""> 
     </span>
   </div>
 </nav>
 <main id="main-container" x-data="app()" x-cloak x-init="$nextTick(() => initialize())" class="bg-light h-100">
   
   <div class="container" x-show="!isOffline">
+    <div class="row mb-2">
+      <div class="col-sm-12 col-md-4 col-lg-4">
+        <div class="card card-light shadow-sm">
+          <div class="card-body">
+            <div class="row">
+              <div class="col-12">
+                <h3 class="card-title">{{total_checks}}</h3>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer">
+            <strong>Personal chequeado</strong>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-12 col-md-4 col-lg-4">
+        <div class="card card-light shadow-sm">
+          <div class="card-body">
+            <div class="row">
+              <div class="col-12">
+                <h3 class="card-title">{{statistics.retired}}</h3>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer">
+            <strong>Personal retirado</strong>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-12 col-md-4 col-lg-4">
+        <div class="card card-light shadow-sm">
+          <div class="card-body">
+            <div class="row">
+              <div class="col-12">
+                <h3 class="card-title">{{statistics.presents}}</h3>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer">
+            <strong>Personal presente</strong>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="row">
       <div class="col-sm-12 col-6">
         <div id="relojnumerico" class="reloj" >
