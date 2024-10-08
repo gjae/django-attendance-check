@@ -13,13 +13,8 @@ from django.utils.html import format_html
 
 
 from src.clocking.models import DailyChecks
-<<<<<<< Updated upstream
-from .models import Employee, EmployeePosition
-from .forms import EmployerModelForm
-=======
 from .models import Employee, EmployeePosition, Transfer, Department
 from .forms import EmployerModelForm, TransferModelForm
->>>>>>> Stashed changes
 
 @admin.action(description="Generar e imprimir carnet")
 def print_carnet(modeladmin, request, queryset):
@@ -190,8 +185,6 @@ class EmployeeAdmin(ModelAdmin):
         )
 
     name.short_description = "Nombre"
-<<<<<<< Updated upstream
-=======
 
 
 @admin.register(Transfer)
@@ -229,4 +222,3 @@ class TransferModelAdmin(ModelAdmin):
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
         return queryset.select_related()
->>>>>>> Stashed changes

@@ -1,10 +1,11 @@
+import logging
 from pathlib import Path
 from django.dispatch import receiver
 from django.db.models.signals import post_save, pre_save
 from django.core.files.storage import default_storage
 import qrcode
 
-from src.employees.models import Employee
+from src.employees.models import Employee, Transfer
 
 @receiver(post_save, sender=Employee)
 def on_create_employeer_record(sender, instance: Employee, created: bool, *args, **kwargs):
@@ -23,9 +24,7 @@ def on_create_employeer_record(sender, instance: Employee, created: bool, *args,
         return False
     
     qr = qrcode.make(f"{instance.cedula}")
-<<<<<<< Updated upstream
     qr.save(str(path))
-=======
     qr.save(str(path))
 
 
@@ -54,4 +53,3 @@ def on_employee_transfered(sender, instance: Transfer, created: bool, *args, **k
     empl.save()
 
     LOG.info(f"El empleado {empl} fue movido desde el departamento {instance.from_department} al departamento {instance.to_department}")
->>>>>>> Stashed changes

@@ -1,5 +1,6 @@
 from datetime import datetime, date
 from django.db import models
+from django.contrib.auth import get_user_model
 from model_utils.models import TimeStampedModel, SoftDeletableModel
 from model_utils.fields import StatusField
 from model_utils import Choices
@@ -7,6 +8,7 @@ from model_utils import Choices
 from src.employees.managers import EmployerManager
 from src.settings.models import Department
 
+User = get_user_model()
 
 # Create your models here.
 class EmployeePosition(TimeStampedModel):
@@ -74,8 +76,6 @@ class Employee(TimeStampedModel, SoftDeletableModel):
         
         birth = self.birthday_at
         return birth.day == today.day and birth.month == today.month
-<<<<<<< Updated upstream
-=======
 
 
 class Transfer(TimeStampedModel, SoftDeletableModel):
@@ -114,4 +114,3 @@ class Transfer(TimeStampedModel, SoftDeletableModel):
     class Meta:
         verbose_name = "Traslado"
         verbose_name_plural = "Traslado de empleados"
->>>>>>> Stashed changes

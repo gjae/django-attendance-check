@@ -46,26 +46,13 @@
           <div class="card-body">
             <div class="row">
               <div class="col-12">
-                <h3 class="card-title">{{total_checks}}</h3>
+                <input type="hidden" value="{{total_checks}}" id="total_dining_checks">
+                <h3 class="card-title" x-text="total_dining_checks"></h3>
               </div>
             </div>
           </div>
           <div class="card-footer">
             <strong>Personal chequeado</strong>
-          </div>
-        </div>
-      </div>
-      <div class="col-sm-12 col-md-4 col-lg-4">
-        <div class="card card-light shadow-sm">
-          <div class="card-body">
-            <div class="row">
-              <div class="col-12">
-                <h3 class="card-title">{{statistics.retired}}</h3>
-              </div>
-            </div>
-          </div>
-          <div class="card-footer">
-            <strong>Personal retirado</strong>
           </div>
         </div>
       </div>
@@ -218,6 +205,7 @@
       isOffline: false,
       checks: [],
       error_message: null,
+      total_dining_checks: parseInt(document.getElementById("total_dining_checks").value),
       data: {
         id: "",
         personal : {
@@ -378,6 +366,7 @@
             document.getElementById("department").value = employer.department
             document.getElementById("position").value = employer.position
             this.noticeCheckStatus(false, "Entrega verificada", "ENTRADA", {photo: employer.avatar}, false)
+            this.total_dining_checks += 1
           } else {
             console.log(resp, "aqui", typeof(resp.error_message))
             if (typeof(resp.error_message) != "undefined") {
