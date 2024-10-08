@@ -132,6 +132,9 @@ def report_dining_today_excel(request, *args, **kwargs):
     return response
 
 def index(request, *args, **kwargs):
+    current_date = datetime.now().date()
+    current_time = datetime.now().time()
+    current_turn = ConfDiningRoom.objects.filter(date_start__date__lte=current_date, is_active__isnull=True, start_time__lte=current_time, end_time__gte=current_time).last()
     today_checks = DiningChecking.objects.today_checks()
     context = {}
     context['today_statistics'] = DiningChecking.objects.statistics_of()
@@ -142,7 +145,8 @@ def index(request, *args, **kwargs):
         "dining_room/index.html", 
         {"today_checks": today_checks, 
         "statistics": context['today_statistics'],
-        "total_checks": today_checks.count()}
+        "current_turn": current_turn,
+        "total_checks": today_checks.filter(conf_dining_room=current_turn).count()}
     )
 
 def default_today_last_checks(request, *args, **kwargs):
