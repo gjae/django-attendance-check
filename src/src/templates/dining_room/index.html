@@ -41,7 +41,22 @@
   
   <div class="container" x-show="!isOffline">
     <div class="row mb-2">
-      <div class="col-sm-12 col-md-4 col-lg-4">
+      <div class="col-sm-12 col-md-3 col-lg-3">
+        <div class="card card-light shadow-sm">
+          <div class="card-body">
+            <div class="row">
+              <div class="col-12">
+                <input type="hidden" value="{{statistics.assistants}}" id="id_assistants">
+                <h3 class="card-title" x-text="assistants"></h3>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer">
+            <strong>Personal ingresado</strong>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-12 col-md-3 col-lg-3">
         <div class="card card-light shadow-sm">
           <div class="card-body">
             <div class="row">
@@ -56,7 +71,7 @@
           </div>
         </div>
       </div>
-      <div class="col-sm-12 col-md-4 col-lg-4">
+      <div class="col-sm-12 col-md-3 col-lg-3">
         <div class="card card-light shadow-sm">
           <div class="card-body">
             <div class="row">
@@ -67,6 +82,20 @@
           </div>
           <div class="card-footer">
             <strong>Personal presente</strong>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-12 col-md-3 col-lg-3">
+        <div class="card card-light shadow-sm">
+          <div class="card-body">
+            <div class="row">
+              <div class="col-12">
+                <h3 class="card-title" x-text="missing_for_dining"></h3>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer">
+            <strong>Personal restante</strong>
           </div>
         </div>
       </div>
@@ -205,6 +234,8 @@
       isOffline: false,
       checks: [],
       error_message: null,
+      missing_for_dining: 0,
+      assistants: parseInt(document.getElementById("id_assistants").value),
       total_dining_checks: parseInt(document.getElementById("total_dining_checks").value),
       data: {
         id: "",
@@ -322,7 +353,7 @@
             location.reload()
           }
 
-        }, 60000)
+        }, 10000)
 
         /**
          * Buscar los checks diarios para la fecha actual
@@ -333,6 +364,7 @@
           console.log(resp)
           this.checks = resp.data.slice(0, 10)
         })
+        this.missing_for_dining = this.assistants - this.total_dining_checks
       },
       sendForm() {
         const form = document.getElementById("checkingForm")
@@ -367,6 +399,7 @@
             document.getElementById("position").value = employer.position
             this.noticeCheckStatus(false, "Entrega verificada", "ENTRADA", {photo: employer.avatar}, false)
             this.total_dining_checks += 1
+            this.missing_for_dining = this.assistants - this.total_dining_checks
           } else {
             console.log(resp, "aqui", typeof(resp.error_message))
             if (typeof(resp.error_message) != "undefined") {
@@ -407,7 +440,7 @@
             document.getElementById("lastname").value = ""
             document.getElementById("department").value = ""
             document.getElementById("position").value = ""
-        }, 2500)
+        }, 8000)
       },
       cargarReloj(){
         // Haciendo uso del objeto Date() obtenemos la hora, minuto y segundo 
