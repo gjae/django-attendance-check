@@ -32,7 +32,14 @@ def report_dining_today_excel(request, *args, **kwargs):
     workbook = Workbook()
     ws = workbook.active
     current_date = datetime.now()
-    today_data = DiningChecking.objects.select_related("employer", "conf_dining_room", "employer__department").filter(created__date=current_date.date(), conf_dining_room__isnull=False , conf_dining_room__is_removed=False).annotate(
+    print_date = request.GET.get("print_date", None)
+    if print_date is not None:
+        print_date = datetime.strptime(print_date, "%Y-%m-%d").date()
+    else:
+        print_date = current_date.date()
+
+    print(print_date)
+    today_data = DiningChecking.objects.select_related("employer", "conf_dining_room", "employer__department").filter(created__date=print_date, conf_dining_room__isnull=False , conf_dining_room__is_removed=False).annotate(
         row_number=Window(
             RowNumber(),
             order_by=["employer__last_name", "employer__name", "-created"]
@@ -44,7 +51,7 @@ def report_dining_today_excel(request, *args, **kwargs):
         .objects
         .values("check_name")
         .annotate(
-            total_by_benefit=Count("checkings__id", filter=Q(checkings__created__date=current_date.date()))
+            total_by_benefit=Count("checkings__id", filter=Q(checkings__created__date=print_date))
         )
         .filter(total_by_benefit__gt=0)
         .values("total_by_benefit", "check_name")
@@ -67,7 +74,7 @@ def report_dining_today_excel(request, *args, **kwargs):
 
     ws.merge_cells("A1:G1")
     ws.merge_cells("A3:G3")
-    ws["A1"].value = f"PERSONAL ASISTENTE AL {current_date.strftime('%d/%m/%Y')} INPROMARCA"
+    ws["A1"].value = f"PERSONAL ASISTENTE AL {print_date.strftime('%d/%m/%Y')} INPROMARCA"
     ws["A3"].value = "Trabajador"
     ws["C3"].border = thin_border
     ws["B3"].border = thin_border

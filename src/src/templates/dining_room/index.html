@@ -67,7 +67,7 @@
             </div>
           </div>
           <div class="card-footer">
-            <strong>Personal chequeado - <strong class="text-secondary">{{current_turn.check_name}}</strong></strong>
+            <strong>Personal chequeado 11861514 - <strong class="text-secondary">{{current_turn.check_name}}</strong></strong>
           </div>
         </div>
       </div>
@@ -76,7 +76,8 @@
           <div class="card-body">
             <div class="row">
               <div class="col-12">
-                <h3 class="card-title">{{statistics.presents}}</h3>
+                <input type="hidden" value="{{statistics.presents}}" id="id_total_presents">
+                <h3 class="card-title" x-text="presents"></h3>
               </div>
             </div>
           </div>
@@ -235,6 +236,7 @@
       checks: [],
       error_message: null,
       missing_for_dining: 0,
+      presents: parseInt(document.getElementById("id_total_presents").value),
       assistants: parseInt(document.getElementById("id_assistants").value),
       total_dining_checks: parseInt(document.getElementById("total_dining_checks").value),
       data: {
@@ -364,7 +366,12 @@
           console.log(resp)
           this.checks = resp.data.slice(0, 10)
         })
-        this.missing_for_dining = this.assistants - this.total_dining_checks
+        // this.missing_for_dining = (this.assistants - this.presents ) - this.total_dining_checks
+        this.missing_for_dining = this.presents - this.total_dining_checks
+        if (this.missing_for_dining < 0) {
+          this.missing_for_dining = 0
+        }
+        console.log(this.assistants, this.presents, this.total_dining_checks)
       },
       sendForm() {
         const form = document.getElementById("checkingForm")

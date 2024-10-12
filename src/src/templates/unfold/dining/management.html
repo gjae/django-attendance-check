@@ -1,9 +1,14 @@
 {% extends "admin/base_site.html" %}
+{% load static %}
 
+{% block extrahead %}
+<link rel="stylesheet" href="{% static 'css/vanilla_calendar.min.css' %}">
+<script src="{% static 'js/vanilla_calendar.js' %}"></script>
+<script src="{% static 'js/moment.min.js' %}"></script>
+{% endblock %}
 {% block title %} 
    Gestión de comedor | {{ site_title|default:_('Django site admin') }}
 {% endblock %}
-
 
 
 {% block custom_breadcrumbs  %}
@@ -14,15 +19,23 @@
 {% endblock %}
 
 {% block content %}
-<div class="container mx-auto">
+<div class="container mx-auto" x-data="{'current_date': moment(new Date())}">
    <div class="flex flex-row">
-      <div class="w-100">
-         <a href="{% url 'dining_room.today_report_xlsx' %}" target="_blank" class="bg-white hover:bg-gray-100 text-gray-800 font-semibold py-2 px-4 border border-gray-400 rounded shadow flex items-center  space-x-4 ">
+      <div class="w-50">
+         <a :href="`{% url 'dining_room.today_report_xlsx' %}?print_date=${current_date.format('YYYY-MM-DD')}`" target="_blank" class="bg-white hover:bg-gray-100 text-gray-800 font-semibold py-2 px-4 border border-gray-400 rounded shadow flex items-center  space-x-4 ">
             Descargar reporte
             <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 13V4M7 14H5a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1h-2m-1-5-4 5-4-5m9 8h.01"/>
              </svg>             
          </a>
+      </div>
+      <div class="w-auto flex justify-center">
+         <div class="bg-white hover:bg-gray-100 text-gray-800 font-semibold py-2 px-4 border border-gray-400 rounded shadow flex items-center  space-x-4">
+            <label for="id_date_selector">
+               Reporte por día:  
+            </label>
+          <input type="date" @change="current_date = moment($event.target.value)" :value="current_date.format('YYYY-MM-DD')" id="id_date_selector">
+         </div>
       </div>
    </div>
    
@@ -52,4 +65,5 @@
       </div>
    </div>
 </div>
+
 {% endblock %}
