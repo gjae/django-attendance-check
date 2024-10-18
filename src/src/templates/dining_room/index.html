@@ -367,7 +367,7 @@
           this.checks = resp.data.slice(0, 10)
         })
         // this.missing_for_dining = (this.assistants - this.presents ) - this.total_dining_checks
-        this.missing_for_dining = this.presents - this.total_dining_checks
+        this.missing_for_dining = parseInt(this.presents) - parseInt(this.total_dining_checks)
         if (this.missing_for_dining < 0) {
           this.missing_for_dining = 0
         }
@@ -405,8 +405,8 @@
             document.getElementById("department").value = employer.department
             document.getElementById("position").value = employer.position
             this.noticeCheckStatus(false, "Entrega verificada", "ENTRADA", {photo: employer.avatar}, false)
-            this.total_dining_checks += 1
-            this.missing_for_dining = this.assistants - this.total_dining_checks
+            this.total_dining_checks = parseInt(this.total_dining_checks) + 1
+            this.missing_for_dining = parseInt(this.assistants) - parseInt(this.total_dining_checks)
           } else {
             console.log(resp, "aqui", typeof(resp.error_message))
             if (typeof(resp.error_message) != "undefined") {
