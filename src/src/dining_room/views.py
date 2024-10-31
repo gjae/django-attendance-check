@@ -15,7 +15,7 @@ from openpyxl.styles import Alignment, Font
 from src.dining_room.models import DiningChecking , ConfDiningRoom
 from src.employees.models import Employee
 from src.clocking.models import DailyChecks
-from src.dining_room.managers import EmployerNotPresentException
+from src.dining_room.managers import EmployerNotPresentException, EmployerHasBeenCheckedException
 from unfold.views import UnfoldModelAdminViewMixin
 
 # Create your views here.
@@ -32,7 +32,14 @@ def report_dining_today_excel(request, *args, **kwargs):
     workbook = Workbook()
     ws = workbook.active
     current_date = datetime.now()
-    today_data = DiningChecking.objects.select_related("employer", "conf_dining_room", "employer__department").filter(created__date=current_date.date(), conf_dining_room__isnull=False , conf_dining_room__is_removed=False).annotate(
+    print_date = request.GET.get("print_date", None)
+    if print_date is not None:
+        print_date = datetime.strptime(print_date, "%Y-%m-%d").date()
+    else:
+        print_date = current_date.date()
+
+    print(print_date)
+    today_data = DiningChecking.objects.select_related("employer", "conf_dining_room", "employer__department").filter(created__date=print_date, conf_dining_room__isnull=False , conf_dining_room__is_removed=False).annotate(
         row_number=Window(
             RowNumber(),
             order_by=["employer__last_name", "employer__name", "-created"]
@@ -44,7 +51,7 @@ def report_dining_today_excel(request, *args, **kwargs):
         .objects
         .values("check_name")
         .annotate(
-            total_by_benefit=Count("checkings__id", filter=Q(checkings__created__date=current_date.date()))
+            total_by_benefit=Count("checkings__id", filter=Q(checkings__created__date=print_date))
         )
         .filter(total_by_benefit__gt=0)
         .values("total_by_benefit", "check_name")
@@ -67,7 +74,7 @@ def report_dining_today_excel(request, *args, **kwargs):
 
     ws.merge_cells("A1:G1")
     ws.merge_cells("A3:G3")
-    ws["A1"].value = f"PERSONAL ASISTENTE AL {current_date.strftime('%d/%m/%Y')} INPROMARCA"
+    ws["A1"].value = f"PERSONAL ASISTENTE AL {print_date.strftime('%d/%m/%Y')} INPROMARCA"
     ws["A3"].value = "Trabajador"
     ws["C3"].border = thin_border
     ws["B3"].border = thin_border
@@ -132,12 +139,21 @@ def report_dining_today_excel(request, *args, **kwargs):
     return response
 
 def index(request, *args, **kwargs):
+    current_date = datetime.now().date()
+    current_time = datetime.now().time()
+    current_turn = ConfDiningRoom.objects.filter(date_start__date__lte=current_date, is_active__isnull=True, start_time__lte=current_time, end_time__gte=current_time).last()
     today_checks = DiningChecking.objects.today_checks()
+    context = {}
+    context['today_statistics'] = DiningChecking.objects.statistics_of()
+    context['today_statistics']["presents"] = context['today_statistics']["assistants"] - context['today_statistics']["retired"]
 
     return render(
         request, 
         "dining_room/index.html", 
-        {"today_checks": today_checks}
+        {"today_checks": today_checks, 
+        "statistics": context['today_statistics'],
+        "current_turn": current_turn,
+        "total_checks": today_checks.filter(conf_dining_room=current_turn).count()}
     )
 
 def default_today_last_checks(request, *args, **kwargs):
@@ -177,6 +193,15 @@ def check_dining_employer(request, card_id, *args, **kwargs):
     
     try:
         check = DiningChecking.objects.make_check_if_can(emp)
+    except EmployerHasBeenCheckedException:
+        return JsonResponse({
+            "error": True, 
+            "can_check": True, 
+            "checked": False,
+            "employer": None,
+            "error_message": "El trabajador ya ha recibido el beneficio"
+        })
+
     except EmployerNotPresentException:
         return JsonResponse({
             "error": True, 

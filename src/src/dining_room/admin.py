@@ -58,6 +58,8 @@ class ConfDiningRoomModelAdmin(ModelAdmin):
     actions = [action_disabled_turn, action_denable_turn, "remove_configuration"]
     form = ConfDiningRoomForm
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).filter(is_removed=False)
 
     def actived(self, obj):
         if obj.is_active is None:
@@ -72,7 +74,7 @@ class ConfDiningRoomModelAdmin(ModelAdmin):
     def remove_configuration(self, request, queryset):
         for record in queryset:
             subrecords = record.checkings.all()
-            subrecords.update(is_removed=True)
+            subrecords.delete()
         
         queryset.update(is_removed=True)
         self.message_user(

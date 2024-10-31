@@ -1,6 +1,6 @@
 from django import forms
 
-from src.employees.models import Employee, EmployeePosition
+from src.employees.models import Employee, EmployeePosition, Transfer
 from src.settings.models import Department
 
 class EmployerModelForm(forms.ModelForm):
@@ -28,3 +28,14 @@ class EmployerModelForm(forms.ModelForm):
     class Meta:
         exclude = ["created", ]
         model = Employee
+
+
+class TransferModelForm(forms.ModelForm):
+    class Meta:
+        model = Transfer
+        exclude = ["created", "modified", "from_department"]
+        readonly_fields = [ ]
+        widgets = {
+            "user": forms.HiddenInput(),
+            "from_department": forms.HiddenInput()
+        }

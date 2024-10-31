@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 from django.dispatch import receiver
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.core.files.storage import default_storage
 import qrcode
 
@@ -25,8 +25,19 @@ def on_create_employeer_record(sender, instance: Employee, created: bool, *args,
     
     qr = qrcode.make(f"{instance.cedula}")
     qr.save(str(path))
+<<<<<<< HEAD
 
 
+=======
+    qr.save(str(path))
+
+
+@receiver(pre_save, sender=Transfer)
+def on_employee_pre_transfer(sender, instance: Transfer, *args, **kwargs):
+    if not hasattr(instance, "id") or instance.id is None:
+        employer = instance.employee
+        instance.from_department = employer.department
+>>>>>>> main
 
 @receiver(post_save, sender=Transfer)
 def on_employee_transfered(sender, instance: Transfer, created: bool, *args, **kwargs):
@@ -46,4 +57,8 @@ def on_employee_transfered(sender, instance: Transfer, created: bool, *args, **k
     empl.department = instance.to_department
     empl.save()
 
+<<<<<<< HEAD
     LOG.info(f"El empleado {empl} fue movido desde el departamento {instance.from_department} al departamento {instance.to_department}")
+=======
+    LOG.info(f"El empleado {empl} fue movido desde el departamento {instance.from_department} al departamento {instance.to_department}")
+>>>>>>> main

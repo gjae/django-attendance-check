@@ -13,8 +13,13 @@ from django.utils.html import format_html
 
 
 from src.clocking.models import DailyChecks
+<<<<<<< HEAD
 from .models import Employee, EmployeePosition, Transfer
 from .forms import EmployerModelForm
+=======
+from .models import Employee, EmployeePosition, Transfer, Department
+from .forms import EmployerModelForm, TransferModelForm
+>>>>>>> main
 
 @admin.action(description="Generar e imprimir carnet")
 def print_carnet(modeladmin, request, queryset):
@@ -202,6 +207,10 @@ class EmployeeAdmin(ModelAdmin):
 @admin.register(Transfer)
 class TransferModelAdmin(ModelAdmin):
     model = Transfer
+<<<<<<< HEAD
+=======
+    form = TransferModelForm
+>>>>>>> main
     list_display = [
         "from_department",
         "to_department",
@@ -219,13 +228,27 @@ class TransferModelAdmin(ModelAdmin):
         ("Detalles", {
             "fields": (
                 "employee",
+<<<<<<< HEAD
                 "note"
+=======
+                "note",
+                "user"
+>>>>>>> main
             )
         })
     )
     
     exclude = ["is_removed", ]
 
+<<<<<<< HEAD
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
         return queryset.select_related()
+=======
+    def get_changeform_initial_data(self, request):
+        return {"user": request.user.id, "from_department": Department.objects.first().id}
+
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        return queryset.select_related()
+>>>>>>> main

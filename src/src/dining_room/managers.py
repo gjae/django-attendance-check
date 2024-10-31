@@ -6,6 +6,8 @@ from django.db.models import Q, Count
 class EmployerNotPresentException(Exception):
     pass
 
+class EmployerHasBeenCheckedException(Exception):
+    pass
 
 class CheckDiningRoomManager(models.Manager):
     CURRENT_TIME_KEY = "current_time"
@@ -22,6 +24,7 @@ class CheckDiningRoomManager(models.Manager):
             Q(start_time__lte=current_time)
             & Q(end_time__gte=current_time) 
             & Q(is_active__isnull=True)
+            & Q(is_removed=False)
         ).first()
 
         return current_checking_turn
@@ -51,9 +54,11 @@ class CheckDiningRoomManager(models.Manager):
         
         # Verifica si el empleado no tiene un chqueo con el turno actual
         # entonces retorna que si puede hacer un chequeo
-        has = not self.filter(employer=employer).filter(conf_dining_room=current_checking_turn).exists()
+        has = not self.filter(employer=employer).filter(created__date=datetime.now().date()).filter(conf_dining_room=current_checking_turn).exists()
 
         print(f"HAS: {has}")
+        if not has:
+            raise EmployerHasBeenCheckedException()
         return has
 
     def make_check_if_can(self, employer: models.Model, credential_card_id: Optional[int] = None, *args, **kwargs):

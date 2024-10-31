@@ -33,13 +33,74 @@
 <nav class="navbar text-with">
   <div class="container-fluid">
     <span class="navbar-brand mb-0 h1">
-      <img src="{% static 'images/branding/logo_inpromaro_lit.png' %}" alt=""> 
+      <img src="{% static 'images/branding/logo_inpromaro_lit.png' %}" style="height: 90px;" alt=""> 
     </span>
   </div>
 </nav>
 <main id="main-container" x-data="app()" x-cloak x-init="$nextTick(() => initialize())" class="bg-light h-100">
   
   <div class="container" x-show="!isOffline">
+    <div class="row mb-2">
+      <div class="col-sm-12 col-md-3 col-lg-3">
+        <div class="card card-light shadow-sm">
+          <div class="card-body">
+            <div class="row">
+              <div class="col-12">
+                <input type="hidden" value="{{statistics.assistants}}" id="id_assistants">
+                <h3 class="card-title" x-text="assistants"></h3>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer">
+            <strong>Personal ingresado</strong>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-12 col-md-3 col-lg-3">
+        <div class="card card-light shadow-sm">
+          <div class="card-body">
+            <div class="row">
+              <div class="col-12">
+                <input type="hidden" value="{{total_checks}}" id="total_dining_checks">
+                <h3 class="card-title" x-text="total_dining_checks"></h3>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer">
+            <strong>Personal chequeado - <strong class="text-secondary">{{current_turn.check_name}}</strong></strong>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-12 col-md-3 col-lg-3">
+        <div class="card card-light shadow-sm">
+          <div class="card-body">
+            <div class="row">
+              <div class="col-12">
+                <input type="hidden" value="{{statistics.presents}}" id="id_total_presents">
+                <h3 class="card-title" x-text="presents"></h3>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer">
+            <strong>Personal presente</strong>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-12 col-md-3 col-lg-3">
+        <div class="card card-light shadow-sm">
+          <div class="card-body">
+            <div class="row">
+              <div class="col-12">
+                <h3 class="card-title" x-text="missing_for_dining"></h3>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer">
+            <strong>Personal restante</strong>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="row">
       <div class="col-sm-12 col-6">
         <div id="relojnumerico" class="reloj" >
@@ -104,7 +165,7 @@
       </div>
     </div>
     <div class="row">
-      <div class="col-12 px-0 mt-2" style="max-height: 250px; overflow: auto;">
+      <div class="col-12 px-0 mt-2" style="max-height: 500px; overflow: auto;">
         <table class="table table-striped w-100">
           <thead>
             <tr>
@@ -174,7 +235,14 @@
       isOffline: false,
       checks: [],
       error_message: null,
+<<<<<<< HEAD
       entry_points: new Set(),
+=======
+      missing_for_dining: 0,
+      presents: parseInt(document.getElementById("id_total_presents").value),
+      assistants: parseInt(document.getElementById("id_assistants").value),
+      total_dining_checks: parseInt(document.getElementById("total_dining_checks").value),
+>>>>>>> main
       data: {
         id: "",
         personal : {
@@ -293,7 +361,7 @@
             location.reload()
           }
 
-        }, 60000)
+        }, 10000)
 
         /**
          * Buscar los checks diarios para la fecha actual
@@ -304,6 +372,12 @@
           console.log(resp)
           this.checks = resp.data.slice(0, 10)
         })
+        // this.missing_for_dining = (this.assistants - this.presents ) - this.total_dining_checks
+        this.missing_for_dining = parseInt(this.presents) - parseInt(this.total_dining_checks)
+        if (this.missing_for_dining < 0) {
+          this.missing_for_dining = 0
+        }
+        console.log(this.assistants, this.presents, this.total_dining_checks)
       },
       loadEntryPoints() {
         console.info("Cargando lista de puntos de entrada")
@@ -339,14 +413,16 @@
           if (!resp.error) {
             const {employer} = resp
             this.checks = [resp.employer, ...this.checks]
-            if (this.checks.length > 10) {
-              this.checks = this.checks.slice(0, 10)
+            if (this.checks.length > 20) {
+              this.checks = this.checks.slice(0, 20)
             }
             document.getElementById("name").value = employer.name
             document.getElementById("lastname").value = employer.lastname
             document.getElementById("department").value = employer.department
             document.getElementById("position").value = employer.position
             this.noticeCheckStatus(false, "Entrega verificada", "ENTRADA", {photo: employer.avatar}, false)
+            this.total_dining_checks = parseInt(this.total_dining_checks) + 1
+            this.missing_for_dining = parseInt(this.assistants) - parseInt(this.total_dining_checks)
           } else {
             console.log(resp, "aqui", typeof(resp.error_message))
             if (typeof(resp.error_message) != "undefined") {
@@ -387,7 +463,7 @@
             document.getElementById("lastname").value = ""
             document.getElementById("department").value = ""
             document.getElementById("position").value = ""
-        }, 2500)
+        }, 8000)
       },
       cargarReloj(){
         // Haciendo uso del objeto Date() obtenemos la hora, minuto y segundo 
