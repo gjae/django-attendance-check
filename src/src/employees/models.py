@@ -11,8 +11,6 @@ from src.settings.models import Department
 
 User = get_user_model()
 
-User = get_user_model()
-
 # Create your models here.
 class EmployeePosition(TimeStampedModel):
     position = models.CharField(
@@ -86,11 +84,7 @@ class Transfer(TimeStampedModel, SoftDeletableModel):
         Department,
         verbose_name="Departamento de origen",
         on_delete=models.RESTRICT,
-<<<<<<< HEAD
-        related_name="transfers_origin"
-=======
         related_name="transfers_origin",
->>>>>>> main
     )
 
     to_department = models.ForeignKey(
@@ -120,8 +114,4 @@ class Transfer(TimeStampedModel, SoftDeletableModel):
 
     class Meta:
         verbose_name = "Traslado"
-<<<<<<< HEAD
         verbose_name_plural = "Traslado de empleados"
-=======
-        verbose_name_plural = "Traslado de empleados"
->>>>>>> main

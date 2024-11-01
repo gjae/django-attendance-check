@@ -235,14 +235,11 @@
       isOffline: false,
       checks: [],
       error_message: null,
-<<<<<<< HEAD
       entry_points: new Set(),
-=======
       missing_for_dining: 0,
       presents: parseInt(document.getElementById("id_total_presents").value),
       assistants: parseInt(document.getElementById("id_assistants").value),
       total_dining_checks: parseInt(document.getElementById("total_dining_checks").value),
->>>>>>> main
       data: {
         id: "",
         personal : {
@@ -373,6 +370,7 @@
           this.checks = resp.data.slice(0, 10)
         })
         // this.missing_for_dining = (this.assistants - this.presents ) - this.total_dining_checks
+        this.total_dining_checks ++
         this.missing_for_dining = parseInt(this.presents) - parseInt(this.total_dining_checks)
         if (this.missing_for_dining < 0) {
           this.missing_for_dining = 0
