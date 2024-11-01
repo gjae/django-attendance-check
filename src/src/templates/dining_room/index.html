@@ -407,7 +407,7 @@
             document.getElementById("position").value = employer.position
             this.noticeCheckStatus(false, "Entrega verificada", "ENTRADA", {photo: employer.avatar}, false)
             this.total_dining_checks =  Math.abs(parseInt(this.total_dining_checks)) + 1
-            this.missing_for_dining = parseInt(this.assistants) - parseInt(this.total_dining_checks)
+            this.missing_for_dining = parseInt(this.presents) - parseInt(this.total_dining_checks)
             if (this.missing_for_dining < 0) {
               this.missing_for_dining = 0
             }
