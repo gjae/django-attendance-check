@@ -26,6 +26,13 @@
         border: 2px solid #434547;
         border-radius: 20px;
     }
+    .avatar {
+        width: 100px; /* Ajusta el tamaño según tus necesidades */
+        height: 100px; /* Debe ser igual al ancho para mantener la forma circular */
+        border-radius: 50%; /* Esto hace que la imagen sea circular */
+        object-fit: cover; /* Asegura que la imagen se recorte adecuadamente */
+        border: 2px solid #fff; /* Opcional: agrega un borde blanco */
+    }
   </style>
 </head>
 <body class="bg-light d-flex flex-column justify-content-between px-0" x-data="app()" x-cloak x-init="$nextTick(() => initialize())">
@@ -37,7 +44,7 @@
     </span>
   </div>
 </nav>
-<main id="main-container" class="pt-4 bg-light h-100">
+<main id="main-container" class="bg-light h-100">
   
   <div class="container" x-show="!isOffline">
     <div class="row">
@@ -47,7 +54,7 @@
       </div>
       </div>
     </div>
-    <div class="row mt-4">
+    <div class="row mt-2">
       <div class="col d-flex flex-row align-self-center justify-content-center align-ittems-center">
         <img :src="data.defaultImage" x-show="data.formIsValid === null || !data.formIsValid" class="rounded-circle float-start" alt="...">
         <img :src="data.personal.photo" style="height: 200px; width: 200px;" x-show="data.formIsValid !== null && data.formIsValid" class="rounded-circle float-start" alt="...">
@@ -58,7 +65,7 @@
         <h3>Marque su asistencia o salida escaneando el codigo QR de su carnet</h3>
       </div>
       <div class="col text-center text-success" x-show="data.formIsValid !== null && data.formIsValid">
-        <h3 x-text="data.personal.name"></h3>
+        <h4 x-text="data.personal.name"></h4>
         <span x-text="data.personal.position"></span>
       </div>
     </div>
@@ -67,7 +74,7 @@
         <input type="text" name="" id="reader" readonly disabled x-ref="idDisplayer"  :class="{'form-control': true, 'text-center': true, 'is-valid text-success fw-bold': data.formIsValid !== null && data.formIsValid,'is-invalid text-danger fw-bold': data.formIsValid !== null && !data.formIsValid}">
       </div>
     </div>
-    <div class="row mt-4" x-show="data.formIsValid !== null && data.formIsValid">
+    <div class="row" x-show="data.formIsValid !== null && data.formIsValid">
       <div class="col-6 offset-3">
         <div class="alert alert-success text-center" >
           <strong x-text="data.greeting"></strong>
@@ -103,6 +110,32 @@
     <input type="hidden" value="{{request.current_entrypoint.pk}}" name="entrypoint" id="entrypoint_pk">
   </form>
 
+  <div class="container pt-2">
+    <div class="row">
+      <div class="col-12 table-responsive" style="max-height: 330px;">
+        <table class="w-100 table table-striped">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nombre</th>
+              <th>Fecha</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="check in currentChecks">
+              <tr>
+                <td x-text="check.id"></td>
+                <td x-text="check.user_data.name"></td>
+                <td x-text="parseDateWithMoment(check.created)"></td>
+                <td x-text="check.checking_type"></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </main><!-- Remove the container if you want to extend the Footer to full width. -->
 <div class="container-fluid px-0">
 
@@ -118,16 +151,25 @@
 </div>
 <!-- End of .container -->
 <script src="{% static 'js/bootstrap.min.js' %}"></script>
+<script src="{% static 'js/storage.js' %}"></script>
+<script src="{% static 'js/moment.js' %}"></script>
 <script>
   function app() {
     return {
+      storage: null,
+      objectStorage: null,
+      objectStoreTransaction: null,
       timer: null,
       errorTyped: false,
+      autocleanTimer: null,
       interval: null,
       initialized: false,
       isOffline: false,
       entry_points: null,
       currentEntrypoint: document.getElementById("entrypoint_pk").value,
+      currentChecks: [],
+      recheckTimer: null,
+      CURRENT_STORE: "todayChecking7",
       data: {
         id: "",
         personal : {
@@ -162,7 +204,6 @@
           return
         }
         this.loadEntryPoints()
-        this.checkForEntrypointHere()
         window.addEventListener("offline", (e) => {
           this.isOffline = true
         });
@@ -213,13 +254,104 @@
           let diff = (now - new Date(lastCheck))
           let diffInMinutes = (diff / 1000) / 60
           console.log({diffInMinutes})
-          if (diffInMinutes >= 3) {
+          if (diffInMinutes >= 20) {
             console.log("Refrescando vista por tiempo muerto")
             localStorage.setItem("last_checking", new Date())
             location.reload()
           }
 
         }, 60000)
+
+
+        this.storage = new IndexedDB(
+          "today_users_checks", 6
+        )
+
+        this.storage.init(this.storageOnSuccess(this), this.storageOpenError, this.onUpgradeNeeded(this))
+      },
+      storageOpenError(event) {
+        console.log({error: event})
+      },
+      runAutoCleanScreen() {
+        this.autocleanTimer = setTimeout(()=> {
+          const objectStore = this.storage.db.transaction(this.CURRENT_STORE, "readwrite").objectStore(this.CURRENT_STORE)
+          this.currentChecks = []
+          if (objectStore) {
+            objectStore.clear()
+          }
+        }, 600000)
+
+      },
+      runRechecking() {
+        this.runAutoCleanScreen()
+        this.recheckTimer = setTimeout(()=> {
+          let last_recheck = localStorage.getItem("last_recheck")
+          let now = new Date()
+          if (last_recheck == null) {
+            localStorage.setItem("last_recheck", new Date())
+            return
+          }
+          
+          let diff = (now - new Date(last_recheck))
+          let diffInMinutes = (diff / 1000) / 60
+          console.log({recheck_in: diffInMinutes})
+          this.recheckUsers()
+          if (diffInMinutes >= 30) {
+            console.log("Refrescando vista por tiempo muerto")
+            localStorage.setItem("last_recheck", new Date())
+            this.recheckUsers()
+          }
+        }, 350000)
+      },
+      recheckUsers() {
+        const query = IDBKeyRange.only(0)
+        const transaction = this.storage.db.transaction(this.CURRENT_STORE).objectStore(this.CURRENT_STORE)
+        let recheckUserList = new Array()
+        let request = transaction.index("is_rechecked").openCursor(query, "prev")
+        let form = new FormData()
+        request.onsuccess = (event) => {
+          const cursor = event.target.result
+          if (cursor) {
+            recheckUserList.push(cursor.value)
+            cursor.continue()
+          } else {
+            recheckUserList.forEach(record => {
+              form.append("times", moment(record.created).format("X"))
+              form.append("users", record.user_data.id)
+              form.append("types", record.checking_type)
+              form.append("ids", record.id)
+              fetch(
+                `/clocking/rechects/`,
+                {method: "POST", body: form}
+              )
+              .then(resp => resp.json())
+              .then(resp => {
+                console.log({resp})
+              })
+            })
+          }
+        }
+      },
+      storageOnSuccess(alpineInstance) {
+        const func = (event, instance) => {
+          instance.setObjectStorage(alpineInstance.CURRENT_STORE)
+          alpineInstance.storage.all((result) => {
+            alpineInstance.currentChecks = result
+            alpineInstance.runRechecking()
+          })
+        }
+
+        return func
+      },
+      onUpgradeNeeded(alpineInstance) {
+        const func = (event, storage) => {
+          const db = event.target.result
+          const objectStore = db.createObjectStore(alpineInstance.CURRENT_STORE, {keyPath: "id"})
+          objectStore.createIndex("is_rechecked", "is_rechecked", { unique: false })
+          storage.setObjectStorage(alpineInstance.CURRENT_STORE)
+        }
+
+        return func
       },
       loadEntryPoints() {
         console.info("Cargando lista de puntos de entrada")
@@ -231,15 +363,8 @@
           this.entry_points = new Set(resp.data)
         })
       },
-      checkForEntrypointHere() {
-        const entrypointDb = window.indexedDB.open("@entrypoint", 1);
-        entrypointDb.onerror = (error) => {
-
-        }
-
-        entrypointDb.onsuccess = (event) => {
-          console.log("Entrypoint DB", event.result)
-        }
+      parseDateWithMoment(date) {
+        return moment(date).format("DD/MM/YYYY HH:mm:ss")
       },
       sendForm() {
         const form = document.getElementById("checkingForm")
@@ -261,6 +386,16 @@
           }
           this.data.id = ""
           this.noticeCheckStatus(resp.error, resp.message, resp.checking_type, resp.user_data, resp.error_type)
+          resp["is_rechecked"] = resp.recheck ? 1 : 0
+          
+          clearTimeout(this.autocleanTimer)
+          this.autocleanTimer = null
+          this.runAutoCleanScreen()
+          console.log({resp})
+          if (!resp.error){
+            this.currentChecks = [resp, ...this.currentChecks]
+            this.storage.insertElement([resp, ])
+          }
         })
       },
       noticeCheckStatus(hasError, message, checking_type, user_data, errorType = null) {

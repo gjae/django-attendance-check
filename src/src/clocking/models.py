@@ -73,6 +73,9 @@ class DailyChecks(TimeStampedModel):
             
         return super().save(*args, **kwargs)
     
+    def check_type_as_str(self):
+        return "ENTRADA" if self.checking_type == DailyChecks.CHECK_STATUS_CHOISE.entrada else "SALIDA"
+    
 
 class DailyChecksProxyModelAdmin(DailyChecks):
     class Meta:
