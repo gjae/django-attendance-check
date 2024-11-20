@@ -13,6 +13,10 @@ from django.utils.html import format_html
 
 
 from src.clocking.models import DailyChecks
+from .models import Employee, EmployeePosition, Transfer
+from .forms import EmployerModelForm
+from .models import Employee, EmployeePosition, Transfer, Department
+from .forms import EmployerModelForm, TransferModelForm
 from .models import Employee, EmployeePosition, Transfer, Department
 from .forms import EmployerModelForm, TransferModelForm
 
@@ -96,7 +100,7 @@ class EmployeeAdmin(ModelAdmin):
     inlines = [EmployerCheckingRecord, ]
     actions = [print_carnet, delete_objects]
     form = EmployerModelForm
-    list_filter = ["department", "position"]
+    list_filter = ["department", "position", ]
 
     fieldsets = (
         (
@@ -118,6 +122,12 @@ class EmployeeAdmin(ModelAdmin):
             }
         )
     )
+
+    def get_readonly_fields(self, request, q):
+        if q is not None and q.department is not None:
+            return ["department", ]
+        
+        return super().get_readonly_fields(request, q)
 
     @admin.display(empty_value="Sin registro")
     def photo_tag(self, obj):
@@ -152,7 +162,7 @@ class EmployeeAdmin(ModelAdmin):
         queryset.update(deleted_at=datetime.now())
 
     def get_queryset(self, request: HttpRequest) -> QuerySet[Any]:
-        return super().get_queryset(request).select_related("position", "department").prefetch_related("daily_checks", "daily_checks__daily")
+        return super().get_queryset(request).select_related("position", "department", "department__work_center").prefetch_related("daily_checks", "daily_checks__daily")
 
     @admin.display(empty_value="S/A")
     def position_user(self, obj):
@@ -170,12 +180,18 @@ class EmployeeAdmin(ModelAdmin):
 
 
     list_display = [
-      "photo_tag",  "name", "last_name", "cedula", "department", "birthday_at", "position_user", "date_entry_job", "last_checking"
+      "photo_tag",  "name", "last_name", "cedula", "department", "birthday_at", "position_user", "date_entry_job", "last_checking", "work_center"
     ]
 
     def has_delete_permission(self, request, obj=None):
         return False
     
+    @admin.display(description="Empresa")
+    def work_center(self, obj):
+        if obj.department is not None and obj.department.work_center is not None:
+            return obj.department.work_center.name
+
+        return "S/A"
 
     def name(self, obj):
         return format_html(
@@ -216,9 +232,8 @@ class TransferModelAdmin(ModelAdmin):
     
     exclude = ["is_removed", ]
 
-    def get_changeform_initial_data(self, request):
-        return {"user": request.user.id, "from_department": Department.objects.first().id}
-
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
         return queryset.select_related()
+    def get_changeform_initial_data(self, request):
+        return {"user": request.user.id, "from_department": Department.objects.first().id}

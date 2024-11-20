@@ -20,11 +20,12 @@ class ClientConfigManager(models.Manager):
         esta activo
         """
 
-        enableds = self.get_enabled_clients().values_list("client_ip", flat=True)
+        points = self.get_enabled_clients().filter(work_center__is_current_center=True).values("client_ip", "pk").first()
 
-        return ip in list(enableds)
+        return points is not None , points
     
 
 
 class DepartmentManager(models.Manager):
-    pass
+    def get_queryset(self, *args, **kwargs):
+        return super().get_queryset(*args, **kwargs).select_related("work_center")

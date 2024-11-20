@@ -39,7 +39,7 @@ class CheckingManager(models.Manager):
                 raise CheckingOutputTooRecentException()
 
 
-    def checking_user(self, employee):
+    def checking_user(self, employee, *, entrypoint = None):
         """
         Realiza un check para el usuario para el día actual. Si el usuario
         tiene una entrada en el día actual entonces solo marca una salida
@@ -64,7 +64,7 @@ class CheckingManager(models.Manager):
         if last_employer_check is not None and last_employer_check.checking_type == DailyChecks.CHECK_STATUS_CHOISE.entrada and (datetime.now() - last_employer_check.created).days < 1:
             self.raise_exception_is_checktimeout(last_employer_check)
             check_daily = last_employer_check.daily
-            return DailyChecks.objects.create(employee=employee, daily=check_daily, checking_type=DailyChecks.CHECK_STATUS_CHOISE.salida)
+            return DailyChecks.objects.create(employee=employee, daily=check_daily, checking_type=DailyChecks.CHECK_STATUS_CHOISE.salida, entrypoint=entrypoint)
 
 
 
@@ -72,7 +72,7 @@ class CheckingManager(models.Manager):
         employee_calendar = DailyChecks.objects.filter(employee=employee, daily=daily)
 
         if not employee_calendar.exists():
-            return DailyChecks.objects.create(employee=employee, daily=daily)
+            return DailyChecks.objects.create(employee=employee, daily=daily, entrypoint=entrypoint)
         
         if employee_calendar.exists():
             checking = employee_calendar.first()
@@ -90,7 +90,7 @@ class CheckingManager(models.Manager):
             self.raise_exception_is_checktimeout(checking)
             
 
-            return DailyChecks.objects.create(employee=employee, daily=daily, checking_type=DailyChecks.CHECK_STATUS_CHOISE.salida)
+            return DailyChecks.objects.create(employee=employee, daily=daily, checking_type=DailyChecks.CHECK_STATUS_CHOISE.salida, entrypoint=entrypoint)
 
 
         return employee_calendar.first()

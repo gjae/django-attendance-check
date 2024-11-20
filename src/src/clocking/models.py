@@ -8,6 +8,7 @@ from model_utils.fields import StatusField
 # Create your models here.
 
 from src.employees.models import Employee
+from src.settings.models import ClientConfig
 from .managers import ClockingManager, CheckingManager
 
 
@@ -40,6 +41,14 @@ class DailyChecks(TimeStampedModel):
     )
 
 
+    entrypoint = models.ForeignKey(
+        ClientConfig, 
+        on_delete=models.SET_NULL, 
+        null=True,
+        default=None, 
+        related_name="clockings", 
+        verbose_name="Punto de entrada"
+    )
     objects = CheckingManager()
 
 
@@ -63,6 +72,9 @@ class DailyChecks(TimeStampedModel):
             self.checking_time = datetime.now()
             
         return super().save(*args, **kwargs)
+    
+    def check_type_as_str(self):
+        return "ENTRADA" if self.checking_type == DailyChecks.CHECK_STATUS_CHOISE.entrada else "SALIDA"
     
 
 class DailyChecksProxyModelAdmin(DailyChecks):

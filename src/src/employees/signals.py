@@ -25,8 +25,6 @@ def on_create_employeer_record(sender, instance: Employee, created: bool, *args,
     
     qr = qrcode.make(f"{instance.cedula}")
     qr.save(str(path))
-    qr.save(str(path))
-
 
 @receiver(pre_save, sender=Transfer)
 def on_employee_pre_transfer(sender, instance: Transfer, *args, **kwargs):

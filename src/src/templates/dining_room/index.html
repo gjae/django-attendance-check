@@ -235,6 +235,7 @@
       isOffline: false,
       checks: [],
       error_message: null,
+      entry_points: new Set(),
       missing_for_dining: 0,
       presents: parseInt(document.getElementById("id_total_presents").value),
       assistants: parseInt(document.getElementById("id_assistants").value),
@@ -282,6 +283,8 @@
           }
           this.isOffline = false
         });
+        
+        this.loadEntryPoints()
 
         this.initialized = true
         this.audioEffect()
@@ -367,12 +370,22 @@
           this.checks = resp.data.slice(0, 10)
         })
         // this.missing_for_dining = (this.assistants - this.presents ) - this.total_dining_checks
-        // this.total_dining_checks = this.total_dining_checks + 1
+        this.total_dining_checks ++
         this.missing_for_dining = parseInt(this.presents) - parseInt(this.total_dining_checks)
         if (this.missing_for_dining < 0) {
           this.missing_for_dining = 0
         }
         console.log(this.assistants, this.presents, this.total_dining_checks)
+      },
+      loadEntryPoints() {
+        console.info("Cargando lista de puntos de entrada")
+        fetch(
+          `/clocking/listPoints/`
+        )
+        .then(resp => resp.json())
+        .then(resp => {
+          this.entry_points = new Set(resp.data)
+        })
       },
       sendForm() {
         const form = document.getElementById("checkingForm")
