@@ -52,6 +52,16 @@ class WorkCenter(TimeStampedModel, SoftDeletableModel):
         )
     )
 
+    rif = models.CharField(
+        max_length=15,
+        null=True,
+        blank=True,
+        default="",
+        help_text=(
+            "Ejemplo: J-1010101010"
+        )
+    )
+
     allow_clocking_from_another_workcenter = models.BooleanField(
         "Permitir chequeos de empleados de otra empresa",
         default=False
@@ -63,6 +73,13 @@ class WorkCenter(TimeStampedModel, SoftDeletableModel):
 
     def __str__(self):
         return self.name
+    
+    def save(self, *args, **kwargs):
+        if self.rif is not None and self.rif.strip() != "":
+            if "J-" != self.rif[:1].upper():
+                self.rif = f"J-{self.rif}"
+
+        return super().save(*args, **kwargs)
 
 class ClientConfig(TimeStampedModel, StatusModel):
     STATUS = Choices(
