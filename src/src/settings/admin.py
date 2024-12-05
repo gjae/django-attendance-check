@@ -120,7 +120,7 @@ class DepartmentModelAdmin(ModelAdmin):
         }),
     )
     
-    search_fields = ["name", "work_center"]
+    search_fields = ["name", ]
     list_filter = ["is_actived", "work_center"]
     
     def get_queryset(self, request):
