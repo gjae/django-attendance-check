@@ -125,7 +125,8 @@ class EmployeeAdmin(ModelAdmin):
 
     def get_readonly_fields(self, request, q):
         if q is not None and q.department is not None:
-            return ["department", ]
+            pass
+            #return ["department", ]
         
         return super().get_readonly_fields(request, q)
 
