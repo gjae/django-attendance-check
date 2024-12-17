@@ -123,6 +123,13 @@ class EmployeeAdmin(ModelAdmin):
         )
     )
 
+    class Media:
+        js = ('js/jquery.min.js', 'js/select2/select2.full.min.js', 'js/select2/start_select_employee.js')   
+        css = {
+            'all': ('css/select2/select2.css',),
+        }
+
+
     def get_readonly_fields(self, request, q):
         if q is not None and q.department is not None:
             return ["department", ]
@@ -231,6 +238,12 @@ class TransferModelAdmin(ModelAdmin):
     )
     
     exclude = ["is_removed", ]
+
+    class Media:
+        js = ('js/jquery.min.js', 'js/select2/select2.full.min.js', 'js/select2/start_select2.js')   
+        css = {
+            'all': ('css/select2/select2.css',),
+        }
 
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
