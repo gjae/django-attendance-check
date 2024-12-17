@@ -7,6 +7,18 @@ from src.settings.managers import ClientConfigManager, DepartmentManager
 from src.settings.querysets import DepartmentQuerySet
 
 # Create your models here.
+class CarnetModels(TimeStampedModel):
+    modelo = models.CharField("Modelo de carnet", max_length=120)
+    front_path = models.ImageField(
+        "Imagen frontal",
+        upload_to="carnet_models"
+    )
+
+    back_path = models.ImageField(
+        "Imagen trasera",
+        upload_to="carnet_models"
+    )
+
 class WorkCenter(TimeStampedModel, SoftDeletableModel):
     name = models.CharField(
         "Nombre de la empresa",
@@ -52,6 +64,25 @@ class WorkCenter(TimeStampedModel, SoftDeletableModel):
         )
     )
 
+    rif = models.CharField(
+        max_length=15,
+        null=True,
+        blank=True,
+        default="",
+        help_text=(
+            "Ejemplo: J-1010101010"
+        )
+    )
+
+    carnet_model = models.ForeignKey(
+        CarnetModels,
+        null=True,
+        default=None,
+        on_delete=models.SET_NULL,
+        related_name="work_centers",
+        verbose_name="Modelo de carnet"
+    )
+
     allow_clocking_from_another_workcenter = models.BooleanField(
         "Permitir chequeos de empleados de otra empresa",
         default=False
@@ -63,6 +94,13 @@ class WorkCenter(TimeStampedModel, SoftDeletableModel):
 
     def __str__(self):
         return self.name
+    
+    def save(self, *args, **kwargs):
+        if self.rif is not None and self.rif.strip() != "":
+            if "J-" != self.rif[:1].upper():
+                self.rif = f"J-{self.rif}"
+
+        return super().save(*args, **kwargs)
 
 class ClientConfig(TimeStampedModel, StatusModel):
     STATUS = Choices(

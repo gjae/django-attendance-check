@@ -106,6 +106,13 @@ class DailyChecksModelAdmin(ModelAdmin):
     list_filter = ["checking_type", FilterByDateCalendar]
     list_per_page  = 15
 
+    class Media:
+        js = ('js/jquery.min.js', 'js/select2/select2.full.min.js', 'js/select2/start_select_clockin.js')   
+        css = {
+            'all': ('css/select2/select2.css',),
+        }
+
+
     def get_queryset(self, request):
         return super().get_queryset(request).select_related("employee", "daily").order_by("-checking_time")
     

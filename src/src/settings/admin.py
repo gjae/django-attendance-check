@@ -91,6 +91,7 @@ class WorkCenterModelAdmin(ModelAdmin):
         "id",
         "created",
         "name",
+        "rif",
         "code",
         "address",
         "is_active", 
