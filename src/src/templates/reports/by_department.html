@@ -9,7 +9,7 @@
 {% block report_identify %}Reporte por departamento{% endblock %}
 {% block body %}
 <div x-data="{ form: 'pdf' }" class="container-fluid">
-    <form :action="form == 'pdf' ? '/reports/department/pdf/': '/reports/department/excel/'" method="post">
+    <form :action="form == 'pdf' ? '/reports/department/pdf/': '/reports/department/excel/'" method="get">
         {% csrf_token %}
         <div class="row">
             <div class="col-sm-12 col-lg-4">

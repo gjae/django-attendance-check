@@ -170,6 +170,7 @@
       currentChecks: [],
       recheckTimer: null,
       CURRENT_STORE: "todayChecking7",
+      CURRENT_VIEW: "/",
       data: {
         id: "",
         personal : {
@@ -203,6 +204,11 @@
         if (this.initialized) {
           return
         }
+
+        if (this.CURRENT_VIEW != location.pathname) {
+          location.reload()
+        }
+
         this.loadEntryPoints()
         window.addEventListener("offline", (e) => {
           this.isOffline = true

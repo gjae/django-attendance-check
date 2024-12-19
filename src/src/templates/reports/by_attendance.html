@@ -9,7 +9,7 @@
 {% block report_identify %}Reporte de asistencia{% endblock %}
 {% block body %}
 <div x-data="{ form: 'pdf',  enable_office: false}" class="container-fluid">
-    <form :action="form == 'pdf' ? '/reports/attendance/pdf/': '/reports/attendance/excel/'" method="post">
+    <form :action="form == 'pdf' ? '/reports/attendance/pdf/': '/reports/attendance/excel/'" method="get">
         {% csrf_token %}
         <div class="row">
             <div class="col-sm-12 col-lg-4">
