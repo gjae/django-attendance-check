@@ -99,26 +99,26 @@ class ReportByWorkerPdfView(BaseReportMixin, WeasyTemplateResponseMixin, Templat
     def get_context_data(self):
         context = super().get_context_data()
         data, total_hours, _ = DailyChecks.objects.report_by_employee(
-            int(self.request.POST.get("employer")), 
-            self.request.POST.get("start_at"), 
-            self.request.POST.get("end_at")
+            int(self.request.GET.get("employer")), 
+            self.request.GET.get("start_at"), 
+            self.request.GET.get("end_at")
         )
 
         context["data"] = data
         context["total_hours"] = total_hours
-        context["employer"] = Employee.objects.select_related().get(id=int(self.request.POST.get("employer")))
-        context["range_start"] = datetime.strptime(self.request.POST.get("start_at"), "%Y-%m-%d")
-        context["range_end"] = datetime.strptime(self.request.POST.get("end_at"), "%Y-%m-%d")
+        context["employer"] = Employee.objects.select_related().get(id=int(self.request.GET.get("employer")))
+        context["range_start"] = datetime.strptime(self.request.GET.get("start_at"), "%Y-%m-%d")
+        context["range_end"] = datetime.strptime(self.request.GET.get("end_at"), "%Y-%m-%d")
         context["observations"] = DailyCalendarObservation.objects.select_related("employer", "calendar_day").filter(
-            employer_id=int(self.request.POST.get("employer")),
+            employer_id=int(self.request.GET.get("employer")),
             calendar_day__date_day__range=[ 
-                self.request.POST.get("start_at"), 
-                self.request.POST.get("end_at")
+                self.request.GET.get("start_at"), 
+                self.request.GET.get("end_at")
             ]
         )
 
         # context de inasistencias del empleado
-        context["absences"] = Employee.objects.absences_between_dates(self.request.POST.get("start_at"), self.request.POST.get("end_at"))
+        context["absences"] = Employee.objects.absences_between_dates(self.request.GET.get("start_at"), self.request.GET.get("end_at"))
 
         return context
     
@@ -168,19 +168,19 @@ class ReportByDepartmentPdfView(BaseReportMixin, WeasyTemplateResponseMixin, Tem
     
     def get_context_data(self):
         context = super().get_context_data()
-        data, total_hours, total_days_by_user = DailyChecks.objects.report_by_department(from_date=self.request.POST.get("start_at"), until_date=self.request.POST.get("end_at"), department=int(self.request.POST.get("department", "1")))
+        data, total_hours, total_days_by_user = DailyChecks.objects.report_by_department(from_date=self.request.GET.get("start_at"), until_date=self.request.GET.get("end_at"), department=int(self.request.GET.get("department", "1")))
 
         context["data"] = data
         context["total_hours"] = total_hours
-        context["department"] = Department.objects.select_related().get(id=int(self.request.POST.get("department")))
-        context["range_start"] = datetime.strptime(self.request.POST.get("start_at"), "%Y-%m-%d")
-        context["range_end"] = datetime.strptime(self.request.POST.get("end_at"), "%Y-%m-%d")
+        context["department"] = Department.objects.select_related().get(id=int(self.request.GET.get("department")))
+        context["range_start"] = datetime.strptime(self.request.GET.get("start_at"), "%Y-%m-%d")
+        context["range_end"] = datetime.strptime(self.request.GET.get("end_at"), "%Y-%m-%d")
         context["total_days_by_user"] = total_days_by_user
         context["observations"] = DailyCalendarObservation.objects.select_related("employer", "calendar_day").filter(
-            employer__department_id=int(self.request.POST.get("department")),
+            employer__department_id=int(self.request.GET.get("department")),
             calendar_day__date_day__range=[ 
-                self.request.POST.get("start_at"), 
-                self.request.POST.get("end_at")
+                self.request.GET.get("start_at"), 
+                self.request.GET.get("end_at")
             ]
         )
         return context
@@ -249,21 +249,21 @@ class ReportByAttendancePdfView(BaseReportMixin, WeasyTemplateResponseMixin, Tem
                 "daily_checks",
                 filter=Q(
                     daily_checks__daily__date_day__range=[
-                        self.request.POST.get("start_at"),
-                        self.request.POST.get("end_at")
+                        self.request.GET.get("start_at"),
+                        self.request.GET.get("end_at")
                     ]
                 ),
                 distinct=True
             )
         ).filter(total_checks__gte=1)
-        if int(self.request.POST.get("by_office", 0)) == 1:
-            records = records.filter(department_id=int(self.request.POST.get("department")))
-            context["department"] = Department.objects.filter(id=int(self.request.POST.get("department"))).first()
+        if int(self.request.GET.get("by_office", 0)) == 1:
+            records = records.filter(department_id=int(self.request.GET.get("department")))
+            context["department"] = Department.objects.filter(id=int(self.request.GET.get("department"))).first()
 
         context["data"] = records.distinct().order_by("row")
-        context["range_start"] = datetime.strptime(self.request.POST.get("start_at"), "%Y-%m-%d").strftime("%d/%m/%Y")
-        context["range_end"] = datetime.strptime(self.request.POST.get("end_at"), "%Y-%m-%d").strftime("%d/%m/%Y")
-        context["only_department"] = int(self.request.POST.get("by_office", 0)) == 1
+        context["range_start"] = datetime.strptime(self.request.GET.get("start_at"), "%Y-%m-%d").strftime("%d/%m/%Y")
+        context["range_end"] = datetime.strptime(self.request.GET.get("end_at"), "%Y-%m-%d").strftime("%d/%m/%Y")
+        context["only_department"] = int(self.request.GET.get("by_office", 0)) == 1
         return context
     
     def post(self, request, *args, **kwargs):
@@ -337,16 +337,16 @@ class ReportBrandMixin:
         ws.add_image(img, "A1")
         ws.merge_cells("B1:G6")
         department = None
-        if "department" in self.request.POST:
-            department = Department.objects.get(id=self.request.POST.get("department"))
+        if "department" in self.request.GET:
+            department = Department.objects.get(id=self.request.GET.get("department"))
 
         else:
-            department = Employee.objects.select_related("department").get(id=int(self.request.POST.get("employer"))).department
+            department = Employee.objects.select_related("department").get(id=int(self.request.GET.get("employer"))).department
         
         ws["B1"].alignment = Alignment(horizontal="center", vertical="center")
         ws["B1"].font = Font(bold=True, size=13, name="Arial")
 
-        ws["B1"].value = self.get_headlines(department, int(self.request.POST.get("department", self.request.POST.get("employer"))))
+        ws["B1"].value = self.get_headlines(department, int(self.request.GET.get("department", self.request.GET.get("employer"))))
         for i in range(6):
             ws.append([" ", " ", " ", " ", " ", " ", " "])
 
@@ -355,10 +355,10 @@ class ReportWorkerExcel(ReportBrandMixin, ReportExcelMixin):
 
     def before_process(self):
         self.observations = DailyCalendarObservation.objects.select_related("employer", "calendar_day").filter(
-            employer_id=int(self.request.POST.get("employer")),
+            employer_id=int(self.request.GET.get("employer")),
             calendar_day__date_day__range=[ 
-                self.request.POST.get("start_at"), 
-                self.request.POST.get("end_at")
+                self.request.GET.get("start_at"), 
+                self.request.GET.get("end_at")
             ]
         )
 
@@ -366,8 +366,8 @@ class ReportWorkerExcel(ReportBrandMixin, ReportExcelMixin):
         now = timezone.now()
         
         employer = Employee.objects.get(id=model_id)
-        start_at = datetime.strptime(self.request.POST.get("start_at"), "%Y-%m-%d")
-        end_at = datetime.strptime(self.request.POST.get("end_at"), "%Y-%m-%d")
+        start_at = datetime.strptime(self.request.GET.get("start_at"), "%Y-%m-%d")
+        end_at = datetime.strptime(self.request.GET.get("end_at"), "%Y-%m-%d")
         return (
             " Reporte por departamento \n"
             f"Departamento: {department.name} \n"
@@ -404,7 +404,7 @@ class ReportWorkerExcel(ReportBrandMixin, ReportExcelMixin):
         )
 
     def get_report_content(self):
-        return DailyChecks.objects.report_by_employee( int(self.request.POST.get("employer")), self.request.POST.get("start_at"), self.request.POST.get("end_at"))
+        return DailyChecks.objects.report_by_employee( int(self.request.GET.get("employer")), self.request.GET.get("start_at"), self.request.GET.get("end_at"))
     
     def post_processing(self, data, sheet, wb):
         observation_sheet = wb.create_sheet("Observaciones")
@@ -431,17 +431,17 @@ class ReportDepartmentExcel(ReportBrandMixin, ReportExcelMixin):
 
     def before_process(self):
         self.observations = DailyCalendarObservation.objects.select_related("employer", "calendar_day").filter(
-            employer__department_id=int(self.request.POST.get("department")),
+            employer__department_id=int(self.request.GET.get("department")),
             calendar_day__date_day__range=[ 
-                self.request.POST.get("start_at"), 
-                self.request.POST.get("end_at")
+                self.request.GET.get("start_at"), 
+                self.request.GET.get("end_at")
             ]
         )
 
     def get_headlines(self, department, model_id):
         now = timezone.now()
-        start_at = datetime.strptime(self.request.POST.get("start_at"), "%Y-%m-%d")
-        end_at = datetime.strptime(self.request.POST.get("end_at"), "%Y-%m-%d")
+        start_at = datetime.strptime(self.request.GET.get("start_at"), "%Y-%m-%d")
+        end_at = datetime.strptime(self.request.GET.get("end_at"), "%Y-%m-%d")
         return (
             " Reporte por departamento \n"
             f"Departamento: {department.name} \n"
@@ -481,9 +481,9 @@ class ReportDepartmentExcel(ReportBrandMixin, ReportExcelMixin):
     
     def get_report_content(self):
         return DailyChecks.objects.report_by_department(
-            from_date=self.request.POST.get("start_at"), 
-            until_date=self.request.POST.get("end_at"), 
-            department=int(self.request.POST.get("department"))
+            from_date=self.request.GET.get("start_at"), 
+            until_date=self.request.GET.get("end_at"), 
+            department=int(self.request.GET.get("department"))
         )
     
     
@@ -550,20 +550,20 @@ class ReportAttendanceExcel(ReportBrandMixin, ReportExcelMixin):
         ws.add_image(img, "A1")
         ws.merge_cells("B1:G6")
         department = None
-        if int(self.request.POST.get("by_office", 0)) == 1:
-            department = Department.objects.get(id=self.request.POST.get("department"))            
+        if int(self.request.GET.get("by_office", 0)) == 1:
+            department = Department.objects.get(id=self.request.GET.get("department"))            
             ws["B1"].alignment = Alignment(horizontal="center", vertical="center")
             ws["B1"].font = Font(bold=True, size=13, name="Arial")
 
-        ws["B1"].value = self.get_headlines(department, int(self.request.POST.get("department", 0)))
+        ws["B1"].value = self.get_headlines(department, int(self.request.GET.get("department", 0)))
         for i in range(6):
             ws.append([" ", " ", " ", " ", " ", " ", " "])
             
     def get_headlines(self, department, model_id):
         now = timezone.now()
         
-        start_at = datetime.strptime(self.request.POST.get("start_at"), "%Y-%m-%d")
-        end_at = datetime.strptime(self.request.POST.get("end_at"), "%Y-%m-%d")
+        start_at = datetime.strptime(self.request.GET.get("start_at"), "%Y-%m-%d")
+        end_at = datetime.strptime(self.request.GET.get("end_at"), "%Y-%m-%d")
 
         department_header = f"Departamento: {department.name} \n" if department is not None else ""
         return (
@@ -612,20 +612,20 @@ class ReportAttendanceExcel(ReportBrandMixin, ReportExcelMixin):
                 "daily_checks",
                 filter=Q(
                     daily_checks__daily__date_day__range=[
-                        self.request.POST.get("start_at"),
-                        self.request.POST.get("end_at")
+                        self.request.GET.get("start_at"),
+                        self.request.GET.get("end_at")
                     ]
                 ),
                 distinct=True
             )
         ).filter(total_checks__gte=1)
-        if int(self.request.POST.get("by_office", 0)) == 1:
-            records = records.filter(department_id=int(self.request.POST.get("department")))
-            self.context["department"] = Department.objects.filter(id=int(self.request.POST.get("department"))).first()
+        if int(self.request.GET.get("by_office", 0)) == 1:
+            records = records.filter(department_id=int(self.request.GET.get("department")))
+            self.context["department"] = Department.objects.filter(id=int(self.request.GET.get("department"))).first()
 
         self.context["data"] = records.distinct().order_by("row")
-        self.context["range_start"] = datetime.strptime(self.request.POST.get("start_at"), "%Y-%m-%d").strftime("%d/%m/%Y")
-        self.context["range_end"] = datetime.strptime(self.request.POST.get("end_at"), "%Y-%m-%d").strftime("%d/%m/%Y")
-        self.context["only_department"] = int(self.request.POST.get("by_office", 0)) == 1
+        self.context["range_start"] = datetime.strptime(self.request.GET.get("start_at"), "%Y-%m-%d").strftime("%d/%m/%Y")
+        self.context["range_end"] = datetime.strptime(self.request.GET.get("end_at"), "%Y-%m-%d").strftime("%d/%m/%Y")
+        self.context["only_department"] = int(self.request.GET.get("by_office", 0)) == 1
         return self.context["data"]
     
