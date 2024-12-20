@@ -513,7 +513,7 @@ class ReportDepartmentExcel(ReportBrandMixin, ReportExcelMixin):
 class ReportAttendanceExcel(ReportBrandMixin, ReportExcelMixin):
 
  
-    def post(self, request, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
         self.before_process()
         workbook = Workbook()
         headers = self.get_headers()
