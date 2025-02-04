@@ -10,7 +10,7 @@
 {% block report_identify %}Reporte por trabajador{% endblock %}
 {% block body %}
 <div class="container-fluid" x-data="{ form : 'pdf'}">
-    <form :action="form == 'pdf' ? '/reports/worker/pdf/': '/reports/worker/excel/'" method="get">
+    <form :action="form == 'pdf' ? '/reports/worker/pdf/': '/reports/worker/excel/'" :method="form == 'pdf' ? 'get' : 'post'">
         {% csrf_token %}
         <div class="row">
             <div class="col-sm-12 col-lg-4">

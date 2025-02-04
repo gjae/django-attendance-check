@@ -337,16 +337,16 @@ class ReportBrandMixin:
         ws.add_image(img, "A1")
         ws.merge_cells("B1:G6")
         department = None
-        if "department" in self.request.GET:
-            department = Department.objects.get(id=self.request.GET.get("department"))
+        if "department" in self.request.POST:
+            department = Department.objects.get(id=self.request.POST.get("department"))
 
         else:
-            department = Employee.objects.select_related("department").get(id=int(self.request.GET.get("employer"))).department
+            department = Employee.objects.select_related("department").get(id=int(self.request.POST.get("employer"))).department
         
         ws["B1"].alignment = Alignment(horizontal="center", vertical="center")
         ws["B1"].font = Font(bold=True, size=13, name="Arial")
 
-        ws["B1"].value = self.get_headlines(department, int(self.request.GET.get("department", self.request.GET.get("employer"))))
+        ws["B1"].value = self.get_headlines(department, int(self.request.POST.get("department", self.request.POST.get("employer"))))
         for i in range(6):
             ws.append([" ", " ", " ", " ", " ", " ", " "])
 
@@ -355,10 +355,10 @@ class ReportWorkerExcel(ReportBrandMixin, ReportExcelMixin):
 
     def before_process(self):
         self.observations = DailyCalendarObservation.objects.select_related("employer", "calendar_day").filter(
-            employer_id=int(self.request.GET.get("employer")),
+            employer_id=int(self.request.POST.get("employer")),
             calendar_day__date_day__range=[ 
-                self.request.GET.get("start_at"), 
-                self.request.GET.get("end_at")
+                self.request.POST.get("start_at"), 
+                self.request.POST.get("end_at")
             ]
         )
 
@@ -366,8 +366,8 @@ class ReportWorkerExcel(ReportBrandMixin, ReportExcelMixin):
         now = timezone.now()
         
         employer = Employee.objects.get(id=model_id)
-        start_at = datetime.strptime(self.request.GET.get("start_at"), "%Y-%m-%d")
-        end_at = datetime.strptime(self.request.GET.get("end_at"), "%Y-%m-%d")
+        start_at = datetime.strptime(self.request.POST.get("start_at"), "%Y-%m-%d")
+        end_at = datetime.strptime(self.request.POST.get("end_at"), "%Y-%m-%d")
         return (
             " Reporte por departamento \n"
             f"Departamento: {department.name} \n"
@@ -404,7 +404,7 @@ class ReportWorkerExcel(ReportBrandMixin, ReportExcelMixin):
         )
 
     def get_report_content(self):
-        return DailyChecks.objects.report_by_employee( int(self.request.GET.get("employer")), self.request.GET.get("start_at"), self.request.GET.get("end_at"))
+        return DailyChecks.objects.report_by_employee( int(self.request.POST.get("employer")), self.request.POST.get("start_at"), self.request.POST.get("end_at"))
     
     def post_processing(self, data, sheet, wb):
         observation_sheet = wb.create_sheet("Observaciones")
@@ -431,17 +431,17 @@ class ReportDepartmentExcel(ReportBrandMixin, ReportExcelMixin):
 
     def before_process(self):
         self.observations = DailyCalendarObservation.objects.select_related("employer", "calendar_day").filter(
-            employer__department_id=int(self.request.GET.get("department")),
+            employer__department_id=int(self.request.POST.get("department")),
             calendar_day__date_day__range=[ 
-                self.request.GET.get("start_at"), 
-                self.request.GET.get("end_at")
+                self.request.POST.get("start_at"), 
+                self.request.POST.get("end_at")
             ]
         )
 
     def get_headlines(self, department, model_id):
         now = timezone.now()
-        start_at = datetime.strptime(self.request.GET.get("start_at"), "%Y-%m-%d")
-        end_at = datetime.strptime(self.request.GET.get("end_at"), "%Y-%m-%d")
+        start_at = datetime.strptime(self.request.POST.get("start_at"), "%Y-%m-%d")
+        end_at = datetime.strptime(self.request.POST.get("end_at"), "%Y-%m-%d")
         return (
             " Reporte por departamento \n"
             f"Departamento: {department.name} \n"
@@ -481,9 +481,9 @@ class ReportDepartmentExcel(ReportBrandMixin, ReportExcelMixin):
     
     def get_report_content(self):
         return DailyChecks.objects.report_by_department(
-            from_date=self.request.GET.get("start_at"), 
-            until_date=self.request.GET.get("end_at"), 
-            department=int(self.request.GET.get("department"))
+            from_date=self.request.POST.get("start_at"), 
+            until_date=self.request.POST.get("end_at"), 
+            department=int(self.request.POST.get("department"))
         )
     
     

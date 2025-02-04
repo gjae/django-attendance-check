@@ -207,12 +207,13 @@ class CheckingManager(models.Manager):
         if department is not None:
             new_data = new_data.filter(employee__department_id=department)
 
-        print("DATA REPORTE", new_data)
         divided_by_user = {}
         data_pdf = []
         pdf_deque = deque()
         total_hours_acumulateds = 0
         total_days_by_user = {}
+
+        daily_report_pair = {}
 
         for data in new_data:
             if data.employee_id not in divided_by_user:
@@ -224,42 +225,33 @@ class CheckingManager(models.Manager):
 
         for user_data in divided_by_user.keys():
             datas = divided_by_user[user_data]
-            stack = list()
-            if len(datas) == 1:
-                report = datas[0]
-                if department is not None:
-                    pdf_deque.append(self._build_report_object(report, use_for_database=use_for_database))
-                else:
-                    data_pdf.append(self._build_report_object(report, use_for_database=use_for_database))
-            else:
-                for report in datas:
-                    if len(stack) == 0 and report.checking_type == DailyChecks.CHECK_STATUS_CHOISE.entrada:
-                        stack.append(report)
-                    elif len(stack) > 0 and report.checking_type == DailyChecks.CHECK_STATUS_CHOISE.entrada:
-                        last_element = stack.pop()
-                        if last_element.daily_id != report.daily_id:
-                            data_pdf.append(self._build_report_object(last_element, use_for_database=use_for_database))
-                            stack.append(report)
-                    elif len(stack) > 0 and report.checking_type == DailyChecks.CHECK_STATUS_CHOISE.salida:
-                        total_days_by_user[user_data] = total_days_by_user[user_data] + 1
-                        last_element = stack.pop()
-                        total_hours = round((report.checking_time - last_element.checking_time).total_seconds() / 60 / 60, 2)
-                        total_hours_acumulateds += round(total_hours, 2)
-                        if department is not None:
-                            pdf_deque.append(self._build_report_object(last_element, report, round(total_hours, 2), use_for_database=use_for_database))
-                        else:
-                            data_pdf.append(self._build_report_object(last_element, report, round(total_hours, 2), use_for_database=use_for_database))
-            
+            prev_report = None
+            for report in datas:
+                if prev_report is None:
+                    prev_report = report.daily_id
+                    
+                if report.daily_id not in daily_report_pair:
+                    daily_report_pair[report.daily_id] = []
 
-            if len(stack) == 1:
-                report = stack.pop()
-                if department is not None:
-                    pdf_deque.append(self._build_report_object(report, use_for_database=use_for_database))
-                else:
-                    data_pdf.append(self._build_report_object(report, use_for_database=use_for_database))
-                
+                if report.daily_id != prev_report and len(daily_report_pair[prev_report]) == 1:
+                    if department is not None:
+                        pdf_deque.append(self._build_report_object(daily_report_pair[prev_report][0], use_for_database=use_for_database))
+                    else:
+                        data_pdf.append(self._build_report_object(daily_report_pair[prev_report][0], use_for_database=use_for_database))
 
+                daily_report_pair[report.daily_id].append(report)
+                if len(daily_report_pair[report.daily_id]) == 2:
+                    entrada, salida = daily_report_pair[report.daily_id]
+                    if entrada.checking_time < salida.checking_time:
+                        entrada, salida = salida, entrada
 
+                    total_hours = round((entrada.checking_time - salida.checking_time).total_seconds() / 60 / 60, 2)
+                    total_hours_acumulateds += total_hours
+                    if department is not None:
+                        pdf_deque.append(self._build_report_object(salida, entrada, round(total_hours, 2), use_for_database=use_for_database))
+                    else:
+                        data_pdf.append(self._build_report_object(salida, entrada, round(total_hours, 2), use_for_database=use_for_database))
+                        
         if department is not None:
             users = {}
             total_hours_acumulateds = 0
