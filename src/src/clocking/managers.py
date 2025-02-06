@@ -226,7 +226,14 @@ class CheckingManager(models.Manager):
         for user_data in divided_by_user.keys():
             datas = divided_by_user[user_data]
             prev_report = None
-            for report in datas:
+            if len(datas) == 1:
+                if department is not None:
+                    pdf_deque.append(self._build_report_object(datas[0], use_for_database=use_for_database))
+                else:
+                    data_pdf.append(self._build_report_object(datas[0], use_for_database=use_for_database))
+                continue
+            
+            for idx, report in enumerate(datas):
                 if prev_report is None:
                     prev_report = report.daily_id
                     
@@ -251,6 +258,15 @@ class CheckingManager(models.Manager):
                         pdf_deque.append(self._build_report_object(salida, entrada, round(total_hours, 2), use_for_database=use_for_database))
                     else:
                         data_pdf.append(self._build_report_object(salida, entrada, round(total_hours, 2), use_for_database=use_for_database))
+                
+                prev_report = report.daily_id
+
+            if prev_report is not None and len(daily_report_pair[prev_report]) == 1:
+                if department is not None:
+                    pdf_deque.append(self._build_report_object(daily_report_pair[prev_report][0], use_for_database=use_for_database))
+                else:
+                    data_pdf.append(self._build_report_object(daily_report_pair[prev_report][0], use_for_database=use_for_database))
+
                         
         if department is not None:
             users = {}
