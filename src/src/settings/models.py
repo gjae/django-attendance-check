@@ -16,8 +16,17 @@ class CarnetModels(TimeStampedModel):
 
     back_path = models.ImageField(
         "Imagen trasera",
-        upload_to="carnet_models"
+        upload_to="carnet_models",
+        null=True,
+        default=None
     )
+
+    class Meta:
+        verbose_name = "Modelo"
+        verbose_name_plural = "Modelos de carnet"
+
+    def __str__(self):
+        return self.modelo
 
 class WorkCenter(TimeStampedModel, SoftDeletableModel):
     name = models.CharField(
@@ -188,7 +197,7 @@ class Department(TimeStampedModel):
 
     
     def __str__(self):
-        return self.name
+        return f"{self.work_center.name} - {self.name}"
     
 
 class Timetable(TimeStampedModel):

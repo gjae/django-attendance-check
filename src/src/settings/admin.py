@@ -3,8 +3,8 @@ from django.contrib import messages
 from django.contrib import admin
 from unfold.admin import ModelAdmin
 
-from src.settings.models import ClientConfig,  Department, WorkCenter
-from src.settings.forms import ClientConfigModelForm, WorkCenterCreateForm
+from src.settings.models import ClientConfig,  Department, WorkCenter, CarnetModels
+from src.settings.forms import ClientConfigModelForm, WorkCenterCreateForm,  CarnetModelCreateForm
 
 
 @admin.action(description="Activar cliente")
@@ -133,3 +133,12 @@ class DepartmentModelAdmin(ModelAdmin):
         
         return "Inactivo"
         
+
+@admin.register(CarnetModels)
+class CarnetModelsModelAdmin(ModelAdmin):
+    model = CarnetModels
+    list_display = (
+        "modelo",
+        "front_path"
+    )
+    form = CarnetModelCreateForm

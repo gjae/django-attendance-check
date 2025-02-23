@@ -1,5 +1,5 @@
 from django import forms
-from src.settings.models import ClientConfig, WorkCenter
+from src.settings.models import ClientConfig, WorkCenter, CarnetModels
 
 
 class ClientConfigModelForm(forms.ModelForm):
@@ -17,3 +17,12 @@ class WorkCenterCreateForm(forms.ModelForm):
     class Meta:
         model = WorkCenter
         exclude = ["is_removed", "allow_clocking_from_another_workcenter"]
+
+
+class CarnetModelCreateForm(forms.ModelForm):
+    class Meta:
+        model = CarnetModels
+        fields = (
+            "modelo",
+            "front_path"
+        )

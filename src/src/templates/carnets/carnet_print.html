@@ -15,17 +15,27 @@
 
 <body>
     <div class="row" style="padding: 0 !important; margin:  0 !important; z-index: 0; position: absolute; margin-bottom: 22mm;">
+        {% if current_carnet_data.department.work_center.carnet_model is None %}
         <img src="/app/src/static/images/branding/borde_carnet-removebg-preview.png" style="width: 54.9mm; height: 85.5mm;" alt="" srcset="">
+        {% else %}
+        <img src="{{ current_carnet_data.department.work_center.carnet_model.front_path.url }}" style="width: 54.9mm; height: 85.5mm;" alt="" srcset="">
+        {% endif %}
     </div>
     <div class="container-flow" id="content" style="z-index: 99; padding-right: 2mm; min-height: 100%; position: relative;">
 
         <div class="row">
             <div class="col-12" >
+                {% if current_carnet_data.department.work_center.carnet_model is None %}
                 <img src="/app/src/static/images/branding/logo_inpromaro_lit.png" style="height: 12mm;" alt="">
+                {% else %}
+                <div style="min-height: 12mm;"></div>
+                {% endif %}
             </div>
         </div>
         <div class="row d-flex flex-row align-items-center justify-content-center " style="max-width: 60mm; padding-left: 3mm; z-index: 11; margin-top: -4mm; margin-left: -7mm;">
+            
             <img src="{{current_carnet_data.picture.path}}"  style="height: 70px; width: 70px; border-radius: 50%; z-index: 12;" alt="">
+            
         </div>
         <div class="row">
             <div class="col-12" style="text-align: center;">
