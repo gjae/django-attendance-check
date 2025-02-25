@@ -70,6 +70,10 @@ class CheckingManager(models.Manager):
 
         daily = DailyCalendar.objects.get_or_create_clocking_day()
         employee_calendar = DailyChecks.objects.filter(employee=employee, daily=daily)
+        last_employer_check = DailyChecks.objects.filter(employee=employee).order_by("id").last()
+
+        if last_employer_check is not None:
+            self.raise_exception_is_checktimeout(last_employer_check)
 
         if not employee_calendar.exists():
             return DailyChecks.objects.create(employee=employee, daily=daily, entrypoint=entrypoint)
