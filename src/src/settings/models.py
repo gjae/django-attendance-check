@@ -106,7 +106,7 @@ class WorkCenter(TimeStampedModel, SoftDeletableModel):
     
     def save(self, *args, **kwargs):
         if self.rif is not None and self.rif.strip() != "":
-            if "J-" != self.rif[:1].upper():
+            if len(self.rif) > 0 and "J" != self.rif[0].upper():
                 self.rif = f"J-{self.rif}"
 
         return super().save(*args, **kwargs)
