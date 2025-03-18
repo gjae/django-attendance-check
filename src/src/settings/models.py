@@ -16,8 +16,17 @@ class CarnetModels(TimeStampedModel):
 
     back_path = models.ImageField(
         "Imagen trasera",
-        upload_to="carnet_models"
+        upload_to="carnet_models",
+        null=True,
+        default=None
     )
+
+    class Meta:
+        verbose_name = "Modelo"
+        verbose_name_plural = "Modelos de carnet"
+
+    def __str__(self):
+        return self.modelo
 
 class WorkCenter(TimeStampedModel, SoftDeletableModel):
     name = models.CharField(
@@ -97,7 +106,7 @@ class WorkCenter(TimeStampedModel, SoftDeletableModel):
     
     def save(self, *args, **kwargs):
         if self.rif is not None and self.rif.strip() != "":
-            if "J-" != self.rif[:1].upper():
+            if len(self.rif) > 0 and "J" != self.rif[0].upper():
                 self.rif = f"J-{self.rif}"
 
         return super().save(*args, **kwargs)
@@ -188,7 +197,7 @@ class Department(TimeStampedModel):
 
     
     def __str__(self):
-        return self.name
+        return f"{self.work_center.name} - {self.name}"
     
 
 class Timetable(TimeStampedModel):
