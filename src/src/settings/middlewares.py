@@ -32,6 +32,10 @@ class ClientMiddleware:
         if "reports" in request.get_full_path():
             return self.get_response(request)
         
+        if "media" in request.get_full_path():
+            return self.get_response(request)
+
+        
         enabled, point =  ClientConfig.objects.is_enabled(request.META.get("HTTP_X_REAL_IP", "0.0.0.0"))
         if enabled:
             request.current_entrypoint = point
