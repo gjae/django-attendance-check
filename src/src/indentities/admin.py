@@ -16,6 +16,12 @@ class IdentityModelAdmin(ModelAdmin):
     search_fields = [
         "id"
     ]
+    
+    class Media:
+        js = ('js/jquery.min.js', 'js/select2/select2.full.min.js', 'js/select2/select2_observations.js')   
+        css = {
+            'all': ('css/select2/select2.css',),
+        }
 
     def get_queryset(self, request: HttpRequest):
         return super().get_queryset(request).select_related("employer")

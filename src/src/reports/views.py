@@ -8,7 +8,7 @@ from django.views.generic.base import ContextMixin
 from django.http.response import HttpResponse
 from django_weasyprint import WeasyTemplateResponseMixin
 from django.views.generic import TemplateView, DetailView, View
-from django.db.models import Window, Count, Q
+from django.db.models import Window, Count, Q, Prefetch
 from django.db.models.functions import RowNumber
 from openpyxl import Workbook
 from openpyxl.worksheet.dimensions import ColumnDimension, DimensionHolder
@@ -22,6 +22,7 @@ from src.reports.models import TimeReport
 from src.reports.utils import has_observation
 from src.settings.models import Department
 from src.clocking.models import DailyChecks, DailyCalendarObservation
+from src.settings.models import WorkCenter
 
 
 class ReportLetterheadException(Exception):
@@ -133,7 +134,31 @@ class ReportByWorkerView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
+        workcenters = []
+        workcenter_objects = WorkCenter.objects.prefetch_related(
+            Prefetch(
+                "departments",
+                queryset=Department.objects.select_related("work_center").filter(is_actived=True).prefetch_related("employers").order_by("name"),
+                to_attr="all_departments"
+            )
+        )
+        for w in workcenter_objects:
+            workcenters.append({
+                "id": w.id,
+                "name": w.name,
+                "departments": [{
+                    "id": d.id,
+                    "name": str(d),
+                    "users": [{
+                        "id": u.id,
+                        "name": u.get_fullname()
+                    } for u in d.employers.all()]
+                } for d in w.all_departments]
+            })
+
+
         context["employers"] = Employee.objects.only_actives().order_by("last_name", "name")
+        context["departments"] = workcenters
         return context
 
 
@@ -196,7 +221,26 @@ class ReportByDepartmentView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        context["departments"] = Department.objects.all().filter(is_actived=True).order_by("name")
+        workcenters = []
+        workcenter_objects = WorkCenter.objects.prefetch_related(
+            Prefetch(
+                "departments",
+                queryset=Department.objects.select_related("work_center").filter(is_actived=True).order_by("name"),
+                to_attr="all_departments"
+            )
+        )
+        for w in workcenter_objects:
+            workcenters.append({
+                "id": w.id,
+                "name": w.name,
+                "departments": [{
+                    "id": d.id,
+                    "name": str(d)
+                } for d in w.all_departments]
+            })
+
+
+        context["departments"] = workcenters
         return context
 
 
@@ -206,7 +250,26 @@ class AttendanceReport(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        context["departments"] = Department.objects.all().filter(is_actived=True).order_by("name")
+        workcenters = []
+        workcenter_objects = WorkCenter.objects.prefetch_related(
+            Prefetch(
+                "departments",
+                queryset=Department.objects.select_related("work_center").filter(is_actived=True).order_by("name"),
+                to_attr="all_departments"
+            )
+        )
+        for w in workcenter_objects:
+            workcenters.append({
+                "id": w.id,
+                "name": w.name,
+                "departments": [{
+                    "id": d.id,
+                    "name": str(d)
+                } for d in w.all_departments]
+            })
+
+
+        context["departments"] = workcenters
         return context
 
 class ReportByAttendancePdfView(BaseReportMixin, WeasyTemplateResponseMixin, TemplateView):

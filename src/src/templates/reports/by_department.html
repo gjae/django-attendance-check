@@ -8,19 +8,29 @@
 {% block title %}Generador de reporte por departamento{% endblock %}
 {% block report_identify %}Reporte por departamento{% endblock %}
 {% block body %}
-<div x-data="{ form: 'pdf' }" class="container-fluid">
+<div x-data="app()" class="container-fluid" x-init="$nextTick(()=> init())">
     <form :action="form == 'pdf' ? '/reports/department/pdf/': '/reports/department/excel/'" :method="form == 'pdf' ? 'get' : 'post'">
         {% csrf_token %}
         <div class="row">
+            <div class="col-sm-12 col-lg-4 mb-2">
+                <label for="employer_id">
+                    <strong>Empresa  </strong>
+                </label>
+                <select name="work_center" required id="workcenter_id" class="form-control select2bs5">
+                    <option value="">--</option>
+                    {% for department in departments %}
+                        <option {% if department.name == 'INPROMAR' %}selected{% endif %} value="{{department.id}}"> {{department.name}}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12">
+                <hr>
+            </div>
             <div class="col-sm-12 col-lg-4">
                 <label for="employer_id">
                     <strong>Departamento <span class="text-danger">*</span> </strong>
                 </label>
-                <select name="department" required id="employer_id" class="form-control select2bs5">
-                    <option value="">--</option>
-                    {% for department in departments %}
-                        <option value="{{department.id}}">{{department.name}}</option>
-                    {% endfor %}
+                <select name="department" required id="department_id" class="form-control select2bs5">
                 </select>
             </div>
             <div class="col-sm-12 col-lg-4">
@@ -55,4 +65,44 @@
         </div>
     </form>
 </div>
+{{departments|json_script:"departments"}}
 {% endblock body %}
+{% block custom_js %}
+<script>
+    function app() {
+        return {
+            form: 'pdf',
+            started: false,
+            jsonData: JSON.parse(document.getElementById("departments").innerText),
+            showData: [],
+            init() {
+                if (this.started) {
+                    return
+                }
+
+                this.started = true
+                console.log({datJsON: this.jsonData})
+                $("#workcenter_id").on("select2:select", (e) => {
+                    console.log({e, val: e.params.data})
+                    this.rebuild(e.params.data.id)
+                })
+                
+                this.rebuild($("#workcenter_id").val())
+            },
+            rebuild(wcId) {
+                let center = parseInt(wcId)
+                $("#department_id").empty().trigger("change")
+                console.log("CLEANING")
+                this.jsonData.forEach(data => {
+                    if (data.id == wcId) {
+                        this.showData = data.departments
+                        this.showData.forEach(option => {
+                            $("#department_id").append(new Option(option.name, option.id, false, false))
+                        })
+                    }
+                })
+            }
+        }
+    }
+</script>
+{% endblock %}
