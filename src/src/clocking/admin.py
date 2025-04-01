@@ -59,6 +59,12 @@ class DailyCalendarObservationAdmin(ModelAdmin):
     list_display = ["created", "calendar_day", "employer", "soporte"]
     list_filter = ["calendar_day", "employer", ]
 
+    class Media:
+        js = ('js/jquery.min.js', 'js/select2/select2.full.min.js', 'js/select2/select2_observations.js')   
+        css = {
+            'all': ('css/select2/select2.css',),
+        }
+
     def get_queryset(self, request):
         return super().get_queryset(request).select_related("calendar_day", "employer")
 
