@@ -139,6 +139,7 @@ class CarnetModelsModelAdmin(ModelAdmin):
     model = CarnetModels
     list_display = (
         "modelo",
-        "front_path"
+        "front_path",
+        "back_path"
     )
     form = CarnetModelCreateForm

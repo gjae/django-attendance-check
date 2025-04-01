@@ -79,7 +79,11 @@
             <div class="row">
 
                 <div class="col-12" style="padding-left: 1.6cm; text-align: center; margin-top: 2mm; margin-bottom: 1mm;">
+                    {% if current_carnet_data.department.work_center.carnet_model is None or current_carnet_data.department.work_center.carnet_model.back_path is None %}
                     <img src="/app/src/static/images/branding/logo_inpromaro_lit.png" style="height: 30mm;" alt="">
+                    {% else %}
+                    <img src="/app/src{{ current_carnet_data.department.work_center.carnet_model.back_path.url }}" style="height: 30mm;" alt="">
+                    {% endif %}
                 </div>
             </div>
         </div>

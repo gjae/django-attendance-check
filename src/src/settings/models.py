@@ -15,7 +15,7 @@ class CarnetModels(TimeStampedModel):
     )
 
     back_path = models.ImageField(
-        "Imagen trasera",
+        "Imagen posterior/logo",
         upload_to="carnet_models",
         null=True,
         default=None

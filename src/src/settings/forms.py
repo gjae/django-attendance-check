@@ -24,5 +24,6 @@ class CarnetModelCreateForm(forms.ModelForm):
         model = CarnetModels
         fields = (
             "modelo",
-            "front_path"
+            "front_path",
+            "back_path"
         )
