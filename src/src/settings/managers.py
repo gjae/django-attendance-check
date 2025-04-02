@@ -4,13 +4,13 @@ from django.db import models
 
 class ClientConfigManager(models.Manager):
     
-    def get_enabled_clients(self):
+    def get_enabled_clients(self, ip):
         """
         Recupera los puntos de entradas activos
         """
         from src.settings.models import ClientConfig
 
-        return self.filter(status=ClientConfig.STATUS.enabled)
+        return self.filter(client_ip=ip).filter(status=ClientConfig.STATUS.enabled)
     
 
 
@@ -20,7 +20,7 @@ class ClientConfigManager(models.Manager):
         esta activo
         """
 
-        points = self.get_enabled_clients().filter(work_center__is_current_center=True).values("client_ip", "pk").first()
+        points = self.get_enabled_clients(ip).filter(work_center__is_current_center=True).values("client_ip", "pk").first()
 
         return points is not None , points
     
