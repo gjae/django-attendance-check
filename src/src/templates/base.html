@@ -40,7 +40,11 @@
 <nav class="navbar text-with">
   <div class="container-fluid">
     <span class="navbar-brand mb-0 h1">
-      <img src="{% static 'images/branding/logo_inpromaro_lit.png' %}" alt=""> 
+      {% if request.current_entrypoint is not None and request.current_entrypoint.logo is not None %}
+        <img src="/media/{{request.current_entrypoint.logo }}" alt=""> 
+      {% else %}
+        <img src="{% static 'images/branding/logo_inpromaro_lit.png' %}" alt=""> 
+      {% endif %}
     </span>
   </div>
 </nav>

@@ -45,6 +45,10 @@ class Employee(TimeStampedModel, SoftDeletableModel):
     department = models.ForeignKey(Department, on_delete=models.SET_NULL, related_name="employers", null=True, default=None, verbose_name="Departamento")
     objects = EmployerManager()
     deleted_at = models.DateTimeField("Eliminado", null=True, default=None)
+    is_actived = models.BooleanField(
+        "Empleado activo",
+        default=True
+    )
 
     class Meta:
         verbose_name = "Trabajador"
@@ -83,20 +87,20 @@ class Transfer(TimeStampedModel, SoftDeletableModel):
     from_department = models.ForeignKey(
         Department,
         verbose_name="Departamento de origen",
-        on_delete=models.RESTRICT,
+        on_delete=models.CASCADE,
         related_name="transfers_origin",
     )
 
     to_department = models.ForeignKey(
         Department,
         verbose_name="Departamento destino",
-        on_delete=models.RESTRICT,
+        on_delete=models.CASCADE,
         related_name="transfer_destination"
     )
 
     employee = models.ForeignKey(
         Employee,
-        on_delete=models.RESTRICT,
+        on_delete=models.CASCADE,
         verbose_name="Empleado transferido",
         related_name="transfers"
     )

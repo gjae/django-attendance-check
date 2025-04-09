@@ -5,7 +5,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from src.employees.models import Employee
 from src.clocking.models import DailyChecks
 from src.settings.models import WorkCenter, ClientConfig
-from .exceptions import EmployeeDoenstBelongsToThisWorkCenterException
+from .exceptions import EmployeeDoenstBelongsToThisWorkCenterException, EmployeeDesactivedException
 
 class ClientMarkCheckForm(forms.Form):
     entrypoint = forms.ModelChoiceField(queryset=ClientConfig.objects.select_related("work_center").filter(work_center__isnull=False))
@@ -34,6 +34,8 @@ class ClientMarkCheckForm(forms.Form):
         
         try:
             employee = Employee.objects.select_related("department", "department__work_center").get(cedula=self.cleaned_data["cedula"])
+            if not employee.is_actived:
+                raise EmployeeDesactivedException("Trabajador no encontrado o no registrado.")
             current_work_center = self.cleaned_data.get("entrypoint").work_center
             if employee.department.work_center != current_work_center and not self.cleaned_data.get("entrypoint").allow_clocking_from_another_workcenter:
                 raise EmployeeDoenstBelongsToThisWorkCenterException("El trabajador no pertenece a este centro")

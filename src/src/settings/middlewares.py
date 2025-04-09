@@ -24,6 +24,7 @@ class ClientMiddleware:
         log.info(f"Ip request: {request.META.get('REMOTE_ADDR', '0.0.0.0')} / {request.META.get('HTTP_X_REAL_IP', '0.0.0.0')}")
         request.current_entrypoint = None
         if "admin" in request.get_full_path() or "error" in request.get_full_path() or "media" in request.get_full_path() or "employers" in request.get_full_path():
+            print("MEDIA AQUI")
             return self.get_response(request)
         
         if "images" in request.get_full_path():

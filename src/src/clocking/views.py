@@ -10,7 +10,12 @@ from src.clocking.mixins import JSONResponseMixin
 from src.clocking.models import DailyChecks
 from src.settings.models import ClientConfig
 
-from src.clocking.exceptions import CheckingTooRecentException, CheckingOutputTooRecentException, EmployeeDoenstBelongsToThisWorkCenterException
+from src.clocking.exceptions import (
+    CheckingTooRecentException, 
+    CheckingOutputTooRecentException, 
+    EmployeeDoenstBelongsToThisWorkCenterException, 
+    EmployeeDesactivedException
+)
 
 class ClientMarkCheckFormView(JSONResponseMixin, FormView):
     form_class = ClientMarkCheckForm
@@ -38,6 +43,16 @@ class ClientMarkCheckFormView(JSONResponseMixin, FormView):
                 "error_type": "timeout",
                 "message": {
                     "cedula": [{"message": "Ya ha marcado su entrada correctamente. Debe esperar al menos 3 minutos para poder volver a marcar su salida"}, ]
+                },
+                "checking_type": None
+            })
+        except EmployeeDesactivedException as e:
+            log.exception(e)
+            return self.render_to_json_response({
+                "error": True,
+                "error_type": "timeout",
+                "message": {
+                    "cedula": [{"message": "Registro no encontrado o no existe."}, ]
                 },
                 "checking_type": None
             })

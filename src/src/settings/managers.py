@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import F
 
 
 
@@ -20,7 +21,7 @@ class ClientConfigManager(models.Manager):
         esta activo
         """
 
-        points = self.get_enabled_clients().filter(work_center__is_current_center=True).values("client_ip", "pk").first()
+        points = self.get_enabled_clients().filter(work_center__is_current_center=True).annotate(logo=F("work_center__carnet_model__back_path")).values("client_ip", "pk", "description", "logo").first()
 
         return points is not None , points
     

@@ -20,6 +20,26 @@ from .forms import EmployerModelForm, TransferModelForm
 from .models import Employee, EmployeePosition, Transfer, Department
 from .forms import EmployerModelForm, TransferModelForm
 
+@admin.action(description="Desactivar trabajador(es)")
+def disable_employers(modeladmin, request, queryset):
+    queryset.update(is_actived=False)
+    modeladmin.message_user(
+        request,
+        "Los trabajadores seleccionados fueron correctamente desactivados",
+        messages.SUCCESS,
+    )
+
+@admin.action(description="Activar trabajador(es)")
+def active_employers(modeladmin, request, queryset):
+    queryset.update(is_actived=True)
+    modeladmin.message_user(
+        request,
+        "Los trabajadores seleccionados fueron correctamente activados",
+        messages.SUCCESS,
+    )
+
+
+
 @admin.action(description="Generar e imprimir carnet")
 def print_carnet(modeladmin, request, queryset):
     if queryset.count() > 1 or queryset.count() == 0:
@@ -98,7 +118,7 @@ class EmployeeAdmin(ModelAdmin):
     search_fields = ["name", "last_name", "cedula"]
     list_per_page = 32
     inlines = [EmployerCheckingRecord, ]
-    actions = [print_carnet, delete_objects]
+    actions = [print_carnet, delete_objects, disable_employers, active_employers]
     form = EmployerModelForm
     list_filter = ["department", "position", ]
 
@@ -188,7 +208,7 @@ class EmployeeAdmin(ModelAdmin):
 
 
     list_display = [
-      "photo_tag",  "name", "last_name", "cedula", "department", "birthday_at", "position_user", "date_entry_job", "last_checking", "work_center"
+      "photo_tag",  "name", "last_name", "cedula", "department", "birthday_at", "position_user", "date_entry_job", "last_checking", "work_center", "actived"
     ]
 
     def has_delete_permission(self, request, obj=None):
@@ -208,7 +228,14 @@ class EmployeeAdmin(ModelAdmin):
             obj.name
         )
 
+    def actived(self, obj):
+        if obj.is_actived:
+            return "Actiado"
+
+        return "Desactivado"
+
     name.short_description = "Nombre"
+    actived.short_description = "Estado"
 
 
 @admin.register(Transfer)
