@@ -96,6 +96,7 @@ LOCAL_APPS = [
     "src.indentities",
     "src.reports",
     "src.dining_room",
+    "src.peladoydescabezado",
     # Your stuff: custom apps go here
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
