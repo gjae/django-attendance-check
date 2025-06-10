@@ -3,7 +3,12 @@ from django.contrib import messages
 from django.contrib import admin
 from unfold.admin import ModelAdmin
 
-from src.settings.models import ClientConfig,  Department, WorkCenter, CarnetModels
+from src.settings.models import (
+    ClientConfig,  
+    Department,
+    WorkCenter, 
+    CarnetModels
+)
 from src.settings.forms import ClientConfigModelForm, WorkCenterCreateForm,  CarnetModelCreateForm
 
 
@@ -143,3 +148,4 @@ class CarnetModelsModelAdmin(ModelAdmin):
         "back_path"
     )
     form = CarnetModelCreateForm
+

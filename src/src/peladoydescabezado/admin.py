@@ -6,7 +6,16 @@ from django.contrib import admin
 from unfold.admin import ModelAdmin
 from django.utils import timezone
 
-from .models import Person, Table
+from .models import (
+    Person, 
+    Table, 
+    TableProxyModel,
+    Farm,
+    Pool
+)
+from src.peladoydescabezado.forms import (
+    FarmModelForm
+)
 
 # Register your models here.
 
@@ -87,7 +96,7 @@ class PeopleModelAdmin(ModelAdmin):
 @admin.register(Table)
 class TableModelAdmin(ModelAdmin):
     list_display = [
-       "id", "created", "description", "max_workers", "category", "is_active"
+       "id", "created", "description", "category", "is_active"
     ]
 
     list_filter = ["is_active", "category"]
@@ -105,7 +114,6 @@ class TableModelAdmin(ModelAdmin):
             "fields": (
                 "description",
                 "category",
-                "max_workers",
             ),
         }),
     )
@@ -116,3 +124,27 @@ class TableModelAdmin(ModelAdmin):
 
     def has_delete_permission(self, request, obj = None):
         return False
+    
+
+@admin.register(TableProxyModel)
+class TableProxyModelAdmin(ModelAdmin):
+    change_list_template = "unfold/peladoydescabezado/management.html"
+
+
+
+@admin.register(Farm)
+class FarmModelAdmin(ModelAdmin):
+    model = Farm
+    list_display = [
+        "name",
+    ]
+    form = FarmModelForm
+
+
+@admin.register(Pool)
+class PoolModelAdmin(ModelAdmin):
+    model = Pool
+    list_display = [
+        "number",
+        "farm"
+    ]
