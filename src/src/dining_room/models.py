@@ -73,3 +73,4 @@ class DiningChecking(TimeStampedModel, SoftDeletableModel):
         verbose_name = "Chequeo de comedor"
         verbose_name_plural = "Chequeos de comedor"
 
+    

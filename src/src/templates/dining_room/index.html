@@ -370,7 +370,7 @@
           this.checks = resp.data.slice(0, 10)
         })
         // this.missing_for_dining = (this.assistants - this.presents ) - this.total_dining_checks
-        this.total_dining_checks ++
+        // this.total_dining_checks ++
         this.missing_for_dining = parseInt(this.presents) - parseInt(this.total_dining_checks)
         if (this.missing_for_dining < 0) {
           this.missing_for_dining = 0

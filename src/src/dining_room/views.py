@@ -32,13 +32,13 @@ def report_dining_today_excel(request, *args, **kwargs):
     workbook = Workbook()
     ws = workbook.active
     current_date = datetime.now()
+    current_time = datetime.now().time()
     print_date = request.GET.get("print_date", None)
     if print_date is not None:
         print_date = datetime.strptime(print_date, "%Y-%m-%d").date()
     else:
         print_date = current_date.date()
 
-    print(print_date)
     today_data = DiningChecking.objects.select_related("employer", "conf_dining_room", "employer__department").filter(created__date=print_date, conf_dining_room__isnull=False , conf_dining_room__is_removed=False).annotate(
         row_number=Window(
             RowNumber(),
@@ -142,11 +142,12 @@ def index(request, *args, **kwargs):
     current_date = datetime.now().date()
     current_time = datetime.now().time()
     current_turn = ConfDiningRoom.objects.filter(date_start__date__lte=current_date, is_active__isnull=True, start_time__lte=current_time, end_time__gte=current_time).last()
-    today_checks = DiningChecking.objects.today_checks()
+    today_checks = DiningChecking.objects.today_checks(current_turn=current_turn)
     context = {}
     context['today_statistics'] = DiningChecking.objects.statistics_of()
     context['today_statistics']["presents"] = context['today_statistics']["assistants"] - context['today_statistics']["retired"]
 
+    print(f"current_turn: {current_turn}")
     return render(
         request, 
         "dining_room/index.html", 

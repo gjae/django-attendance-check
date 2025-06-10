@@ -85,5 +85,9 @@ class CheckDiningRoomManager(models.Manager):
         )
         
 
-    def today_checks(self):
+    def today_checks(self, current_turn = None):
+        if current_turn is not None:
+            qs =  self.select_related("conf_dining_room", "employer").filter(conf_dining_room=current_turn).filter(created__date=datetime.now().date())
+            return qs
+        
         return self.select_related("conf_dining_room", "employer").filter(created__date=datetime.now().date())
