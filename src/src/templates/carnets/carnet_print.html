@@ -15,10 +15,14 @@
 
 <body>
     <div class="row" style="padding: 0 !important; margin:  0 !important; z-index: 0; position: absolute; margin-bottom: 22mm;">
-        {% if current_carnet_data.department.work_center.carnet_model is None or force_default_carnet %}
-        <img src="file:///app/src/static/images/branding/borde_carnet-removebg-preview.png" style="width: 54.9mm; height: 85.5mm;" alt="" srcset="">
-        {% else %}
-        <img src="file://{{ current_carnet_data.department.work_center.carnet_model.front_path.path }}" style="width: 54.9mm; height: 85.5mm;" alt="" srcset="">
+        {% if request.GET.src != 'pelado' %}
+                {% if current_carnet_data.department.work_center.carnet_model is None or force_default_carnet %}
+                <img src="file:///app/src/static/images/branding/borde_carnet-removebg-preview.png" style="width: 54.9mm; height: 85.5mm;" alt="" srcset="">
+                {% else %}
+                <img src="file://{{ current_carnet_data.department.work_center.carnet_model.front_path.path }}" style="width: 54.9mm; height: 85.5mm;" alt="" srcset="">
+                {% endif %}
+            {% else %}
+             <img src="file:///app/src/static/images/CarnetInpromarVA-limpio.jpg" style="width: 54.9mm; height: 85.5mm;" alt="" srcset="">
         {% endif %}
     </div>
     <div class="container-flow" id="content" style="z-index: 99; padding-right: 2mm; min-height: 100%; position: relative;">
