@@ -4,6 +4,7 @@
 {% block content %} 
 
 <div class="container">
+    {% if show_metadata %}
     <div class="row">
         <div class="col-11 text-center">
             <strong>
@@ -14,9 +15,10 @@
             Desde <strong>{{range_start|date:'d/m/Y'}}</strong> hasta <strong>{{ range_end|date:"d/m/Y" }}</strong>
         </div>
     </div>
-    <div class="row mt-4">
-        <div class="col-9">
-            <table class="table table-stripped" style="font-size: 12px;">
+    {% endif %}
+    <div class="row mt-2 px-0">
+        <div class="col-10 px-2">
+            <table class="table table-stripped w-100" style="font-size: 12px;">
                 <thead>
                     <tr class="text-center">
                         <th>Fecha</th>

@@ -21,8 +21,9 @@ RUN pip wheel --wheel-dir /usr/src/app/wheels  \
   -r ${BUILD_ENVIRONMENT}.txt
 
 
-RUN apt-get install -y  --no-install-recommends   gir1.2-gobject-2.0 libglib2.0-dev libcairo2-dev python3-pip python3-cffi python3-brotli libpango-1.0-0 libharfbuzz0b libpangoft2-1.0-0  libgtk2.0-dev libgirepository1.0-dev
+RUN apt-get update && apt-get install -y  --no-install-recommends   gir1.2-gobject-2.0 libglib2.0-dev libcairo2-dev python3-pip python3-cffi python3-brotli libpango-1.0-0 libharfbuzz0b libpangoft2-1.0-0  libgtk2.0-dev libgirepository1.0-dev
 
+RUN apt install -y gir1.2-gobject-2.0 python3-pip python3-cffi python3-brotli libpango-1.0-0 libpangoft2-1.0-0
 
 RUN pip install weasyprint
 

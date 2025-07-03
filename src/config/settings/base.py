@@ -361,10 +361,6 @@ UNFOLD = {
             "950": "59 7 100",
         },
     },
-    "SIDEBAR": {
-        "show_search": True,  # Search in applications and models names
-        "show_all_applications": False,  # Dropdown with all applications and models
-    },
 }
 
 WEASYPRINT_BASEURL = '/'

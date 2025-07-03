@@ -3,7 +3,8 @@
 
 {% block content %} 
 
-<div class="container-fluid">
+<div class="container-fluid p-0">
+    {% if show_metadata %}
     <div class="row">
         <div class="col-11 text-center">
             Departamento: <strong>{{department.name}}</strong>
@@ -12,8 +13,9 @@
             Desde <strong>{{range_start|date:'d/m/Y'}}</strong> hasta <strong>{{ range_end|date:"d/m/Y" }}</strong>
         </div>
     </div>
-    <div class="row mt-4">
-        <div class="col-9">
+    {% endif %}
+    <div class="row">
+        <div class="col-10">
             <table class="table table-stripped" style="font-size: 10px;">
                 <thead>
                     <tr class="text-center">
@@ -29,6 +31,7 @@
                     {% for record in data %}
                         {% day_has_observation record observations as has_observation %}
                         <tr>
+                            {% if record.employer is not None %}
                             <td class="text-end">{{record.employer.cedula}}</td>
                             <td class="text-center">{{record.employer.name}}</td>
                             <td class="text-center">{{record.employer.last_name}}</td>
@@ -37,6 +40,18 @@
                                 {{record.employer|get_total_days_by_user:total_days_by_user}}
                             </td>
                             <td style="text-align: end;">{{record.abs_total_hours|floatformat:2 }}</td>
+                            {% else %}
+                            <td class="text-end">CI{{record.person.identity}}</td>
+                            <td class="text-center">NAMES {{record.person.names}}</td>
+                            <td class="text-center">LASTNAMES {{record.person.lastnames}}</td>
+                            <td class="text-center">POSITIONS {{record.person.position.position}}</td>
+                            <td class="text-center">
+                                {{record.person|get_total_days_by_user:total_days_by_user}}
+                            </td>
+                            <td style="text-align: end;">
+                                {{record.abs_total_hours|floatformat:2 }}
+                            </td>
+                            {% endif %}
                         </tr>
                     {% endfor %}
                     <tr >
@@ -52,7 +67,7 @@
     <div style="page-break-before:always">
     </div>
     <div class="row">
-        <div class="col-9">
+        <div class="col-10">
         <strong>Observaciones</strong>
 
             <table class="table table-borderer table-stripped mt-4 w-100" style="font-size: 12px;">
@@ -66,6 +81,7 @@
                 </thead>
                 <tbody style="font-size: 9px;">
                     {% for ob in observations %}
+                        {% if ob.employer is not None %}
                         <tr>
                             <td>{{ob.employer.get_fullname}}</td>
                             <td>{{ob.employer.cedula}}</td>
@@ -76,6 +92,18 @@
                                 {{ob.description}}
                             </td>
                         </tr>
+                        {% else %}
+                        <tr>
+                            <td>{{ob.person.get_fullname}}</td>
+                            <td>{{ob.person.cedula}}</td>
+                            <td  width="2%">
+                                {{ob.calendar_day.date_day|date:"d/m/Y"}}
+                            </td>
+                            <td>
+                                {{ob.description}}
+                            </td>
+                        </tr>
+                        {% endif%}
                     {% endfor %}
                 </tbody>
             </table>

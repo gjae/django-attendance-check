@@ -1,0 +1,23 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrahead %}
+<link rel="stylesheet" href="{% static 'css/vanilla_calendar.min.css' %}">
+<script src="{% static 'js/vanilla_calendar.js' %}"></script>
+<script src="{% static 'js/momentv1.js' %}"></script>
+{% endblock %}
+{% block title %} 
+   Gestión de comedor | {{ site_title|default:_('Django site admin') }}
+{% endblock %}
+
+
+{% block custom_breadcrumbs  %}
+{{block.super}} 
+<li class="text-gray-500 text-xs dark:text-gray-400">
+   Gestión de comedor
+</li>
+{% endblock %}
+
+{% block content %}
+
+{% endblock %}

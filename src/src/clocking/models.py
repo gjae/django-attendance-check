@@ -10,6 +10,7 @@ from model_utils.fields import StatusField
 from src.employees.models import Employee
 from src.settings.models import ClientConfig
 from .managers import ClockingManager, CheckingManager
+from src.peladoydescabezado.models import Person
 
 
 class DailyCalendar(TimeStampedModel):
@@ -28,7 +29,8 @@ class DailyCalendar(TimeStampedModel):
 
 class DailyChecks(TimeStampedModel):
     CHECK_STATUS_CHOISE = Choices((0, "entrada", "Entrada"), (1, "salida", "Salida"))
-    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="daily_checks", verbose_name="Trabajador")
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="daily_checks", verbose_name="Trabajador", null=True, default=None)
+    person = models.ForeignKey(Person, on_delete=models.CASCADE, related_name="daily_checks", null=True, default=None, verbose_name="Trabajador (Pelado y descabezado)")
     daily = models.ForeignKey(DailyCalendar, on_delete=models.CASCADE, related_name="daily_user_checks")
 
     time = models.TimeField("Hora de chequeo", auto_now_add=True)
@@ -76,6 +78,11 @@ class DailyChecks(TimeStampedModel):
     def check_type_as_str(self):
         return "ENTRADA" if self.checking_type == DailyChecks.CHECK_STATUS_CHOISE.entrada else "SALIDA"
     
+    def get_picture(self):
+        if self.employee is not None:
+            return self.employee.picture.url if self.employee.picture is not None and self.employee.picture.name else None
+
+        return self.person.picture.url if self.person.picture is not None and self.person.picture.name else None
 
 class DailyChecksProxyModelAdmin(DailyChecks):
     class Meta:
@@ -95,7 +102,8 @@ class DailyCalendarObservation(TimeStampedModel):
     )
 
     calendar_day = models.ForeignKey(DailyCalendar, on_delete=models.CASCADE, related_name="observations", verbose_name="Día del calendario")
-    employer = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="calendar_observations", verbose_name="Trabajador")
+    employer = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="calendar_observations", verbose_name="Trabajador", null=True, default=None)
+    person = models.ForeignKey(Person, on_delete=models.CASCADE, related_name="calendar_observations", verbose_name="Trabajador (Pelado y descabezado)", null=True, default=None)
     description = models.TextField("Descripción")
     support = models.FileField("Soporte", upload_to="uploads/dailycalendarsupports/", null=True, default=None)
     check_type = models.PositiveSmallIntegerField("Tipo de observación", choices=OBSERVATION_TYPE_CHOICES, default=OBSERVATION_TYPE_CHOICES.checkin_out)

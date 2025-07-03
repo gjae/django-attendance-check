@@ -12,3 +12,7 @@ def day_has_observation(context, day, observations):
 @register.filter
 def get_total_days_by_user(user, counters):
     return counters[user.id]
+
+@register.filter
+def get_by_index(iterable, index):
+    return iterable[index]

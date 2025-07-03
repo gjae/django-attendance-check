@@ -3,8 +3,9 @@ from django import forms
 from django.core.exceptions import ObjectDoesNotExist
 
 from src.employees.models import Employee
-from src.clocking.models import DailyChecks
+from src.clocking.models import DailyChecks, DailyCalendarObservation
 from src.settings.models import WorkCenter, ClientConfig
+from src.peladoydescabezado.models import Person
 from .exceptions import EmployeeDoenstBelongsToThisWorkCenterException, EmployeeDesactivedException
 
 class ClientMarkCheckForm(forms.Form):
@@ -20,27 +21,61 @@ class ClientMarkCheckForm(forms.Form):
 
     def clean_cedula(self):
         cedula = self.cleaned_data["cedula"]
-        if not Employee.objects.allow_checking(cedula):
-            raise forms.ValidationError(
-                "La cédula que intenta escanear no se encuentra registrada o está desactivada"
-            )
+        if Employee.objects.allow_checking(cedula):
+            return cedula
         
-        return cedula
-    
+        elif Person.objects.allow_checking(cedula):
+            return cedula
+        
+        raise forms.ValidationError(
+            "La cédula que intenta escanear no se encuentra registrada o está desactivada"
+        )
+        
+    def _get_employee_obj(self, cedula):
+        try:
+            employee = Employee.objects.select_related("department", "department__work_center").get(cedula=cedula)
+            return employee
+        except ObjectDoesNotExist as e:
+            return Person.objects.select_related("department", "department__work_center").get(identity=cedula)
 
     def save(self):
         log = logging.getLogger(__name__)
         employee = None
         
         try:
-            employee = Employee.objects.select_related("department", "department__work_center").get(cedula=self.cleaned_data["cedula"])
+            employee = self._get_employee_obj(self.cleaned_data.get("cedula"))
             if not employee.is_actived:
                 raise EmployeeDesactivedException("Trabajador no encontrado o no registrado.")
             current_work_center = self.cleaned_data.get("entrypoint").work_center
+            print(f"Workcenter: ", employee.department.work_center, current_work_center, self.cleaned_data.get("entrypoint").allow_clocking_from_another_workcenter)
             if employee.department.work_center != current_work_center and not self.cleaned_data.get("entrypoint").allow_clocking_from_another_workcenter:
                 raise EmployeeDoenstBelongsToThisWorkCenterException("El trabajador no pertenece a este centro")
         except ObjectDoesNotExist as e:
             log.exception(e)
             return None
         
+        print("employee", employee, employee.__class__)
         return DailyChecks.objects.checking_user(employee, entrypoint=self.cleaned_data.get("entrypoint", None))
+    
+
+class CheckingObservationModelForm(forms.ModelForm):
+    employer = forms.ModelChoiceField(
+        queryset=Employee.objects.filter(is_actived=True),
+        label="Trabajador",
+        required=False,
+        initial=None
+    )
+
+    
+    person = forms.ModelChoiceField(
+        queryset=Person.objects.filter(is_actived=True),
+        label="Trabajador (Pelado y descabezado)",
+        required=False,
+        initial=None
+    )
+    class Meta:
+        model = DailyCalendarObservation
+        exclude = (
+            "created", 
+            "modified"
+        )
