@@ -7,11 +7,15 @@
 
     <style>
         @page {
-            size: A4;
+            size: Legal;
             margin: 0;
-            margin-left: 1cm;
-            margin-right: 1cm;
-            margin-top: 1cm;
+            margin-left: 0.5cm;
+            margin-right: 0.5cm;
+
+            @bottom-right {
+                content: "Página " counter(page) " de " counter(pages);
+                font-size: 8pt;
+            }
         }
     </style>
 </head>
@@ -19,10 +23,10 @@
     <div id="letterhead">
         <div class="row d-flex flex-row align-items-center justify-content-center">
             <div class="col-1">
-                <img src="{{branding}}" alt="">
+                <img src="{{branding}}" style="max-width: 100px; max-height: 100px;" alt="">
             </div>
-            <div class="col">
-                <div class="row">
+            <div class="col p-0">
+                <div class="row p-0">
                     {% for letterhead in letterheads %}
                         <div class="col-9 text-center">
                             {{letterhead|safe}}

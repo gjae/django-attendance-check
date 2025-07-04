@@ -8,18 +8,42 @@ from .models import DailyCalendar, DailyChecks, DailyCalendarObservation, DailyC
 from unfold.admin import ModelAdmin
 from django.utils.html import format_html
 
+from unfold.admin import StackedInline, TabularInline
+
+from .forms import CheckingObservationModelForm
+
 
 # Register your models here.
 
 
-class CheckingCalendarAdmin(admin.TabularInline):
+class CheckingCalendarAdmin(TabularInline):
     model = DailyChecks
 
     def get_queryset(self, request: HttpRequest) -> QuerySet[Any]:
-        return super().get_queryset(request).order_by("-created").select_related(
+        return super().get_queryset(request).filter(person__isnull=True).order_by("-created").select_related(
             "employee", 
             "employee__position",
-            "daily"
+            "daily",
+            "person",
+            "person__position"
+        )
+    
+    def get_readonly_fields(self, request: HttpRequest, obj):
+        if obj:
+            return ["employee", 'checking_time', 'checking_type']
+        else:  # When object is created
+            return [] # no editable field    
+
+class PeladoCheckingCalendarAdmin(TabularInline):
+    model = DailyChecks
+
+    def get_queryset(self, request: HttpRequest) -> QuerySet[Any]:
+        return super().get_queryset(request).filter(person__isnull=False).order_by("-created").select_related(
+            "employee", 
+            "employee__position",
+            "daily",
+            "person",
+            "person__position"
         )
     
     def get_readonly_fields(self, request: HttpRequest, obj):
@@ -31,7 +55,7 @@ class CheckingCalendarAdmin(admin.TabularInline):
 @admin.register(DailyCalendar)
 class DailyCalendarAdmin(ModelAdmin):
     list_display = ["date_day", "checkings"]
-    inlines = [CheckingCalendarAdmin, ]
+    inlines = [CheckingCalendarAdmin, PeladoCheckingCalendarAdmin]
     readonly_fields = ["date_day", ]
 
     def get_queryset(self, request: HttpRequest):
@@ -56,8 +80,9 @@ class DailyCalendarAdmin(ModelAdmin):
 
 @admin.register(DailyCalendarObservation)
 class DailyCalendarObservationAdmin(ModelAdmin):
-    list_display = ["created", "calendar_day", "employer", "soporte"]
+    list_display = ["created", "calendar_day", "employer", "soporte", ]
     list_filter = ["calendar_day", "employer", ]
+    form = CheckingObservationModelForm
 
     class Media:
         js = ('js/jquery.min.js', 'js/select2/select2.full.min.js', 'js/select2/select2_observations.js')   

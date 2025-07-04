@@ -87,11 +87,11 @@ class ClientMarkCheckFormView(JSONResponseMixin, FormView):
             "error_type": None,
             "timestamp": time.mktime(cheecking.checking_time.timetuple()),
             "user_data": {
-                "id": cheecking.employee.id,
-                "name": cheecking.employee.get_fullname(),
-                "position": cheecking.employee.position.position,
+                "id": cheecking.employee.id if cheecking.employee is not None else cheecking.person.id,
+                "name": cheecking.employee.get_fullname() if cheecking.employee is not None else cheecking.person.get_fullname(),
+                "position": cheecking.employee.position.position if cheecking.employee is not None else cheecking.person.position.position,
                 "department": "SISTEMAS",
-                "photo": cheecking.employee.picture.url if cheecking.employee.picture is not None and cheecking.employee.picture.name else None
+                "photo": cheecking.get_picture()
             },
             "recheck": False
         })

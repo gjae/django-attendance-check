@@ -10,7 +10,12 @@ def on_create_observation_save_checking(sender, instance: DailyCalendarObservati
     if not created:
         return None
     
-    checks_by_user = DailyChecks.objects.filter(daily=instance.calendar_day, employee=instance.employer)
+    checks_by_user = None
+    if instance.employer is not None:
+        checks_by_user = DailyChecks.objects.filter(daily=instance.calendar_day, employee=instance.employer)
+    else:
+        checks_by_user = DailyChecks.objects.filter(daily=instance.calendar_day, person=instance.person)
+
     check_counter = len(checks_by_user)
     if check_counter == 2:
         return None
@@ -23,6 +28,7 @@ def on_create_observation_save_checking(sender, instance: DailyCalendarObservati
     if check_counter == 0 and instance.check_type == 3:
         d1 = DailyChecks.objects.create(
             employee=instance.employer,
+            person=instance.person,
             checking_type=0,
             time=now.time(),
             checking_time=now,
@@ -30,6 +36,7 @@ def on_create_observation_save_checking(sender, instance: DailyCalendarObservati
         )
         d2 = DailyChecks.objects.create(
             employee=instance.employer,
+            person=instance.person,
             checking_type=1,
             time=end.time(),
             checking_time=end,
@@ -50,6 +57,7 @@ def on_create_observation_save_checking(sender, instance: DailyCalendarObservati
         getout = DailyChecks.objects.create(
             daily=instance.calendar_day,
             employee=instance.employer,
+            person=instance.person,
             checking_type=1,
             time=end.time(),
             checking_time=end

@@ -38,4 +38,5 @@ django-coverage-plugin==3.1.0  # https://github.com/nedbat/django_coverage_plugi
 pytest-django==4.5.2  # https://github.com/pytest-dev/pytest-django
 
 
-django-unfold==0.12.0
+django-unfold==0.60.0
+isoweek==1.3.3

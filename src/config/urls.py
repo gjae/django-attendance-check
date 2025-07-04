@@ -19,6 +19,7 @@ urlpatterns = static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) + [
     path("employers/", include("src.employees.urls")),
     path("reports/", include("src.reports.urls")),
     path("dining_room/", include("src.dining_room.urls")),
+    path("peladoydescabezado/", include("src.peladoydescabezado.urls")),
     # Your stuff: custom urls includes go here
 ]
 

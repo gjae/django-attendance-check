@@ -1,0 +1,323 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block custom_breadcrumbs %}
+{{block.super}}
+<li class="text-gray-500 text-xs dark:text-gray-400">
+   Reportes de pesaje
+</li>
+{% endblock %}
+
+{% block extrahead %}
+<link rel="stylesheet" href="{% static 'css/vanilla_calendar.min.css' %}">
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.css">
+<link rel="stylesheet" href="{% static 'css/toastify.min.css' %}">
+<script src="{% static 'js/vanilla_calendar.js' %}"></script>
+<script src="{% static 'js/momentv1.js' %}"></script>
+<script src="{% static 'js/toastify.min.js' %}"></script>
+<style>
+   #nav-filter {
+      background-color: white;
+   }
+   
+   /* Estilos para el modal */
+   dialog[open] {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      margin: 0;
+      width: 450px;
+      max-width: 95vw;
+   }
+   
+   /* Contenedor de fechas */
+   .fechas-container {
+      display: flex;
+      gap: 15px;
+      transition: all 0.3s ease;
+   }
+   
+   /* Campos de fecha */
+   .campo-fecha {
+      transition: all 0.3s ease;
+      width: 100%;
+   }
+
+   /* Estilos para los radio buttons de turno */
+   .turno-options {
+      display: flex;
+      gap: 15px;
+      margin-top: 10px;
+   }
+   .turno-option {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+   }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="flex flex-col gap-3 max-w-xs mx-5 my-5 p-5 border border-gray-300 rounded-lg bg-gray-50">
+   <h2 class="text-lg font-semibold">Generador de Reportes</h2>
+   <button 
+      id="openModalBtn"
+      class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+   >
+      Configurar Reporte
+   </button>
+</div>
+
+<!-- Modal mejorado -->
+<dialog id="modal" class="p-6 rounded-lg shadow-xl border border-gray-200 bg-white backdrop:bg-black/50">
+   <form id="reporteForm" action="{% url 'reports_generator' %}" class="flex flex-col gap-5">
+      <h3 class="text-xl font-semibold text-gray-800">Generar Reporte de Pesaje</h3>
+      
+      <div class="flex flex-col gap-3">
+         <p class="text-sm font-medium text-gray-700">Tipo de reporte:</p>
+         <div class="flex flex-col gap-2 pl-1">
+            <label class="flex items-center gap-3 cursor-pointer">
+               <input type="radio" name="tipo_reporte" value="simple" class="h-4 w-4 text-green-600" checked>
+               <span class="text-sm text-gray-700">Control de entrega valor agregado</span>
+            </label>
+            <label class="flex items-center gap-3 cursor-pointer">
+               <input type="radio" name="tipo_reporte" value="rango" class="h-4 w-4 text-green-600">
+               <span class="text-sm text-gray-700">Relación diaria de personal</span>
+            </label>
+            <label class="flex items-center gap-3 cursor-pointer">
+               <input type="radio" name="tipo_reporte" value="assistence" class="h-4 w-4 text-green-600">
+               <span class="text-sm text-gray-700">Asistencia por departamento</span>
+            </label>
+            <label class="flex items-center gap-3 cursor-pointer">
+               <input type="radio" name="tipo_reporte" value="personal" class="h-4 w-4 text-green-600">
+               <span class="text-sm text-gray-700">Asistencia por persona</span>
+            </label>
+         </div>
+      </div>
+      
+      <!-- Sección de fechas modificada -->
+      <div id="fechasSection">
+         <!-- Para reporte simple (una fecha) -->
+         <div id="fechaSimpleContainer" class="fechas-container">
+            <div class="campo-fecha flex flex-col gap-1">
+               <label for="fechaInicio" class="text-sm font-medium text-gray-700">Fecha:</label>
+               <input 
+                  type="date" 
+                  id="fechaInicio" 
+                  name="fecha_inicio"
+                  class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-500"
+                  
+               >
+            </div>
+         </div>
+         
+         <!-- Para reporte por rango (dos fechas) -->
+         <div id="fechaRangoContainer" class="fechas-container" style="display: none;">
+            <div class="campo-fecha flex flex-col gap-1">
+               <label for="fechaInicioRango" class="text-sm font-medium text-gray-700">Fecha inicio:</label>
+               <input 
+                  type="date" 
+                  id="fechaInicioRango" 
+                  name="fecha_inicio_rango"
+                  class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-500"
+               >
+            </div>
+            <div class="campo-fecha flex flex-col gap-1">
+               <label for="fechaFinRango" class="text-sm font-medium text-gray-700">Fecha fin:</label>
+               <input 
+                  type="date" 
+                  id="fechaFinRango" 
+                  name="fecha_fin_rango"
+                  class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-500"
+               >
+            </div>
+         </div>
+      </div>
+
+      <div class="flex flex-col gap-1" id="department_area" style="display: none;">
+            <select class="w-full p-2 border border-gray-300 bg-white text-gray-800 rounded p-3" name="department">
+               <option value="">Selecciona un Departamento</option>
+               {% for department in departments %} <option value="{{department.id}}">{{department.name}}</option> {% endfor %}
+            </select>
+      </div>
+      
+      <div class="flex flex-col gap-1" id="personal_area" style="display: none;">
+            <select class="w-full p-2 border border-gray-300 bg-white text-gray-800 rounded p-3" name="person_id">
+               <option value="">Selecciona un trabajador</option>
+               {% for person in persons %} <option value="{{person.id}}">{{person.get_fullname}}</option> {% endfor %}
+            </select>
+      </div>
+      <!-- Sección de turnos añadida -->
+      <div class="flex flex-col gap-1" id="turns_area" style="display: none;">
+         <p class="text-sm font-medium text-gray-700">Turno:</p>
+         <div class="turno-options">
+            <label class="turno-option">
+               <input type="radio" name="turno" value="0" checked class="h-4 w-4 text-green-600">
+               <span class="text-sm text-gray-700">Diurno</span>
+            </label>
+            <label class="turno-option">
+               <input type="radio" name="turno" value="1" class="h-4 w-4 text-green-600">
+               <span class="text-sm text-gray-700">Nocturno</span>
+            </label>
+         </div>
+      </div>
+      <div class="flex flex-col gap-1">
+         <p class="text-sm font-medium text-gray-700">Formato de reporte:</p>
+         <div class="turno-options">
+            <label class="turno-option">
+               <input type="radio" name="report_type" value="pdf" id="report_type_pdf" checked class="h-4 w-4 text-green-600">
+               <span class="text-sm text-gray-700">PDF</span>
+            </label>
+            <label class="turno-option">
+               <input type="radio" name="report_type" id="report_type_excel" value="xlsx" class="h-4 w-4 text-green-600">
+               <span class="text-sm text-gray-700">Excel</span>
+            </label>
+         </div>
+      </div>
+
+      
+      <div class="flex flex-col gap-1" id="category_selector" style="display: flex;">
+         <p class="text-sm font-medium text-gray-700">Categoría:</p>
+         <div class="turno-options">
+            <label class="turno-option">
+               <input type="radio" name="category" value="0" id="category_ppv" checked class="h-4 w-4 text-green-600">
+               <span class="text-sm text-gray-700">PPV</span>
+            </label>
+            <label class="turno-option">
+               <input type="radio" name="category" value="1" id="category_pud" class="h-4 w-4 text-green-600">
+               <span class="text-sm text-gray-700">PUD</span>
+            </label>
+            <label class="turno-option">
+               <input type="radio" name="category" value="2" id="category_pyd"  class="h-4 w-4 text-green-600">
+               <span class="text-sm text-gray-700">PYD</span>
+            </label>
+            <label class="turno-option">
+               <input type="radio" name="category" value="3" id="category_descabezado"  class="h-4 w-4 text-green-600">
+               <span class="text-sm text-gray-700">Descabezado</span>
+            </label>
+         </div>
+      </div>
+      
+      <div class="flex justify-end gap-3 mt-2">
+         <button 
+            type="button"
+            id="closeModalBtn"
+            class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition-colors"
+         >
+            Cancelar
+         </button>
+         <button 
+            type="submit"
+            id="generarReporteBtn"
+            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-green-700 transition-colors"
+         >
+            Generar Reporte
+         </button>
+      </div>
+   </form>
+</dialog>
+
+<script>
+   const modal = document.getElementById("modal");
+   const openBtn = document.getElementById("openModalBtn");
+   const closeBtn = document.getElementById("closeModalBtn");
+   const reporteForm = document.getElementById("reporteForm");
+   const tipoReporteSimple = document.querySelector("input[value='simple']");
+   const tipoReporteRango = document.querySelector("input[value='rango']");
+   const tipoReporteAsistencia = document.querySelector("input[value='assistence']");
+   const tipoReportePersonal = document.querySelector("input[value='personal']");
+   const fechaSimpleContainer = document.getElementById("fechaSimpleContainer");
+   const fechaRangoContainer = document.getElementById("fechaRangoContainer");
+   
+   // Abrir/Cerrar modal
+   openBtn.addEventListener("click", () => modal.showModal());
+   closeBtn.addEventListener("click", () => { 
+      document.getElementById("reporteForm").reset();
+      // Restaurar la vista por defecto
+      fechaSimpleContainer.style.display = "flex";
+      fechaRangoContainer.style.display = "none";
+      document.getElementById("personal_area").style.display = "none"
+      document.getElementById("department_area").style.display = "none"
+      modal.close();
+   });
+   
+   // Cambiar entre fecha simple y rango de fechas
+   tipoReporteSimple.addEventListener("change", () => {
+      fechaSimpleContainer.style.display = "flex";
+      fechaRangoContainer.style.display = "none";
+      document.getElementById("report_type_pdf").disabled = false
+      document.getElementById("turns_area").style.display = "none"
+
+      document.getElementById("category_selector").style.display = "flex"
+      document.getElementById("department_area").style.display = "none"
+      document.getElementById("personal_area").style.display = "none"
+   });
+   
+   tipoReporteRango.addEventListener("change", () => {
+      fechaSimpleContainer.style.display = "none";
+      fechaRangoContainer.style.display = "flex";
+      document.getElementById("report_type_pdf").disabled = true
+      document.getElementById("report_type_excel").checked = true
+      document.getElementById("turns_area").style.display = "flex"
+
+      
+      document.getElementById("category_selector").style.display = "none"
+      document.getElementById("department_area").style.display = "none"
+      document.getElementById("personal_area").style.display = "none"
+   });
+
+   tipoReporteAsistencia.addEventListener("change", () => {
+      
+      fechaSimpleContainer.style.display = "none";
+      fechaRangoContainer.style.display = "flex";
+      document.getElementById("report_type_pdf").disabled = false
+      document.getElementById("turns_area").style.display = "none"
+
+      document.getElementById("category_selector").style.display = "none"
+      document.getElementById("department_area").style.display = "flex"
+      document.getElementById("personal_area").style.display = "none"
+   })
+
+   
+   tipoReportePersonal.addEventListener("change", () => {
+      
+      fechaSimpleContainer.style.display = "none";
+      fechaRangoContainer.style.display = "flex";
+      document.getElementById("report_type_pdf").disabled = false
+      document.getElementById("turns_area").style.display = "none"
+
+      document.getElementById("category_selector").style.display = "none"
+      document.getElementById("department_area").style.display = "none"
+      document.getElementById("personal_area").style.display = "flex"
+   })
+   
+   // Cerrar modal al hacer clic fuera del contenido
+   modal.addEventListener("click", (e) => {
+      const dialogDimensions = modal.getBoundingClientRect();
+      if (
+         e.clientX < dialogDimensions.left ||
+         e.clientX > dialogDimensions.right ||
+         e.clientY < dialogDimensions.top ||
+         e.clientY > dialogDimensions.bottom
+      ) {
+         modal.close();
+      }
+   });
+   
+   // Manejar envío del formulario
+   reporteForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      
+      const formData = new FormData(reporteForm);
+      const data = Object.fromEntries(formData);
+      
+      console.log("Datos del reporte:", data);
+      document.getElementById("reporteForm").submit();
+      
+      // modal.close();
+   });
+</script>
+
+{% endblock %}

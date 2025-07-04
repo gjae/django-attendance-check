@@ -23,7 +23,16 @@ class ClockingManager(models.Manager):
         return current_date
 
 
-class CheckingManager(models.Manager):
+class BaseCheckingManager(models.Manager):
+    def get_model(self):
+        from src.employees.models import Employee
+        return Employee
+    
+    def get_daily_report_model(self):
+        from src.clocking.models import DailyChecks
+        return DailyChecks
+
+class CheckingManager(BaseCheckingManager):
 
     def raise_exception_is_checktimeout(self, checking):
         print(f"Raise exception para {checking}")
@@ -50,7 +59,8 @@ class CheckingManager(models.Manager):
         actual e ignorará el anterior
         """
 
-        from src.clocking.models import DailyCalendar, DailyChecks
+        from src.clocking.models import DailyCalendar, DailyChecks, Employee
+        from src.peladoydescabezado.models import Person
         
 
 
@@ -58,25 +68,43 @@ class CheckingManager(models.Manager):
         # en caso de ser una entrada entonces se verifica si esa entrada fue hace menos de 24 horas, en ese 
         # caso se marca la salida correspondiente.
         # Si la ultima entrada fue hace mas de 24 horas entonces se marca una entrada del dia actual
-        last_employer_check = DailyChecks.objects.filter(employee=employee).order_by("id").last()
+        last_employer_check = None
         last_24_hours = datetime.now() - timedelta(hours=24)
+        if isinstance(employee, Employee):
+            last_employer_check = DailyChecks.objects.filter(Q(employee=employee)).order_by("id").last()
+        elif isinstance(employee, Person):
+            last_employer_check = DailyChecks.objects.filter(Q(person=employee)).order_by("id").last()
         
         if last_employer_check is not None and last_employer_check.checking_type == DailyChecks.CHECK_STATUS_CHOISE.entrada and (datetime.now() - last_employer_check.created).days < 1:
             self.raise_exception_is_checktimeout(last_employer_check)
             check_daily = last_employer_check.daily
-            return DailyChecks.objects.create(employee=employee, daily=check_daily, checking_type=DailyChecks.CHECK_STATUS_CHOISE.salida, entrypoint=entrypoint)
+            if isinstance(employee, Employee):
+                return DailyChecks.objects.create(employee=employee, daily=check_daily, checking_type=DailyChecks.CHECK_STATUS_CHOISE.salida, entrypoint=entrypoint)
+            elif isinstance(employee, Person):
+                return DailyChecks.objects.create(person=employee, daily=check_daily, checking_type=DailyChecks.CHECK_STATUS_CHOISE.salida, entrypoint=entrypoint)
 
 
+
+        last_employer_check = None
+        employee_calendar = None
 
         daily = DailyCalendar.objects.get_or_create_clocking_day()
-        employee_calendar = DailyChecks.objects.filter(employee=employee, daily=daily)
-        last_employer_check = DailyChecks.objects.filter(employee=employee).order_by("id").last()
+        if isinstance(employee, Employee):
+            employee_calendar = DailyChecks.objects.filter(employee=employee, daily=daily)
+            last_employer_check = DailyChecks.objects.filter(employee=employee).order_by("id").last()
+        elif isinstance(employee, Person):
+            employee_calendar = DailyChecks.objects.filter(person=employee, daily=daily)
+            last_employer_check = DailyChecks.objects.filter(person=employee).order_by("id").last()
 
         if last_employer_check is not None:
             self.raise_exception_is_checktimeout(last_employer_check)
 
+        
         if not employee_calendar.exists():
-            return DailyChecks.objects.create(employee=employee, daily=daily, entrypoint=entrypoint)
+            if isinstance(employee, Employee):
+                return DailyChecks.objects.create(employee=employee, daily=daily, entrypoint=entrypoint)
+            elif isinstance(employee, Person):
+                return DailyChecks.objects.create(person=employee, daily=daily, entrypoint=entrypoint)
         
         if employee_calendar.exists():
             checking = employee_calendar.first()
@@ -93,8 +121,11 @@ class CheckingManager(models.Manager):
             checking = employee_calendar.first()
             self.raise_exception_is_checktimeout(checking)
             
+            if isinstance(employee, Employee):
+                return DailyChecks.objects.create(employee=employee, daily=daily, checking_type=DailyChecks.CHECK_STATUS_CHOISE.salida, entrypoint=entrypoint)
+            elif isinstance(employee, Person):
+                return DailyChecks.objects.create(person=employee, daily=daily, checking_type=DailyChecks.CHECK_STATUS_CHOISE.salida, entrypoint=entrypoint)
 
-            return DailyChecks.objects.create(employee=employee, daily=daily, checking_type=DailyChecks.CHECK_STATUS_CHOISE.salida, entrypoint=entrypoint)
 
 
         return employee_calendar.first()
@@ -103,6 +134,7 @@ class CheckingManager(models.Manager):
         obj = {
             "created": entry.daily.date_day,
             "employer": entry.employee,
+            "person": entry.person,
             "total_hours": 0,
             "start_at": entry.checking_time.strftime("%d/%m/%Y %I:%M %p") if not use_for_database else entry.checking_time,
             "end_at": "SIN MARCAR" if out is None else out.checking_time.strftime("%d/%m/%Y %I:%M %p"),
@@ -143,7 +175,7 @@ class CheckingManager(models.Manager):
         hours_accumulateds = 0
 
         employers = (
-            Employee
+            self.get_model()
             .objects
             .select_related("position")
             .filter(department_id=department)
@@ -183,6 +215,7 @@ class CheckingManager(models.Manager):
             response.append({
                 "created": e.checks[0].created.strftime("%d-%m-%Y") if len(e.checks) > 0 else "",
                 "employer": e,
+                "person": e,
                 "total_hours": total_hours,
                 "start_at": "",
                 "end_at": "SIN MARCAR" ,
@@ -195,20 +228,30 @@ class CheckingManager(models.Manager):
         return response, round(hours_accumulateds, 2), days_checked_by_employer
 
     
-    def report_by_employee(self, user_id = None, from_date = None, until_date = None, use_for_database = False, department = None):
-        from src.clocking.models import DailyChecks
+    def report_by_employee(self, user_id = None, from_date = None, until_date = None, use_for_database = False, department = None, is_employer_model = True):
         new_data = (
-            self
+            self.get_daily_report_model().objects
             .filter(daily__date_day__range=[
                 from_date, 
                 until_date
             ])
-            .select_related("employee", "employee__position")
-            .order_by("daily__date_day", "employee_id")
+            .select_related("employee", "employee__position", "person", "person__position")
+            .order_by("daily__date_day", "employee_id", "person_id")
         )
+        filters = {}
+            
         if user_id is not None:
-            new_data = new_data.filter(employee_id=user_id)
+            if is_employer_model:
+                filters["employee_id"] = user_id
+            else:
+                filters["person_id"] = user_id
+            new_data = new_data.filter(**filters)
         if department is not None:
+            if is_employer_model:
+                filters["employee__department_id"] = department
+            else:
+                filters["person__department_id"] = department
+
             new_data = new_data.filter(employee__department_id=department)
 
         divided_by_user = {}

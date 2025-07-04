@@ -7,7 +7,12 @@
             {% if 'Gestión' not in content_title %}
                 {{ content_title }}
                 {% else %}
+                {% if 'peladoydescabezado' not in request.path %}
                 Gestión de comedor
+                {% else %}
+                
+                Gestión de pesaje
+                {% endif %}
             {% endif %}
 
             {% if cl and cl.full_result_count != cl.result_count %}

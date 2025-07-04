@@ -1,0 +1,305 @@
+{% load reports_utils %}
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{{ title }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 0.3cm;
+        }
+        body {
+            font-family: Arial;
+            margin: 0;
+            padding: 0;
+        }
+        .header-row {
+            display: flex;
+            border: 1px solid #000;
+            margin-bottom: 1cm;
+        }
+        .header-section {
+            padding: 0.1cm;
+            display: flex;
+            align-items: center;
+        }
+        .logo-section {
+            width: 25%;
+            justify-content: center;
+            border-right: 1px solid #000;
+        }
+        .logo {
+            max-width: 100%;
+            max-height: 80px; /* Ajusta según necesites */
+            height: auto;
+        }
+        .title-section {
+            width: 50%;
+            justify-content: center;
+            text-align: center;
+            border-right: 1px solid #000;
+        }
+        .document-title {
+            margin: 0;
+            font-size: 10pt;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .data-section {
+            width: 25%;
+            flex-direction: column;
+            justify-content: center;
+            padding: 0 !important;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .data-table td {
+            border: 1px solid #000;
+            padding: 0.3cm;
+            font-size: 10pt;
+        }
+        .data-table tr:not(:last-child) td {
+            border-bottom: none;
+        }
+        .content {
+            border: 1px solid #000;
+            padding: 0 !important;
+            display: flex;
+        }
+        #meta-data {
+            margin-top: -0.9cm;
+        }
+        .farm-data {
+            font-size: 8pt;
+            border-collapse: collapse;
+            width: 100%;
+            height: 100%;
+        }
+        .farm-data td {
+            border: 1px solid #000;
+            padding: 0.1cm;
+            font-size: 10pt;
+        }
+        .data-block {
+            width: 33.33%;
+            border-right: 1px solid #000;
+            box-sizing: border-box;
+        }
+        .data-block:last-child {
+            border-right: none;
+        }
+        .body-table {
+            border: 1px solid #000;
+            border-collapse: collapse;
+            font-size: 10pt;
+            text-align: center;
+            width: 100%;
+        }
+        .body-table th,
+        .body-table tbody td {
+            border: 1px solid #000;
+        }
+        .bascket td {
+            border: 1px solid #000;
+        }
+        .footer {
+            display: flex;
+            border: 1px solid #000;
+            margin-top: 0.5cm;
+        }
+        .footer-section {
+            padding: 0.5cm;
+            box-sizing: border-box;
+        }
+        .footer-section:first-child {
+            border-right: 1px solid #000;
+        }
+        .footer-title {
+            font-weight: bold;
+            margin-bottom: 0.3cm;
+            text-align: center;
+            font-size: 10pt;
+        }
+        .footer-content {
+            min-height: 0.5cm;
+            font-size: 9pt;
+        }
+        .observations {
+            width: 60%;
+        }
+        .corrective-actions {
+            width: 40%;
+        }
+    </style>
+</head>
+<body>
+    <!-- Fila horizontal con tres secciones -->
+    <div class="header-row">
+        <!-- Sección 1: Logo -->
+        <div class="header-section logo-section">
+            {% with '/static/images/branding/logo_inpromaro_lit.png' as image_path %}
+            <img src="{{image_path}}" class="logo" alt="Logo" onerror="this.style.display='none'"> 
+            {% endwith %}
+        </div>
+        
+        <!-- Sección 2: Título -->
+        <div class="header-section title-section">
+            <h1 class="document-title">
+                Control de entrega valor agregado ({{category_text}})
+            </h1>
+        </div>
+        
+        <!-- Sección 3: Datos -->
+        <div class="header-section data-section">
+            <table class="data-table">
+                <tr>
+                    <td>Código: <span style="font-size: 8pt;">{{ code }}</span> </td>
+                </tr>
+                <tr>
+                    <td>Fecha: {{ date|date:"d/m/Y" }}</td>
+                </tr>
+                <tr>
+                    <td>Versión: {{ version }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    
+    <section id="meta-data">
+        <table class="data-table">
+            <tr>
+                <td>Fecha:  <span style="font-size: 8pt;">{{date|date:"d/m/Y"}}</span> </td>
+                <td>Presentacion:</td>
+                <td>Cola:</td>
+                <td>Cola Pelada:</td>
+                <td>Especie:</td>
+            </tr>
+        </table>
+    </section>
+    
+    <!-- Contenido principal en 3 bloques iguales -->
+    <div class="content">
+        <!-- Bloque 1 -->
+         {% for control in controls %}
+            {% for detail in control.control_details %}
+            <div class="data-block">
+                <table class="farm-data">
+                    <tr>
+                        <td><strong>Producto certificado:</strong></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td colspan="2"><strong>Granja:</strong> {{detail.farm.name}} </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2"><strong>Piscina:</strong> {{detail.pool.number}}</td>
+                    </tr>
+                    <tr>
+                        <td colspan="2"><strong>Gramaje:</strong> {% for w in detail.weightness.all %}{{w.weight}},{% endfor %} </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2"><strong>Kilos de camaron entero recibidos:</strong> {{detail.total_weight_received}}</td>
+                    </tr>
+                </table>
+            </div>
+            {% endfor %}
+        {% endfor %}
+    </div>
+
+    <div class="body" style="margin-top: 0.2cm;">
+        <table class="body-table">
+            <thead>
+                <tr>
+                    <th width="7%">
+                        <strong>N°</strong>
+                    </th>
+                    <th width="15%">C.I</th>
+                    <th width="25%">
+                        Apellido y Nombre
+                    </th>
+                    <th>Contenido de Cestas Entregadas</th>
+                    <th width="10%">{% if category == 3 %}T. Cestas{% else %}T. Kg{% endif %}</th>
+                </tr>
+            </thead>
+            <tbody style="font-size: 9pt;">
+                {% for user in data %}
+                <tr>
+                    <td>{{user.row}}</td>
+                    <td>{{user.identity}}</td>
+                    <td>{{user.lastnames}}, {{user.names}}</td>
+                    <td style="padding: 0 !important;">
+                        <table class="bascket" width="100%" style="padding: 0;">
+                            <tr style="padding: 0;">
+                                {% if category != 3 %}
+                                    {% for totalization in num_cells %}
+                                    <td width="{{avg_cell_space}}%">
+                                        {% if totalization < user.production|length %}
+                                            {% with total=user.production|get_by_index:totalization %}
+                                                {{total.weight}}
+                                            {% endwith %}
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </td>
+                                    {% endfor %}
+                                {% else %}
+                                <td>{{ user.production|length }}</td>
+                                {% endif%}
+                            </tr>
+                        </table>
+                    </td>
+                    <td>
+                        {% if category != 3 %}
+                            {{user.total|default:"0.00"}}
+                        {% else %}
+                            {{user.production|length }}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th style="border: none !important"></th>
+                    <th style="border: none !important"></th>
+                    <th style="border: 1px solid #000; text-align: right;">Total {% if category == 3 %}Cestas{% else %}Kg{% endif %}</th>
+                    <th style="border: 1px solid #000"></th>
+                    <th style="border: 1px solid #000;">
+                        {% if category != 3 %}
+                        {{weight_total}}
+                        {% else %}
+                        {{total_basckets}}
+                        {% endif %}
+                    </th>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <!-- Pie de página añadido -->
+    <div class="footer">
+        <div class="footer-section observations">
+            <div class="footer-title">OBSERVACIONES</div>
+            <div class="footer-content"></div>
+        </div>
+        <div class="footer-section corrective-actions">
+            <div class="footer-title">ACCIONES CORRECTIVAS</div>
+            <div class="footer-content"></div>
+        </div>
+    </div>
+
+    <section id="creating_by" style="margin-top: 0.3cm;">
+        <table style="width: 100%; border-collapse: collapse; border: 1px solid #000; font-size: 9pt;">
+            <tr>
+                <th style="border: 1px solid #000" >Elaborado por: </th>
+                <th style="border: 1px solid #000">Revisado por: </th>
+                <th style="border: 1px solid #000">Aprobado por: </th>
+            </tr>
+        </table>
+    </section>
+</body>
+</html>

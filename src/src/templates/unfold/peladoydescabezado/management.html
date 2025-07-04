@@ -1,0 +1,437 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrahead %}
+<link rel="stylesheet" href="{% static 'css/vanilla_calendar.min.css' %}">
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.css">
+<link rel="stylesheet" href="{% static 'css/toastify.min.css' %}">
+<script src="{% static 'js/vanilla_calendar.js' %}"></script>
+<script src="{% static 'js/momentv1.js' %}"></script>
+<script src="{% static 'js/toastify.min.js' %}"></script>
+<style>
+   #nav-filter {
+      background-color: white;
+   }
+</style>
+<script>
+   function app() {
+      return {
+         appLoaded: false,
+         farms: 0,
+         farmsRegisters: [],
+         records: JSON.parse(document.getElementById("progress").innerText),
+         currentTurnKey: document.getElementById("id_current_turn_key").value,
+         lastRecordIndexIteraction: 0,
+         currentAction: "add",
+         cedula: "",
+         fetchCedulaTimer: null,
+         reverseTableResolver: JSON.parse(document.getElementById("reverse_resolve_tables").innerText),
+         userFetch: {
+            id: -1,
+            name: "",
+            lastname: ""
+         },
+         weightSaves: JSON.parse(document.getElementById("current_control_turn").innerText),
+         init() {
+            if (this.appLoaded) {
+               return null
+            }
+            this.setAppLoaded()
+            console.log("Hello world")
+            this.$watch("records", value => {
+               if (this.currentAction == "add")
+                  this.saveProgress(this.records[this.lastRecordIndexIteraction])
+            })
+            this.$watch("cedula", value => {
+               this.fetchUser()
+            })
+         },
+         fetchUser() {
+            if (this.cedula.length < 6) {
+               return null
+            }
+
+            if (this.fetchCedulaTimer != null) {
+               clearTimeout(this.fetchCedulaTimer)
+            }
+
+            this.fetchCedulaTimer = setTimeout(()=> {
+               fetch(
+                  `/peladoydescabezado/${this.cedula}/fetchUser/`
+               )
+               .then(resp => resp.json())
+               .then(resp =>{
+                  if (resp.error) {
+                     Toastify({
+                        text: "Cédula no registrada, verifique y vuelva a intentarlo",
+                        className: "error",
+                        style: {
+                           background: "#f23729",
+                        }
+                     }).showToast();
+                     document.getElementById("form").reset()
+                     return null
+                  }
+                  console.log(resp.data)
+                  this.userFetch = resp.data
+                  document.getElementById("id_name").value = resp.data.name
+                  document.getElementById("id_lastname").value = resp.data.lastname
+               })
+               .finally(()=> {
+                  clearTimeout(this.fetchCedulaTimer)
+                  this.fetchCedulaTimer = null
+               })
+            }, 1000)
+         },
+         saveProgress(farmRecord) {
+            
+            if (farmRecord.farm == -1) {
+               return false
+            }
+            
+            if (farmRecord.pool == -1) {
+               return false
+            }
+
+
+            let form = new FormData()
+            form.append("farm", farmRecord.farm)
+            form.append("pool", farmRecord.pool)
+            form.append("weight", `${farmRecord.total_weight}`)
+            form.append("action", this.currentAction)
+            farmRecord.weights.forEach(weight => {
+               form.append("weightness", `${weight.weight}`)
+            })
+
+            fetch(
+               `/peladoydescabezado/progress/`,
+               {method: "POST", body: form}
+            )
+            .then(resp => resp.json())
+            .then(resp => {
+               console.log({resp})
+            })
+
+         },
+         setAppLoaded() {
+            this.appLoaded = true
+            this.farmsRegisters = JSON.parse(document.getElementById("farms").innerText)
+         },
+         addNewFarm() {
+            this.farms++
+            this.records.push({ "farm": -1, "pool": -1, "weights": [], "total_weight": 0 })
+         },
+         onFarmChange(event) {
+            const target = event.target
+            this.lastRecordIndexIteraction = parseInt(target.getAttribute("data-farm-index"))
+            this.currentAction = "add"
+            this.records[this.lastRecordIndexIteraction].farm = target.value
+         },
+         poolsByFarm(farmId) {
+            const pools = this.farmsRegisters.filter(farm => {
+               return farm.id == farmId
+            }).map(farm => farm.pools).flat()
+
+            return pools
+         },
+         onRemoveFarm(index) {
+            console.log({ index })
+            this.currentAction = "remove"
+            this.lastRecordIndexIteraction = index
+            this.saveProgress(this.records[index])
+            this.records.splice(index, 1)
+            this.farms--
+         },
+         setWeightness(event) {
+            let currentIndex = parseInt(event.target.getAttribute("data-farm-index"))
+            console.log(event.target.getAttribute("data-farm-index"), this.records[currentIndex])
+            this.records[currentIndex].weights.push({weight: -1})
+         },
+         addWeightness(event) {
+            let currentIndex = parseInt(event.target.getAttribute("data-farm-index"))
+            let currentWeightIndex = parseInt(event.target.getAttribute("data-current-weights"))
+            this.lastRecordIndexIteraction = currentIndex
+            this.records[currentIndex].weights[currentWeightIndex].weight = parseInt(event.target.value)
+         },
+         removeWeightness(event) {
+            this.lastRecordIndexIteraction = parseInt(event.target.parentElement.getAttribute("data-farm-index"))
+            let weightnessIndex = parseInt(event.target.parentElement.getAttribute("data-weightness-index"))
+            console.log({record: this.lastRecordIndexIteraction, farm: this.records[this.lastRecordIndexIteraction], index: event.target.getAttribute("data-farm-index")}, event.target)
+
+            this.records[this.lastRecordIndexIteraction].weights.splice(weightnessIndex, 1)
+         },
+         async saveWeight(event) {
+            const form = new FormData()
+            const formValidator = document.getElementById("form")
+            if (!formValidator.checkValidity()) {
+               formValidator.reportValidity()
+               return null
+            }
+
+            form.append(
+               "control",
+               document.getElementById("id_control_id").value
+            )
+            form.append(
+               "worker", `${this.userFetch.id}`
+            )
+            form.append(
+               "weight", document.getElementById("id_total_weight").value
+            )
+            form.append(
+               "table", document.getElementById("id_table").value
+            )
+            form.append(
+               "turn", document.getElementById("turns_id").value
+            )
+            form.append(
+               "saved_by", document.getElementById("id_current_user_id").value
+            )
+
+
+            const response = await fetch(
+               `/peladoydescabezado/save/`,
+               {method: "post", body: form}
+            ).then(resp => resp.json())
+
+            if (!response.error) {
+               Toastify({
+                  text: response.message,
+                  className: "info",
+                  style: {
+                     background: "#08bf4b",
+                  }
+               }).showToast();
+               this.weightSaves = [
+                  {
+                     id: this.fetchUser.id, 
+                     cedula: this.cedula, 
+                     fullname: `${document.getElementById('id_name').value} ${document.getElementById('id_lastname').value}`, 
+                     weight: document.getElementById("id_total_weight").value, 
+                     table:  this.reverseTableResolver[parseInt(document.getElementById("id_table").value)], 
+                     date: document.getElementById("today_date").value
+                  }, 
+                  ...this.weightSaves
+               ]
+               formValidator.reset()
+            }
+         }
+      }
+   }
+</script>
+{% endblock %}
+{% block title %}
+Gestión de pesaje | {{ site_title|default:_('Django site admin') }}
+{% endblock %}
+
+
+
+{% block custom_breadcrumbs %}
+{{block.super}}
+<li class="text-gray-500 text-xs dark:text-gray-400">
+   Gestión de pesaje
+</li>
+{% endblock %}
+{% block content %}
+<div class="flex flex-col gap-y-3" x-data="app()" x-init="$nextTick(()=> init())">
+   {{farms|json_script:"farms"}}
+   {{progress|json_script:"progress"}}
+   {{reverse_resolve_tables|json_script:"reverse_resolve_tables"}}
+   {{current_control_turn|json_script:"current_control_turn"}}
+   <input type="hidden" value="{{current_turn_key}}" id="id_current_turn_key">
+   <input type="hidden" value="{{control.id}}" id="id_control_id">
+   <input type="hidden" value="{{turns_id}}" id="turns_id">
+   <input type="hidden" value="{% now 'd/m/Y' %}" id="today_date">
+   <input type="hidden" value="{{current_user.id}}" id="id_current_user_id">
+   <div class="w-full flex flex-row border-b-2 border-gray-300 py-2 mx-2 mb-2 justify-between items-baseline">
+      <h1 class="font-semibold text-gray-400 text-md">
+         {% now 'd M Y' %} | Turno: <span class="font-bold underline">{{current_turn}}</span>
+      </h1>
+      
+      <a href="{% url 'weight_current_pdf' %}" class="flex flex-row items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+         <!-- Icono de descarga -->
+         <svg class="-ml-0.5 mr-1.5 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+         </svg>
+         Descargar Reporte (PDF)
+      </a>
+   </div>
+   <div class="w-full">
+      <div class="flex flex-col md:flex-row w-full gap-x-4 mb-2">
+         <template x-for="(_, i) in records">
+            <div class="w-100 md:w-1/3 bg-white shadow-sm border rounded-xl px-6 py-4 mx-2 relative">
+               <!-- Botón de cerrar (times) -->
+               <button type="button"
+                  class="absolute -top-2 -left-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-md hover:bg-red-600 focus:outline-none cursor-pointer"
+                  @click="onRemoveFarm(i)">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                     <path fill-rule="evenodd"
+                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                        clip-rule="evenodd" />
+                  </svg>
+               </button>
+
+               <select class="w-full p-2 border border-gray-300 bg-white text-gray-800 rounded p-3"
+                  :value="records[i].farm" :data-farm-index="i" @change="onFarmChange">
+                  <option value="">Selecciona una granja</option>
+                  {% for farm in farms %} <option value="{{farm.id}}">{{farm.name}}</option> {% endfor %}
+               </select>
+
+               <select class="w-full p-2 border border-gray-300 bg-white text-gray-800 rounded p-3 mt-2"
+                  :value="records[i].pool" @change="(event)=> records[i].pool = event.target.value">
+                  <option value="">Selecciona una piscina</option>
+                  <template x-for="pool in poolsByFarm(records[i].farm)">
+                     <option x-bind:selected="records[i].pool == pool.id" :value="pool.id" x-text="pool.number"></option>
+                  </template>
+               </select>
+               <div class="bg-white border border-1 rounded-xl p-2 mt-2">
+                  <template x-for="(weightness, index) in records[i].weights">
+                     <div class="flex items-center mt-3">
+                        <select class="w-full p-2 border border-gray-300 bg-white text-gray-800 rounded px-3 mr-2"
+                           @change="addWeightness" :value="records[i].weights[index].weight" :data-current-weights="index" :data-farm-index="i">
+                           <option value="">Selecciona una talla</option>
+                           {% for weight in weightness %} 
+                              <option
+                                 x-bind:selected="records[i].weights[index].weight == {{weight.id}}" 
+                                 value="{{weight.id}}">
+                                 {{weight.weight}}
+                              </option> 
+                           {% endfor %}
+                        </select>
+                        <button type="button" class="p-2 text-red-500 hover:text-red-700 cursor-pointer"
+                           @click="removeWeightness" :data-farm-index="i" :data-weightness-index="index">
+                           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20"
+                              fill="currentColor">
+                              <path fill-rule="evenodd"
+                                 d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                                 clip-rule="evenodd" />
+                           </svg>
+                        </button>
+                     </div>
+                  </template>
+                  <button 
+                     id="submit-button"
+                     @click="setWeightness" 
+                     :data-farm-index="i"
+                     class=" mt-2 w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer">
+                     Agregar talla
+                  </button>
+               </div>
+               <div class="bg-white shadow-xm border border-1 border-gray-50 mt-2 p-2">
+                  <input type="number" :value="records[i].total_weight" placeholder="Kg. de Camaron entero recibido"
+                     class="w-full p-2 border border-gray-300 bg-white text-gray-800 rounded p-3" @keyup="(event)=> {
+                     lastRecordIndexIteraction = i
+                     currentAction = 'add'
+                     records[i].total_weight = parseInt(event.target.value)
+                     console.log(records)
+                  }" />
+               </div>
+            </div>
+         </template>
+         <div
+            class="w-100 mt-2 md:mt-0 md:w-1/3 bg-white shadow-sm border-dashed border-2 rounded-xl px-6 py-4 mx-2 text-center cursor-pointer"
+            @click="addNewFarm">
+            <div class="w-full flex flex-row items-center content-center">
+               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5}
+                  stroke="currentColor" class="size-6" width="34px" height="34px">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+               </svg>
+               <strong class="font-bold text-xl text-fuchsia-200">
+                  Agregar granja
+               </strong>
+            </div>
+         </div>
+
+      </div>
+
+      <form class="w-full" id="form">
+      <div class="flex flex-col md:flex-row w-full gap-x-4">
+         <div class="w-100 md:w-1/2 lg:w-1/2 bg-white shadow-sm border rounded-xl px-6 py-4 mx-2">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Datos del trabajador</h2>
+
+            <!-- Contenido del card -->
+            <div class="space-y-3">
+               <input type="text" placeholder="Cédula" x-model="cedula" required
+                  class="w-full p-2 border border-gray-300 bg-white text-gray-800 rounded p-3" />
+               <div class="flex gap-4 mt-2">
+                  <div class="w-1/2 ">
+                     <input type="text" readonly  placeholder="Nombre" id="id_name"
+                        class="w-full p-2 border border-gray-300 bg-white text-gray-800 rounded p-3" />
+
+                  </div>
+                  <div class="w-1/2 ">
+                     <input type="text" readonly placeholder="Apellido" id="id_lastname"
+                        class="w-full p-2 border border-gray-300 bg-white text-gray-800 rounded p-3" />
+
+                  </div>
+               </div>
+            </div>
+         </div>
+         <div class="w-100 md:w-1/2 bg-white shadow-sm border rounded-xl px-6 py-4 mx-2 mt-2 md:mt-0">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Mesa</h2>
+            <div class="space-y-3">
+               <select class="w-full p-2 border border-gray-300 bg-white text-gray-800 rounded p-3" required id="id_table">
+                  <option value="">Selecciona una mesa</option>
+                  {% for table in tables %} <option value="{{table.id}}">{{table.description}}</option> {% endfor %}
+               </select>
+               <div class="flex gap-4 mt-2">
+                  <div class="w-1/2 flex gap-2"> <!-- Cambiado para incluir flex y gap -->
+                     <input type="number" step="0.1" placeholder="Total de kilos" id="id_total_weight" required
+                        class="flex-1 p-2 border border-gray-300 bg-white text-gray-800 rounded p-3 w-full " />
+                  </div>
+                  <div class="w-1/2 flex gap-2">
+                     <button
+                        type="button"
+                        @click="saveWeight"
+                        class="w-full bg-green-500 text-white font-medium py-2 px-4 rounded transition-colors cursor-pointer hover:bg-green-800">
+                        Cargar pesaje
+                     </button>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+   </div>
+   </form>
+   <div class="w-full">
+      <div class="overflow-hidden border border-gray-200 dark:border-gray-700 md:rounded-lg mt-2 mx-2">
+         <table class="w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead class="bg-gray-50 dark:bg-gray-800">
+               <tr>
+                  <th class="text-left px-4 py-2">Nombre</th>
+                  <th class="text-left px-4 py-2">Cédula</th>
+                  <th class="text-left px-4 py-2">Fecha</th>
+                  <th class="text-left px-4 py-2">Mesa</th>
+                  <th class="text-left px-4 py-2">Peso (Kg)</th>
+               </tr>
+            </thead>
+            <tbody>
+               <!-- Fila de inputs -->
+                <template x-for="record in weightSaves">
+                  <tr class="bg-white">
+                     <td class="px-4 py-2 border-t">
+                        <input type="text" readonly class="w-full text-gray-800 bg-white rounded p-1 focus:border-none"
+                           placeholder="Nombre" x-bind:value="record.fullname" />
+                     </td>
+                     <td class="px-4 py-2 border-t">
+                        <input type="text" readonly class="w-full p-1 text-gray-800 bg-white rounded" placeholder="00.000.000" x-bind:value="record.cedula" />
+                     </td>
+                     <td class="px-4 py-2 border-t">
+                        <input type="text" readonly class="w-full p-1 text-gray-800 bg-white rounded" x-bind:value="record.date"  />
+                     </td>
+                     <td class="px-4 py-2 border-t">
+                        <input type="text" readonly class="w-full text-gray-800 bg-white rounded" placeholder="A" x-bind:value="record.table"  />
+                     </td>
+                     <td class="px-4 py-2 border-t">
+                        <input type="text" readonly class="w-full p-1 text-gray-800 bg-white rounded" placeholder="20" x-bind:value="record.weight"  />
+                     </td>
+                  </tr>
+               </template>
+               <!-- Puedes añadir más filas de datos aquí si lo necesitas -->
+            </tbody>
+         </table>
+      </div>
+   </div>
+
+</div>
+{% endblock content %}

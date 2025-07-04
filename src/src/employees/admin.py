@@ -10,7 +10,7 @@ from django.utils.html import mark_safe
 from unfold.admin import ModelAdmin
 from django.contrib import messages
 from django.utils.html import format_html
-
+from unfold.admin import StackedInline, TabularInline
 
 from src.clocking.models import DailyChecks
 from .models import Employee, EmployeePosition, Transfer
@@ -83,7 +83,7 @@ def delete_objects(modeladmin, request, queryset):
 
     return True
 
-class EmployerCheckingRecord(admin.TabularInline):
+class EmployerCheckingRecord(TabularInline):
     model = DailyChecks
     can_delete = False
     fields = ["fecha", "time", "checking_type"]

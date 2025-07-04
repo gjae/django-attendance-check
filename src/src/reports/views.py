@@ -80,6 +80,8 @@ class ReportByWorkerPdfView(BaseReportMixin, WeasyTemplateResponseMixin, Templat
         "INPROMAR C.A",
         "Reporte de asistencia por trabajador",
     )
+    extra_context = {"show_metadata": True}
+    employer = None
 
 
     def get_pdf_filename(self):
@@ -92,9 +94,16 @@ class ReportByWorkerPdfView(BaseReportMixin, WeasyTemplateResponseMixin, Templat
     def get_letterhead_lines(self):
         now = timezone.now()
         letterhead = super().get_letterhead_lines()
-        
+        self.employer = Employee.objects.select_related().get(id=int(self.request.GET.get("employer")))
+
         return letterhead + (
             "<strrong>Fecha de generación {date}</strong>".format(date=now.strftime("%d/%m/%Y %I:%M %p")),
+        ) + (
+            "Reporte del trabajador: {}".format(self.employer.get_fullname()),
+            "Desde <strong>{}</strong> hasta <strong>{}</strong>".format(
+                datetime.strptime(self.request.GET.get("start_at"), "%Y-%m-%d").strftime("%d/%m/%Y"),
+                datetime.strptime(self.request.GET.get("end_at"), "%Y-%m-%d").strftime("%d/%m/%Y"),
+            )
         )
     
     def get_context_data(self):
@@ -107,7 +116,7 @@ class ReportByWorkerPdfView(BaseReportMixin, WeasyTemplateResponseMixin, Templat
 
         context["data"] = data
         context["total_hours"] = total_hours
-        context["employer"] = Employee.objects.select_related().get(id=int(self.request.GET.get("employer")))
+        context["employer"] = Employee.objects.select_related().get(id=int(self.request.GET.get("employer"))) if self.employer is None else self.employer
         context["range_start"] = datetime.strptime(self.request.GET.get("start_at"), "%Y-%m-%d")
         context["range_end"] = datetime.strptime(self.request.GET.get("end_at"), "%Y-%m-%d")
         context["observations"] = DailyCalendarObservation.objects.select_related("employer", "calendar_day").filter(
@@ -174,6 +183,7 @@ class ReportByDepartmentPdfView(BaseReportMixin, WeasyTemplateResponseMixin, Tem
         "INPROMAR C.A",
         "Reporte de asistencia por departamento",
     )
+    department = None
 
 
     def get_pdf_filename(self):
@@ -186,9 +196,15 @@ class ReportByDepartmentPdfView(BaseReportMixin, WeasyTemplateResponseMixin, Tem
     def get_letterhead_lines(self):
         now = timezone.now()
         letterhead = super().get_letterhead_lines()
+        self.department = Department.objects.select_related().get(id=int(self.request.GET.get("department")))
         
         return letterhead + (
             "<strrong>Fecha de generación {date}</strong>".format(date=now.strftime("%d/%m/%Y %I:%M %p")),
+            "Departamento: {}".format(self.department.name),
+            "Desde <strong>{}</strong> hasta <strong>{}</strong>".format(
+                datetime.strptime(self.request.GET.get("start_at"), "%Y-%m-%d").strftime("%d/%m/%Y"),
+                datetime.strptime(self.request.GET.get("end_at"), "%Y-%m-%d").strftime("%d/%m/%Y"),
+            )
         )
     
     def get_context_data(self):
@@ -197,7 +213,7 @@ class ReportByDepartmentPdfView(BaseReportMixin, WeasyTemplateResponseMixin, Tem
 
         context["data"] = data
         context["total_hours"] = total_hours
-        context["department"] = Department.objects.select_related().get(id=int(self.request.GET.get("department")))
+        context["department"] = Department.objects.select_related().get(id=int(self.request.GET.get("department"))) if self.department is None else self.department
         context["range_start"] = datetime.strptime(self.request.GET.get("start_at"), "%Y-%m-%d")
         context["range_end"] = datetime.strptime(self.request.GET.get("end_at"), "%Y-%m-%d")
         context["total_days_by_user"] = total_days_by_user
@@ -208,6 +224,7 @@ class ReportByDepartmentPdfView(BaseReportMixin, WeasyTemplateResponseMixin, Tem
                 self.request.GET.get("end_at")
             ]
         )
+        context["show_metadata"] = False
         return context
     
     def post(self, request, *args, **kwargs):
