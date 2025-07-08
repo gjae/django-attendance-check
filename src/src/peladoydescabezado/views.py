@@ -13,6 +13,7 @@ from weasyprint.text.fonts import FontConfiguration
 from src.peladoydescabezado.models import Control, ControlDetail, Person, CATEGORIES, Department
 from src.peladoydescabezado.forms import LoadWeightForm
 from src.peladoydescabezado.utils import get_xlsx_report_template, generate_rport_xlsx_simple, attendance_by_department_xlsx, attendance_by_personal_xlsx
+from src.peladoydescabezado.exceptions import WorkerIsNotPresentException
 from src.clocking.models import DailyCalendarObservation
 
 @csrf_exempt
@@ -22,8 +23,11 @@ def save_progress(request, *args, **kwargs):
     if request.method.lower() != "post":
         return HttpResponseNotAllowed()
 
-
-    control = Control.objects.control_by_turn(request.user)
+    turn = request.POST.get("load_turn", None)
+    if turn is not None:
+        turn = int(turn)
+    date = request.POST.get("load_date", datetime.now().date())
+    control = Control.objects.control_by_turn(request.user, load_turn=turn, load_date=(date if turn is not None else None))
     print(f"control: {control}")
     with transaction.atomic():
         if request.POST.get("action", "add") == "add":
@@ -75,13 +79,21 @@ def load_weight(request, *args, **kwargs):
         return HttpResponseNotAllowed()
     
     form = LoadWeightForm(request.POST)
-
-    if form.is_valid():
-        form.save()
+    try:
+        if form.is_valid():
+            form.save()
+            return JsonResponse({
+                "error": False,
+                "message": "Pesaje guardado correctamente"
+            })
+    except WorkerIsNotPresentException:
         return JsonResponse({
-            "error": False,
-            "message": "Pesaje guardado correctamente"
+            "error": True,
+            "message": "El trabajador no se encuentra presente o no marcó su entrada"
         })
+
+
+
     return JsonResponse({
         "error": True,
         "message": "Error al intentar guardar los datos del pesaje"
@@ -130,7 +142,7 @@ def generate_pdf(request, *args, **kwargs):
         "category": int(request.GET.get("category", 0)),
         "category_text": CATEGORIES[int(request.GET.get("category", 0))],
         "total_basckets": sum([u.num_basckets for u in data]),
-        "controls": Control.objects.filter(created__date=date).prefetch_related(
+        "controls": Control.objects.filter(date_upload=date).prefetch_related(
             Prefetch(
                 "details",
                 queryset=ControlDetail.objects.prefetch_related("weightness").select_related(

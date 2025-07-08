@@ -1,11 +1,12 @@
 from typing import Any
 from django.conf import settings
 from django.contrib import admin
-from django.contrib.auth import admin as auth_admin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth import get_user_model, decorators
 from django.utils.translation import gettext_lazy as _
 from unfold.admin import ModelAdmin
 
+from unfold.forms import AdminPasswordChangeForm, UserChangeForm, UserCreationForm
 from src.users.forms import UserAdminChangeForm, UserAdminCreationForm
 
 User = get_user_model()
@@ -16,10 +17,13 @@ if settings.DJANGO_ADMIN_FORCE_ALLAUTH:
     admin.site.login = decorators.login_required(admin.site.login)  # type: ignore[method-assign]
 
 
+
+
 @admin.register(User)
-class UserAdmin(auth_admin.UserAdmin, ModelAdmin):
-    form = UserAdminChangeForm
-    add_form = UserAdminCreationForm
+class UserAdmin(BaseUserAdmin, ModelAdmin):
+    form = UserChangeForm
+    add_form = UserCreationForm
+    change_password_form = AdminPasswordChangeForm
     fieldsets = (
         (None, {"fields": ("username", "password")}),
         (

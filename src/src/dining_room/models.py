@@ -6,6 +6,7 @@ from src.employees.models import Employee
 from src.indentities.models import Identity
 
 from src.dining_room.managers import CheckDiningRoomManager
+from src.peladoydescabezado.models import Person
 # Create your models here.
 
 class ConfDiningRoomManager(models.Manager):
@@ -65,7 +66,9 @@ class ConfDiningRoom(TimeStampedModel, SoftDeletableModel):
 class DiningChecking(TimeStampedModel, SoftDeletableModel):
     conf_dining_room = models.ForeignKey(ConfDiningRoom, on_delete=models.CASCADE, related_name="checkings")
     identity = models.ForeignKey(Identity, on_delete=models.CASCADE, null=True, default=None, related_name="dining_room_checkings")
-    employer = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="dining_room_checkings")
+    employer = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="dining_room_checkings", null=True)
+    person = models.ForeignKey(Person, on_delete=models.CASCADE, related_name="dining_room_checkings", null=True)
+    
 
     objects = CheckDiningRoomManager()
 
@@ -73,4 +76,9 @@ class DiningChecking(TimeStampedModel, SoftDeletableModel):
         verbose_name = "Chequeo de comedor"
         verbose_name_plural = "Chequeos de comedor"
 
-    
+    @property
+    def employer_object(self):
+        if self.employer is not None:
+            return self.employer
+        
+        return self.person

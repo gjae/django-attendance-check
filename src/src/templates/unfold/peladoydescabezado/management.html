@@ -25,6 +25,8 @@
          currentAction: "add",
          cedula: "",
          fetchCedulaTimer: null,
+         currentTurn: null,
+         currentDate: null,
          reverseTableResolver: JSON.parse(document.getElementById("reverse_resolve_tables").innerText),
          userFetch: {
             id: -1,
@@ -45,6 +47,27 @@
             this.$watch("cedula", value => {
                this.fetchUser()
             })
+            document.getElementById("id_show_turn").addEventListener("change", e => {
+               this.showNonDefaultControl()
+            })
+            document.getElementById("date_for_turn").addEventListener("change", e => {
+               this.showNonDefaultControl()
+
+            })
+            this.preloadSelctorData()
+         },
+         showNonDefaultControl() {
+            const turn = document.getElementById("id_show_turn").value
+            const date = document.getElementById("date_for_turn").value
+            this.currentDate = date
+            this.currentTurn = turn
+            document.getElementById("reload_control").submit()
+         },
+         preloadSelctorData() {
+            const turn = document.getElementById("id_show_turn").value
+            const date = document.getElementById("date_for_turn").value
+            this.currentDate = date
+            this.currentTurn = turn
          },
          fetchUser() {
             if (this.cedula.length < 6) {
@@ -99,6 +122,8 @@
             form.append("pool", farmRecord.pool)
             form.append("weight", `${farmRecord.total_weight}`)
             form.append("action", this.currentAction)
+            form.append("load_turn", this.currentTurn)
+            form.append("load_date", this.currentDate)
             farmRecord.weights.forEach(weight => {
                form.append("weightness", `${weight.weight}`)
             })
@@ -214,6 +239,14 @@
                   ...this.weightSaves
                ]
                formValidator.reset()
+            } else {
+               Toastify({
+                  text: response.message,
+                  className: "error",
+                  style: {
+                     background: "#f23729",
+                  }
+               }).showToast();
             }
          }
       }
@@ -244,11 +277,29 @@ Gestión de pesaje | {{ site_title|default:_('Django site admin') }}
    <input type="hidden" value="{% now 'd/m/Y' %}" id="today_date">
    <input type="hidden" value="{{current_user.id}}" id="id_current_user_id">
    <div class="w-full flex flex-row border-b-2 border-gray-300 py-2 mx-2 mb-2 justify-between items-baseline">
-      <h1 class="font-semibold text-gray-400 text-md">
-         {% now 'd M Y' %} | Turno: <span class="font-bold underline">{{current_turn}}</span>
-      </h1>
+         <form action="" method="get" class="w-full" id="reload_control">
+            <div class="flex flex-row items-center justify-start w-1/3">
+               <input 
+                  type="date" 
+                  name="load_date" 
+                  value="{{ current_date|date:'Y-m-d' }}" 
+                  id="date_for_turn"
+                  class="w-1/2 p-2 border border-gray-300 bg-white text-gray-800 rounded p-3 dark:bg-base-900 dark:border-base-700 dark:text-font-default-dark dark:group-[.errors]:border-red-500 dark:focus:group-[.errors]:outline-red-500 dark:scheme-dark"
+               >
+               <span class="flex flex-row w-1/2"> 
+                  <select 
+                     name="load_turn" 
+                     id="id_show_turn"
+                     class="w-1/2 p-2 border border-gray-300 bg-white text-gray-800 rounded p-3 dark:bg-base-900 dark:border-base-700 dark:text-font-default-dark dark:group-[.errors]:border-red-500 dark:focus:group-[.errors]:outline-red-500 dark:scheme-dark"
+                  >
+                     <option value="0" {% if current_turn == 0 %} selected{% endif %}>Diurno</option>
+                     <option value="1" {% if current_turn == 1 %} selected{% endif %}>Nocturno</option>
+                  </select>
+               </span>
+            </div>
+         </form>
       
-      <a href="{% url 'weight_current_pdf' %}" class="flex flex-row items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+      <a href="{% url 'weight_current_pdf' %}" class="sm:w-full w-1/6 flex flex-row items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-base-900" >
          <!-- Icono de descarga -->
          <svg class="-ml-0.5 mr-1.5 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -259,7 +310,7 @@ Gestión de pesaje | {{ site_title|default:_('Django site admin') }}
    <div class="w-full">
       <div class="flex flex-col md:flex-row w-full gap-x-4 mb-2">
          <template x-for="(_, i) in records">
-            <div class="w-100 md:w-1/3 bg-white shadow-sm border rounded-xl px-6 py-4 mx-2 relative">
+            <div class="w-100 md:w-1/3 bg-white shadow-sm border rounded-xl px-6 py-4 mx-2 relative dark:bg-base-900">
                <!-- Botón de cerrar (times) -->
                <button type="button"
                   class="absolute -top-2 -left-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-md hover:bg-red-600 focus:outline-none cursor-pointer"
@@ -271,23 +322,23 @@ Gestión de pesaje | {{ site_title|default:_('Django site admin') }}
                   </svg>
                </button>
 
-               <select class="w-full p-2 border border-gray-300 bg-white text-gray-800 rounded p-3"
+               <select class="w-full p-2 border border-gray-300 bg-white text-gray-800 rounded p-3 dark:bg-base-900 dark:border-base-700 dark:text-font-default-dark dark:group-[.errors]:border-red-500 dark:focus:group-[.errors]:outline-red-500 dark:scheme-dark"
                   :value="records[i].farm" :data-farm-index="i" @change="onFarmChange">
                   <option value="">Selecciona una granja</option>
                   {% for farm in farms %} <option value="{{farm.id}}">{{farm.name}}</option> {% endfor %}
                </select>
 
-               <select class="w-full p-2 border border-gray-300 bg-white text-gray-800 rounded p-3 mt-2"
+               <select class="w-full p-2 border border-gray-300 bg-white text-gray-800 rounded p-3 mt-2 dark:bg-base-900 dark:border-base-700 dark:text-font-default-dark dark:group-[.errors]:border-red-500 dark:focus:group-[.errors]:outline-red-500 dark:scheme-dark"
                   :value="records[i].pool" @change="(event)=> records[i].pool = event.target.value">
                   <option value="">Selecciona una piscina</option>
                   <template x-for="pool in poolsByFarm(records[i].farm)">
                      <option x-bind:selected="records[i].pool == pool.id" :value="pool.id" x-text="pool.number"></option>
                   </template>
                </select>
-               <div class="bg-white border border-1 rounded-xl p-2 mt-2">
+               <div class="bg-white border border-1 rounded-xl p-2 mt-2 dark:bg-base-900">
                   <template x-for="(weightness, index) in records[i].weights">
                      <div class="flex items-center mt-3">
-                        <select class="w-full p-2 border border-gray-300 bg-white text-gray-800 rounded px-3 mr-2"
+                        <select class="w-full p-2 border border-gray-300 bg-white text-gray-800 rounded px-3 mr-2 dark:bg-base-900 dark:border-base-700 dark:text-font-default-dark dark:group-[.errors]:border-red-500 dark:focus:group-[.errors]:outline-red-500 dark:scheme-dark"
                            @change="addWeightness" :value="records[i].weights[index].weight" :data-current-weights="index" :data-farm-index="i">
                            <option value="">Selecciona una talla</option>
                            {% for weight in weightness %} 
@@ -317,9 +368,10 @@ Gestión de pesaje | {{ site_title|default:_('Django site admin') }}
                      Agregar talla
                   </button>
                </div>
-               <div class="bg-white shadow-xm border border-1 border-gray-50 mt-2 p-2">
+               <div class="bg-white shadow-xm border border-1 border-gray-50 mt-2 p-2 dark:bg-base-900">
                   <input type="number" :value="records[i].total_weight" placeholder="Kg. de Camaron entero recibido"
-                     class="w-full p-2 border border-gray-300 bg-white text-gray-800 rounded p-3" @keyup="(event)=> {
+                     class="w-full p-2 border border-gray-300 bg-white text-gray-800 rounded p-3 dark:bg-base-900 dark:border-base-700 dark:text-font-default-dark dark:group-[.errors]:border-red-500 dark:focus:group-[.errors]:outline-red-500 dark:scheme-dark" 
+                     @keyup="(event)=> {
                      lastRecordIndexIteraction = i
                      currentAction = 'add'
                      records[i].total_weight = parseInt(event.target.value)
@@ -329,7 +381,7 @@ Gestión de pesaje | {{ site_title|default:_('Django site admin') }}
             </div>
          </template>
          <div
-            class="w-100 mt-2 md:mt-0 md:w-1/3 bg-white shadow-sm border-dashed border-2 rounded-xl px-6 py-4 mx-2 text-center cursor-pointer"
+            class="w-100 mt-2 md:mt-0 md:w-1/3 bg-white shadow-sm border-dashed border-2 rounded-xl px-6 py-4 mx-2 text-center cursor-pointer border-base-200 dark:bg-base-900"
             @click="addNewFarm">
             <div class="w-full flex flex-row items-center content-center">
                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5}
@@ -345,45 +397,45 @@ Gestión de pesaje | {{ site_title|default:_('Django site admin') }}
       </div>
 
       <form class="w-full" id="form">
-      <div class="flex flex-col md:flex-row w-full gap-x-4">
-         <div class="w-100 md:w-1/2 lg:w-1/2 bg-white shadow-sm border rounded-xl px-6 py-4 mx-2">
-            <h2 class="text-xl font-semibold text-gray-800 mb-4">Datos del trabajador</h2>
+      <div class="flex flex-col md:flex-row w-full gap-x-4 dark:bg-base-900">
+         <div class="w-100 md:w-1/2 lg:w-1/2 bg-white shadow-sm border rounded-xl px-6 py-4 mx-2 dark:bg-base-900" >
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-400 mb-4">Datos del trabajador</h2>
 
             <!-- Contenido del card -->
             <div class="space-y-3">
                <input type="text" placeholder="Cédula" x-model="cedula" required
-                  class="w-full p-2 border border-gray-300 bg-white text-gray-800 rounded p-3" />
+                  class="w-full p-2 border border-gray-300 bg-white text-gray-800 rounded p-3 dark:bg-base-900 dark:border-base-700 dark:text-font-default-dark dark:group-[.errors]:border-red-500 dark:focus:group-[.errors]:outline-red-500 dark:scheme-dark" />
                <div class="flex gap-4 mt-2">
                   <div class="w-1/2 ">
                      <input type="text" readonly  placeholder="Nombre" id="id_name"
-                        class="w-full p-2 border border-gray-300 bg-white text-gray-800 rounded p-3" />
+                        class="w-full p-2 border border-gray-300 bg-white text-gray-800 rounded p-3 dark:bg-base-900 dark:border-base-700 dark:text-font-default-dark dark:group-[.errors]:border-red-500 dark:focus:group-[.errors]:outline-red-500 dark:scheme-dark" />
 
                   </div>
                   <div class="w-1/2 ">
                      <input type="text" readonly placeholder="Apellido" id="id_lastname"
-                        class="w-full p-2 border border-gray-300 bg-white text-gray-800 rounded p-3" />
+                        class="w-full p-2 border border-gray-300 bg-white text-gray-800 rounded p-3 dark:bg-base-900 dark:border-base-700 dark:text-font-default-dark dark:group-[.errors]:border-red-500 dark:focus:group-[.errors]:outline-red-500 dark:scheme-dark" />
 
                   </div>
                </div>
             </div>
          </div>
-         <div class="w-100 md:w-1/2 bg-white shadow-sm border rounded-xl px-6 py-4 mx-2 mt-2 md:mt-0">
+         <div class="w-100 md:w-1/2 bg-white shadow-sm border rounded-xl px-6 py-4 mx-2 mt-2 md:mt-0 dark:bg-base-900">
             <h2 class="text-xl font-semibold text-gray-800 mb-4">Mesa</h2>
             <div class="space-y-3">
-               <select class="w-full p-2 border border-gray-300 bg-white text-gray-800 rounded p-3" required id="id_table">
+               <select class="w-full p-2 border border-gray-300 bg-white text-gray-800 rounded p-3 dark:bg-base-900 dark:border-base-700 dark:text-font-default-dark dark:group-[.errors]:border-red-500 dark:focus:group-[.errors]:outline-red-500 dark:scheme-dark" required id="id_table">
                   <option value="">Selecciona una mesa</option>
                   {% for table in tables %} <option value="{{table.id}}">{{table.description}}</option> {% endfor %}
                </select>
                <div class="flex gap-4 mt-2">
                   <div class="w-1/2 flex gap-2"> <!-- Cambiado para incluir flex y gap -->
                      <input type="number" step="0.1" placeholder="Total de kilos" id="id_total_weight" required
-                        class="flex-1 p-2 border border-gray-300 bg-white text-gray-800 rounded p-3 w-full " />
+                        class="flex-1 p-2 border border-gray-300 bg-white text-gray-800 rounded p-3 w-full dark:bg-base-900 dark:border-base-700 dark:text-font-default-dark dark:group-[.errors]:border-red-500 dark:focus:group-[.errors]:outline-red-500 dark:scheme-dark" />
                   </div>
                   <div class="w-1/2 flex gap-2">
                      <button
                         type="button"
                         @click="saveWeight"
-                        class="w-full bg-green-500 text-white font-medium py-2 px-4 rounded transition-colors cursor-pointer hover:bg-green-800">
+                        class="w-full bg-green-500 text-white font-medium py-2 px-4 rounded transition-colors cursor-pointer hover:bg-green-800 dark:bg-base-900 dark:border-base-700 dark:text-font-default-dark dark:group-[.errors]:border-red-500 dark:focus:group-[.errors]:outline-red-500 dark:scheme-dark">
                         Cargar pesaje
                      </button>
                   </div>
@@ -394,9 +446,9 @@ Gestión de pesaje | {{ site_title|default:_('Django site admin') }}
    </div>
    </form>
    <div class="w-full">
-      <div class="overflow-hidden border border-gray-200 dark:border-gray-700 md:rounded-lg mt-2 mx-2">
+      <div class="overflow-hidden border border-gray-200 dark:border-gray-700 md:rounded-lg mt-2 mx-2 dark:text-gray-400  dark:bg-base-900 border-base-200">
          <table class="w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead class="bg-gray-50 dark:bg-gray-800">
+            <thead class="bg-gray-50 dark:bg-base-900">
                <tr>
                   <th class="text-left px-4 py-2">Nombre</th>
                   <th class="text-left px-4 py-2">Cédula</th>
@@ -408,22 +460,22 @@ Gestión de pesaje | {{ site_title|default:_('Django site admin') }}
             <tbody>
                <!-- Fila de inputs -->
                 <template x-for="record in weightSaves">
-                  <tr class="bg-white">
+                  <tr class="bg-white dark:bg-base-900">
                      <td class="px-4 py-2 border-t">
-                        <input type="text" readonly class="w-full text-gray-800 bg-white rounded p-1 focus:border-none"
+                        <input type="text" readonly class="w-full text-gray-800 bg-white rounded p-1 focus:border-none dark:bg-base-900 dark:border-base-700 dark:text-font-default-dark dark:group-[.errors]:border-red-500 dark:focus:group-[.errors]:outline-red-500 dark:scheme-dark"
                            placeholder="Nombre" x-bind:value="record.fullname" />
                      </td>
                      <td class="px-4 py-2 border-t">
-                        <input type="text" readonly class="w-full p-1 text-gray-800 bg-white rounded" placeholder="00.000.000" x-bind:value="record.cedula" />
+                        <input type="text" readonly class="w-full p-1 text-gray-800 bg-white rounded dark:bg-base-900 dark:border-base-700 dark:text-font-default-dark dark:group-[.errors]:border-red-500 dark:focus:group-[.errors]:outline-red-500 dark:scheme-dark" placeholder="00.000.000" x-bind:value="record.cedula" />
                      </td>
                      <td class="px-4 py-2 border-t">
-                        <input type="text" readonly class="w-full p-1 text-gray-800 bg-white rounded" x-bind:value="record.date"  />
+                        <input type="text" readonly class="w-full p-1 text-gray-800 bg-white rounded dark:bg-base-900 dark:border-base-700 dark:text-font-default-dark dark:group-[.errors]:border-red-500 dark:focus:group-[.errors]:outline-red-500 dark:scheme-dark" x-bind:value="record.date"  />
                      </td>
                      <td class="px-4 py-2 border-t">
-                        <input type="text" readonly class="w-full text-gray-800 bg-white rounded" placeholder="A" x-bind:value="record.table"  />
+                        <input type="text" readonly class="w-full text-gray-800 bg-white rounded dark:bg-base-900 dark:border-base-700 dark:text-font-default-dark dark:group-[.errors]:border-red-500 dark:focus:group-[.errors]:outline-red-500 dark:scheme-dark" placeholder="A" x-bind:value="record.table"  />
                      </td>
                      <td class="px-4 py-2 border-t">
-                        <input type="text" readonly class="w-full p-1 text-gray-800 bg-white rounded" placeholder="20" x-bind:value="record.weight"  />
+                        <input type="text" readonly class="w-full p-1 text-gray-800 bg-white rounded dark:bg-base-900 dark:border-base-700 dark:text-font-default-dark dark:group-[.errors]:border-red-500 dark:focus:group-[.errors]:outline-red-500 dark:scheme-dark" placeholder="20" x-bind:value="record.weight"  />
                      </td>
                   </tr>
                </template>

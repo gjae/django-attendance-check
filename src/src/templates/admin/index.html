@@ -20,20 +20,20 @@
     {% if has_permission %}
     <div class="flex flex-row" x-data="alpine()">
         <div class="flex flex-col items-start justify-center rounded-2xl bg-white bg-clip-border px-3 py-4  shadow shadow-md dark:!bg-navy-700 dark:shadow-none mr-1 px-2 hover:bg-sky-700" style="cursor: pointer;" @click="reportByWorker">
-            <p class="text-sm text-gray-600">Reportes</p>
-            <p class="text-base font-medium text-navy-700 dark:text-white">
+            <p class="text-sm text-gray-600" style="color: #000;">Reportes</p>
+            <p class="text-base font-medium text-navy-700 text-black-900" style="color: #000;">
                 Reporte por trabajador
             </p>
         </div>
         <div class="flex flex-col items-start justify-center rounded-2xl bg-white bg-clip-border px-3 py-4  shadow shadow-md dark:!bg-navy-700 dark:shadow-none px-2" style="cursor: pointer;" @click="reportByDepartment">
-            <p class="text-sm text-gray-600">Reportes</p>
-            <p class="text-base font-medium text-navy-700 dark:text-white">
+            <p class="text-sm text-gray-600" style="color: #000;">Reportes</p>
+            <p class="text-base font-medium text-navy-700 text-black-900" style="color: #000;">
                 Reporte por departamento 
             </p>
         </div>
-        <div class="ml-2 flex flex-col items-start justify-center rounded-2xl bg-white bg-clip-border px-3 py-4  shadow shadow-md dark:!bg-navy-700 dark:shadow-none px-2" style="cursor: pointer;" @click="reportByAttendance">
-            <p class="text-sm text-gray-600">Reportes</p>
-            <p class="text-base font-medium text-navy-700 dark:text-white">
+        <div class="ml-2 flex flex-col items-start justify-center rounded rounded-2xl bg-white bg-clip-border px-3 py-4  shadow dark:!bg-navy-700 dark:shadow-none px-2" style="cursor: pointer;" @click="reportByAttendance">
+            <p class="text-sm text-gray-600" style="color: #000;">Reportes</p>
+            <p class="text-base font-medium text-navy-700 text-black-900" style="color: #000;">
                 Reporte de asistencia
             </p>
         </div>

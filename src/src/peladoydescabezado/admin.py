@@ -10,6 +10,7 @@ from unfold.views import UnfoldModelAdminViewMixin
 from django.views.generic import TemplateView
 from django.urls import reverse
 from django.http.response import HttpResponseRedirect
+from django.contrib.admin.filters import SimpleListFilter
 
 from .models import (
     Person, 
@@ -32,6 +33,39 @@ from src.peladoydescabezado.forms import (
 from src.peladoydescabezado.utils import get_current_turn
 # Register your models here.
 
+class LoadDateFilter(SimpleListFilter):
+    parameter_name = "load_date"
+    title = "Filtro por fecha"
+
+    
+    # hide from filter pane
+    def has_output(self):
+        return False
+
+    # these two function below must be implemented for SimpleListFilter to work
+    # (any implementation that doesn't affect queryset is fine)
+    def lookups(self, request, model_admin):
+        return (request.GET.get(self.parameter_name), ''),
+
+    def queryset(self, request, queryset):
+        return queryset
+    
+class LoadTurnFilter(SimpleListFilter):
+    parameter_name = "load_turn"
+    title = "Filtro por turno"
+
+        
+    # hide from filter pane
+    def has_output(self):
+        return False
+
+    # these two function below must be implemented for SimpleListFilter to work
+    # (any implementation that doesn't affect queryset is fine)
+    def lookups(self, request, model_admin):
+        return (request.GET.get(self.parameter_name), ''),
+
+    def queryset(self, request, queryset):
+        return queryset
 
 @admin.action(description="Desactivar trabajador(es)")
 def disable_employers(modeladmin, request, queryset):
@@ -152,13 +186,13 @@ class PeopleModelAdmin(ModelAdmin):
         try:
             return mark_safe(
                 f"<div>"
-                f'<img src="{obj.personal_pic.url}" alt="{obj.names}_picture" class="w-10 h-10 rounded-full" loading="lazy" decoding="async">'
+                f'<img src="{obj.personal_pic.url}" alt="{obj.names}_picture" style="max-width: 30px; max-heigh: 30px;" class="w-10 h-10 rounded-full" loading="lazy" decoding="async">'
                 f"</div>"
             )
         except Exception as e:
             return mark_safe(
                 f"<div>"
-                f'<img src="/static/images/branding/logo_inpromaro_lit.png" alt="default" class="w-10 h-10 rounded-full" loading="lazy" decoding="async">'
+                f'<img src="/static/images/branding/logo_inpromaro_lit.png" style="max-width: 30px; max-heigh: 30px;" alt="default" class="w-10 h-10 rounded-full" loading="lazy" decoding="async">'
                 f"</div>"
             )
         
@@ -197,15 +231,35 @@ class TableModelAdmin(ModelAdmin):
     
 
 
+
 @admin.register(TableProxyModel)
 class TableProxyModelAdmin(ModelAdmin):
     change_list_template = "unfold/peladoydescabezado/management.html"
+    list_filter  = (
+        LoadDateFilter,
+        LoadTurnFilter
+    )
+
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        request.GET = request.GET.copy()
+        self.custom_turn = request.GET.get("load_turn")
+        self.custom_date = request.GET.get("load_date")
+        print(request.GET)
+        return queryset
 
     def changelist_view(self, request, extra_context=None):
-        current_user = request.user
+        request.GET._mutable=True
         turns = {"morning": "Diurno", "night": "Nocturno", "evening": "Vespertino"}
         turns_id = {"morning": 0, "night": 1, "evening": 2}
-        current_control_turn = Control.objects.control_by_turn(request.user)
+        current_user = request.user
+        show_date = request.GET.get("load_date", datetime.now().date())
+        show_turn = int(request.GET.get("load_turn", turns_id[get_current_turn()]))
+
+        if isinstance(show_date, str):
+            show_date = datetime.strptime(show_date, "%Y-%m-%d")
+
+        current_control_turn = Control.objects.control_by_turn(request.user, load_turn=show_turn, load_date=show_date)
         current_turn_production = []
         details = current_control_turn.details.prefetch_related("weightness").select_related("farm", "pool").all()
         current_details = [{
@@ -221,7 +275,7 @@ class TableProxyModelAdmin(ModelAdmin):
             tables.append({"id": t.id, "description": t.description})
             reverse_resolve_tables[t.id] = t.description
 
-        for c in BasketProduction.objects.select_related("worker", "table").filter(control__turn=turns_id[get_current_turn()], control__created__date=datetime.now().date(), saved_by=current_user):
+        for c in BasketProduction.objects.select_related("worker", "table").filter(control__turn=show_turn, control__date_upload=show_date):
             current_turn_production.append({
                 "id": c.id,
                 "cedula": c.worker.identity,
@@ -231,19 +285,23 @@ class TableProxyModelAdmin(ModelAdmin):
                 "date": c.created.strftime("%d/%m/%Y")
             })
         
+
+        print(f"show_turn: {show_turn} ... ",BasketProduction.objects.select_related("worker", "table").filter(control__turn=show_turn, control__date_upload=show_date))
+        print("Turno: ", turns_id[get_current_turn()], " Horario ", get_current_turn(), BasketProduction.objects.filter( control__date_upload=datetime.now().date()).values("control__turn"))
         extra_context = {
             "farms": Farm.objects.get_farms_with_pool_as_dict(),
             "weightness": Weightness.objects.all(),
             "tables": tables,
             "reverse_resolve_tables": reverse_resolve_tables,
-            "current_turn": turns[get_current_turn()],
-            "current_turn_key": get_current_turn(),
-            "current_control": Control.objects.control_by_turn(request.user),
+            "current_turn": int(show_turn),
+            "current_turn_key": get_current_turn(show_turn),
+            "current_control": Control.objects.control_by_turn(request.user, load_turn=show_turn, load_date=show_date),
             "control": current_control_turn,
             "progress": current_details,
-            "turns_id": turns_id[get_current_turn()],
+            "turns_id": turns_id[get_current_turn(load_turn=show_turn)],
             "current_control_turn": current_turn_production,
-            "current_user": current_user
+            "current_user": current_user,
+            "current_date": show_date,
         }
 
         return super().changelist_view(request, extra_context=extra_context)

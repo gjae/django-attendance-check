@@ -27,22 +27,25 @@ class FarmManager(Manager):
 
 class ControlManager(Manager):
 
-    def control_by_turn(self, user):
+    def control_by_turn(self, user, load_turn = None, load_date = None):
         from src.peladoydescabezado.utils import get_current_turn
         TURN_INDEX = {"morning": 0, "night": 1}
         turn_id = 2
         if (current_turn := get_current_turn()) in TURN_INDEX:
             turn_id = TURN_INDEX[current_turn]
 
+        turn_id = turn_id if load_turn is None else load_turn
+        load_date = load_date
         control = self.filter(
-            created_by=user,
-            date_upload=datetime.now().date()
+            turn=turn_id,
+            date_upload=load_date
         ).first()
 
         if control is None:
             control = self.create(
                 created_by=user,
-                date_upload=datetime.now().date(),
+                turn=turn_id,
+                date_upload=load_date,
             )
 
         return control
@@ -69,7 +72,7 @@ class PersonManager(BaseCheckingManager, ClockingBaseCheckingManager):
                     queryset=(
                         BasketProduction
                         .objects
-                        .filter(created__date=date)
+                        .filter(control__date_upload=date)
                         .filter(table__category=category)
                         .select_related(
                             "control",
@@ -86,10 +89,10 @@ class PersonManager(BaseCheckingManager, ClockingBaseCheckingManager):
                     order_by=["lastnames", "names"]
                 ),
                 total=Sum(
-                    "product_baskets__weight", filter=Q(product_baskets__created__date=date, product_baskets__table__category=category)
+                    "product_baskets__weight", filter=Q(product_baskets__control__date_upload=date, product_baskets__table__category=category)
                 ),
                 num_basckets=Count(
-                    "product_baskets__weight", filter=Q(product_baskets__created__date=date, product_baskets__table__category=category)
+                    "product_baskets__weight", filter=Q(product_baskets__control__date_upload=date, product_baskets__table__category=category)
                 ),
             )
         )

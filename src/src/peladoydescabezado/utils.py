@@ -22,9 +22,14 @@ center_alignment = Alignment(horizontal='center', vertical='center', wrap_text=T
 font_style_subheader = Font(name='Arial Narrow', size=11, bold=True)
 WEEKDAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
 
-def get_current_turn() -> Optional[str]:
+def get_current_turn(load_turn = None) -> Optional[str]:
     # Obtener la hora actual
     ahora = datetime.now().time()
+
+    if load_turn is not None:
+        if load_turn == 0:
+            return "morning"
+        return "night"
 
     for turn_key in TURNS_TIME_RANGES:
         start, end = TURNS_TIME_RANGES[turn_key]
@@ -36,7 +41,7 @@ def get_current_turn() -> Optional[str]:
         if hora_inicio <= ahora <= hora_fin:
             return turn_key
         
-    return "evening"
+    return "morning"
 
 
 def _sheet_header(ws, turn, days, users, process):  

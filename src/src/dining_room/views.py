@@ -16,6 +16,7 @@ from src.dining_room.models import DiningChecking , ConfDiningRoom
 from src.employees.models import Employee
 from src.clocking.models import DailyChecks
 from src.dining_room.managers import EmployerNotPresentException, EmployerHasBeenCheckedException
+from src.peladoydescabezado.models import Person
 from unfold.views import UnfoldModelAdminViewMixin
 
 # Create your views here.
@@ -39,7 +40,7 @@ def report_dining_today_excel(request, *args, **kwargs):
     else:
         print_date = current_date.date()
 
-    today_data = DiningChecking.objects.select_related("employer", "conf_dining_room", "employer__department").filter(created__date=print_date, conf_dining_room__isnull=False , conf_dining_room__is_removed=False).annotate(
+    today_data = DiningChecking.objects.select_related("employer", "conf_dining_room", "employer__department", "person").filter(created__date=print_date, conf_dining_room__isnull=False , conf_dining_room__is_removed=False).annotate(
         row_number=Window(
             RowNumber(),
             order_by=["employer__last_name", "employer__name", "-created"]
@@ -91,9 +92,9 @@ def report_dining_today_excel(request, *args, **kwargs):
 
     for data in today_data:
         ws[f"A{data_row_from}"].value = data.row_number
-        ws[f"B{data_row_from}"].value = data.employer.cedula
-        ws[f"C{data_row_from}"].value = data.employer.get_fullname()
-        ws[f"E{data_row_from}"].value = data.employer.department.name
+        ws[f"B{data_row_from}"].value = data.employer_object.cedula
+        ws[f"C{data_row_from}"].value = data.employer_object.get_fullname()
+        ws[f"E{data_row_from}"].value = data.employer_object.department.name
         ws[f"F{data_row_from}"].value = data.conf_dining_room.check_name
         ws[f"G{data_row_from}"].value = data.created.strftime("%d/%m/%Y %I:%M %p")
 
@@ -181,16 +182,19 @@ def default_today_last_checks(request, *args, **kwargs):
 
 def check_dining_employer(request, card_id, *args, **kwargs):
     emp = Employee.objects.select_related("position", "department").filter(cedula=card_id).first()
-    print(emp, card_id)
+    
     check = None
     if emp is None:
-        return JsonResponse({
-            "error": True, 
-            "can_check": False, 
-            "checked": False,
-            "employer": None,
-            "error_message": "Cédula no encontrada o no registrada"
-        })
+        emp = Person.objects.select_related("position", "department").filter(identity=card_id).first()
+        print("Segundo intento ...")
+        if emp is None:
+            return JsonResponse({
+                "error": True, 
+                "can_check": False, 
+                "checked": False,
+                "employer": None,
+                "error_message": "Cédula no encontrada o no registrada"
+            })
     
     try:
         check = DiningChecking.objects.make_check_if_can(emp)

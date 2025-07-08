@@ -141,6 +141,18 @@ class Person(TimeStampedModel):
     
     def get_fullname(self):
         return self.__str__()
+    
+    @property
+    def last_name(self):
+        return self.lastnames
+    
+    @property
+    def name(self):
+        return self.names
+
+    @property
+    def is_birthday(self):
+        return False
 
 class Farm(TimeStampedModel):
     number = models.PositiveBigIntegerField(
@@ -255,7 +267,7 @@ class Control(TimeStampedModel):
 
     created_by = models.ForeignKey(
         User,
-        on_delete=models.RESTRICT,
+        on_delete=models.CASCADE,
         related_name="production_control_created",
         null=True,
         default=None
@@ -263,7 +275,7 @@ class Control(TimeStampedModel):
 
     approved_by = models.ForeignKey(
         User,
-        on_delete=models.RESTRICT,
+        on_delete=models.CASCADE,
         related_name="production_control_approved",
         null=True,
         default=None
@@ -271,7 +283,7 @@ class Control(TimeStampedModel):
 
     checked_by = models.ForeignKey(
         User,
-        on_delete=models.RESTRICT,
+        on_delete=models.CASCADE,
         related_name="production_control_checked",
         null=True,
         default=None
@@ -287,8 +299,8 @@ class Weightness(TimeStampedModel):
     )
 
     class Meta:
-        verbose_name = "Peso"
-        verbose_name_plural = "Pesos"
+        verbose_name = "Talla"
+        verbose_name_plural = "Tallas"
 
     def __str__(self):
         return self.weight
@@ -302,7 +314,7 @@ class ControlDetail(TimeStampedModel):
 
     farm = models.ForeignKey(
         Farm,
-        on_delete=models.RESTRICT,
+        on_delete=models.CASCADE,
         related_name="daily_control",
         null=True,
         default=None
@@ -311,7 +323,7 @@ class ControlDetail(TimeStampedModel):
 
     pool = models.ForeignKey(
         Pool,
-        on_delete=models.RESTRICT,
+        on_delete=models.CASCADE,
         related_name="daily_control",
         null=True,
         default=None
@@ -357,7 +369,7 @@ class BasketProduction(TimeStampedModel):
 
     worker = models.ForeignKey(
         Person,
-        on_delete=models.RESTRICT,
+        on_delete=models.CASCADE,
         related_name="product_baskets",
         verbose_name="Trabajador"
     )
@@ -396,7 +408,7 @@ class BasketProduction(TimeStampedModel):
 
     control = models.ForeignKey(
         Control,
-        on_delete=models.RESTRICT,
+        on_delete=models.CASCADE,
         null=True,
         default=None,
         related_name="production"
@@ -404,7 +416,7 @@ class BasketProduction(TimeStampedModel):
 
     saved_by = models.ForeignKey(
         User,
-        on_delete=models.RESTRICT,
+        on_delete=models.CASCADE,
         related_name="production_saveds",
         null=True,
         default=None
@@ -433,3 +445,7 @@ class ReportProxyModel(Table):
         proxy = True
         verbose_name = "Reporte"
         verbose_name_plural = "Reportes"
+        permissions = [
+            ("can_generate_prod_reports", "Puede generar reporte de producción"),
+            ("can_generate_assist_reports", "Puede generar reportes de asistencia")
+        ]

@@ -46,6 +46,7 @@ class CheckDiningRoomManager(models.Manager):
 
         Retorna booleano True: puede hacer un chequeo, en caso de no poder se retornarà
         """
+        from src.clocking.models import Person, Employee
         current_checking_turn = self.get_current_checking_turn(employer, **kwargs)
 
         print(f"current_checking_turn 2 {current_checking_turn}")
@@ -54,7 +55,11 @@ class CheckDiningRoomManager(models.Manager):
         
         # Verifica si el empleado no tiene un chqueo con el turno actual
         # entonces retorna que si puede hacer un chequeo
-        has = not self.filter(employer=employer).filter(created__date=datetime.now().date()).filter(conf_dining_room=current_checking_turn).exists()
+        has = False
+        if isinstance(employer, Employee):
+            has = not self.filter(employer=employer).filter(created__date=datetime.now().date()).filter(conf_dining_room=current_checking_turn).exists()
+        else:
+            has = not self.filter(person=employer).filter(created__date=datetime.now().date()).filter(conf_dining_room=current_checking_turn).exists()
 
         print(f"HAS: {has}")
         if not has:
@@ -66,9 +71,19 @@ class CheckDiningRoomManager(models.Manager):
         Hace un chequeo de parte del empleado 
         en caso de poder
         """
-        from src.clocking.models import DailyChecks
+        from src.clocking.models import DailyChecks, Employee, Person
+        is_present = 0
+        current_person = None
+        current_employer = None
+        print(f"Empleado: {employer}")
+        if isinstance(employer, Employee):
+            current_employer = employer
+            is_present = DailyChecks.objects.filter(employee_id=employer.id, daily__date_day=datetime.now().date()).count()
+        elif isinstance(employer, Person):
+            current_person = employer
+            print("Es person")
+            is_present = DailyChecks.objects.filter(person_id=employer.id, daily__date_day=datetime.now().date()).count()
 
-        is_present = DailyChecks.objects.filter(employee_id=employer.id, daily__date_day=datetime.now().date()).count()
         current_checking_turn = self.get_current_checking_turn(employer)
 
         if is_present == 0 or is_present % 2 == 0:
@@ -81,7 +96,8 @@ class CheckDiningRoomManager(models.Manager):
         return self.create(
             conf_dining_room=current_checking_turn,
             identity_id=credential_card_id,
-            employer=employer
+            employer=current_employer,
+            person=current_person
         )
         
 

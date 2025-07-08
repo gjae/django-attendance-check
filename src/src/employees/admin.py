@@ -164,13 +164,13 @@ class EmployeeAdmin(ModelAdmin):
         try:
             return mark_safe(
                 f"<div>"
-                f'<img src="{obj.picture.url}" alt="{obj.name}_picture" class="w-10 h-10 rounded-full" loading="lazy" decoding="async">'
+                f'<img src="{obj.picture.url}" alt="{obj.name}_picture" style="max-width: 30px; max-heigh: 30px;" class="w-10 h-10 rounded-full" loading="lazy" decoding="async">'
                 f"</div>"
             )
         except:
             return mark_safe(
                 f"<div>"
-                f'<img src="/static/images/branding/logo_inpromaro_lit.png" alt="default" class="w-10 h-10 rounded-full" loading="lazy" decoding="async">'
+                f'<img src="/static/images/branding/logo_inpromaro_lit.png" style="max-width: 30px; max-heigh: 30px;" alt="default" class="w-10 h-10 rounded-full" loading="lazy" decoding="async">'
                 f"</div>"
             )
     
