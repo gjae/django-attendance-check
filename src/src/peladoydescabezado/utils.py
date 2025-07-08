@@ -294,7 +294,6 @@ def _get_xlsx_report_template(date_from = None, date_end = None, process = "DESC
                 if str(u['identity']) not in production[turn][day]:
                     ws[f"{cell}{current_totalization_row}"] = Decimal(0.00)
                     ws[f"{cell}{current_totalization_row}"].alignment = center_alignment
-                    current_totalization_row += 1
                     continue
                 
                 weight_totals += production[turn][day][str(u['identity'])]['weight_sum']
