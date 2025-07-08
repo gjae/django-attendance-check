@@ -71,18 +71,3 @@ class LoadWeightForm(forms.ModelForm):
             "control",
             "saved_by",
         )
-
-    def clean(self):
-        data = super().clean()
-        worker = data.get("worker")
-        control = data.get("control")
-        
-        can_upload = DailyChecks.objects.filter(checking_time__date=control.created.date(), person=worker).order_by("id").last()
-
-        if can_upload is None:
-            raise WorkerIsNotPresentException()
-        
-        if can_upload.checking_type == DailyChecks.CHECK_STATUS_CHOISE.salida:
-            raise WorkerIsNotPresentException()
-        
-        return data

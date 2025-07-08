@@ -271,7 +271,7 @@ class TableProxyModelAdmin(ModelAdmin):
 
         tables = []
         reverse_resolve_tables = {}
-        for t in Table.objects.all():
+        for t in Table.objects.filter(is_active=True):
             tables.append({"id": t.id, "description": t.description})
             reverse_resolve_tables[t.id] = t.description
 
