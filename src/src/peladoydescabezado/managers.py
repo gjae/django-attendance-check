@@ -97,6 +97,10 @@ class PersonManager(BaseCheckingManager, ClockingBaseCheckingManager):
             )
         )
 
+        if category != 3:
+            queryset = queryset.exclude(total=0)
+        else:
+            queryset = queryset.exclude(num_basckets=0)
 
         return queryset
     
@@ -134,11 +138,11 @@ class BasketProductionManager(Manager):
             fecha_actual += timedelta(days=1)
         
         resultados = self.filter(
-            created__date__gte=start_date,
-            created__date__lte=end_date,
+            control__date_upload__gte=start_date,
+            control__date_upload__lte=end_date,
             table__category=category
         ).values(
-            'created__date',  # Agrupar por fecha (sin hora)
+            'control__date_upload',  # Agrupar por fecha (sin hora)
             'table__category',  # Agrupar por categoría de mesa
             'worker__id',       # Agrupar por trabajador (usamos ID para evitar duplicados)
             'worker__names',    # Incluir nombres del trabajador (opcional)
@@ -153,8 +157,10 @@ class BasketProductionManager(Manager):
             total_sum=Sum('total'),  # Sumar el campo 'total'
             weight_sum=Sum('weight'), # Sumar el campo 'weight' (opcional)
             basket_count=Count("id"),
+            created__date=F("control__date_upload")
+            
         ).order_by(
-            'created__date', 'table__category', 'worker__id'
+            'control__date_upload', 'table__category', 'worker__id'
         )
 
         for resultado in resultados:

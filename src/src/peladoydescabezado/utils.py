@@ -302,7 +302,9 @@ def _get_xlsx_report_template(date_from = None, date_end = None, process = "DESC
                 ws[f"{cell}{current_totalization_row}"] = f"{production[turn][day][str(u['identity'])]['weight_sum']}" if category != 3 else production[turn][day][str(u['identity'])]['basket_count']
                 ws[f"{cell}{current_totalization_row}"].alignment = center_alignment
                 if u['identity'] not in total_personal:
-                    total_personal[u['identity']] = (current_totalization_row, production[turn][day][str(u['identity'])]['weight_sum'] if category != 3 else production[turn][day][str(u['identity'])]['basket_count'])
+                    total_personal[u['identity']] = (current_totalization_row, 0)
+
+                total_personal[u['identity']] = (current_totalization_row, total_personal[u['identity']][1] + production[turn][day][str(u['identity'])]['weight_sum'] if category != 3 else production[turn][day][str(u['identity'])]['basket_count'])
                 current_totalization_row += 1
 
             start_totalization_cell += skip_cells
@@ -375,7 +377,7 @@ def generate_rport_xlsx_simple(context):
 
     content_letter_end = get_column_letter(context["num_max_totalization_cells"] + 3)
     content_total_col = get_column_letter(context['num_max_totalization_cells'] + 4)
-    _apply_font_cell_format(ws[f"{content_total_col}14"], font_style_subheader, center_alignment, f"T. Cestas")
+    _apply_font_cell_format(ws[f"{content_total_col}14"], font_style_subheader, center_alignment, f"T. Cestas" if context['category'] == 3 else "T. Kgs")
     
     col_detail_start = 1
     for control in context["controls"]:
