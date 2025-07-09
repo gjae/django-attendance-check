@@ -221,7 +221,7 @@
                     <th width="25%">
                         Apellido y Nombre
                     </th>
-                    <th>Contenido de Cestas Entregadas</th>
+                    <th>{% if category != 3 %}Contenido de Cestas Entregadas{% else %} Cantidad de Cestas{% endif %}</th>
                     <th width="10%">{% if category == 3 %}T. Cestas{% else %}T. Kg{% endif %}</th>
                 </tr>
             </thead>
@@ -234,30 +234,26 @@
                     <td style="padding: 0 !important;">
                         <table class="bascket" width="100%" style="padding: 0;">
                             <tr style="padding: 0;">
-                                {% if category != 3 %}
-                                    {% for totalization in num_cells %}
-                                    <td width="{{avg_cell_space}}%">
-                                        {% if totalization < user.production|length %}
-                                            {% with total=user.production|get_by_index:totalization %}
-                                                {{total.weight}}
-                                            {% endwith %}
-                                        {% else %}
-                                        -
-                                        {% endif %}
-                                    </td>
-                                    {% endfor %}
-                                {% else %}
-                                <td>{{ user.production|length }}</td>
-                                {% endif%}
+                                {% for totalization in num_cells %}
+                                <td width="{{avg_cell_space}}%">
+                                    {% if totalization < user.production|length %}
+                                        {% with total=user.production|get_by_index:totalization %}
+                                            {% if category != 3%}
+                                            {{total.weight}}
+                                            {% else %}
+                                            {{total.weight|floatformat:0}}
+                                            {% endif%}
+                                        {% endwith %}
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                                {% endfor %}
                             </tr>
                         </table>
                     </td>
                     <td>
-                        {% if category != 3 %}
-                            {{user.total|default:"0.00"}}
-                        {% else %}
-                            {{user.production|length }}
-                        {% endif %}
+                        {{user.total|default:"0.00"}}
                     </td>
                 </tr>
                 {% endfor %}
@@ -269,11 +265,7 @@
                     <th style="border: 1px solid #000; text-align: right;">Total {% if category == 3 %}Cestas{% else %}Kg{% endif %}</th>
                     <th style="border: 1px solid #000"></th>
                     <th style="border: 1px solid #000;">
-                        {% if category != 3 %}
                         {{weight_total}}
-                        {% else %}
-                        {{total_basckets}}
-                        {% endif %}
                     </th>
                 </tr>
             </tfoot>

@@ -129,7 +129,8 @@ def generate_pdf(request, *args, **kwargs):
     # Renderizar la plantilla HTML con el contexto proporcionado
     date = request.GET.get("fecha_inicio", datetime.now().date().strftime("%Y-%m-%d"))
     data = Person.objects.get_employers_with_production(date=date, category=int(request.GET.get("category", 0)))
-    num_max_totalization_cells = max([u.num_basckets for u in data])
+    basckets_list = [u.num_basckets for u in data]
+    num_max_totalization_cells = max(basckets_list if len(basckets_list) > 0 else [0, ])
     totalization_cells = range(0, num_max_totalization_cells)
     context = {
         "data": data,
