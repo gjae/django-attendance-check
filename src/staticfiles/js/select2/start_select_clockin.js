@@ -3,4 +3,5 @@ $(document).ready(()=> {
     
     $("#id_employee").select2();
     $("#id_daily").select2();
+    $("#id_person").select2();
 })

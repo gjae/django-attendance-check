@@ -83,6 +83,11 @@ class DailyChecks(TimeStampedModel):
             return self.employee.picture.url if self.employee.picture is not None and self.employee.picture.name else None
 
         return self.person.picture.url if self.person.picture is not None and self.person.picture.name else None
+    
+    @property 
+    def user_model(self):
+        return self.employee if self.employee is not None else self.person
+
 
 class DailyChecksProxyModelAdmin(DailyChecks):
     class Meta:
