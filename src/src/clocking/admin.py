@@ -10,7 +10,7 @@ from django.utils.html import format_html
 
 from unfold.admin import StackedInline, TabularInline
 
-from .forms import CheckingObservationModelForm
+from .forms import CheckingObservationModelForm, DailyChecksProxyModelAdminForm
 
 
 # Register your models here.
@@ -136,6 +136,7 @@ class DailyChecksModelAdmin(ModelAdmin):
     search_fields = ['employee__name', "employee__last_name", "daily__date_day"]
     list_filter = ["checking_type", FilterByDateCalendar]
     list_per_page  = 15
+    form = DailyChecksProxyModelAdminForm
 
     class Media:
         js = ('js/jquery.min.js', 'js/select2/select2.full.min.js', 'js/select2/start_select_clockin.js')   
@@ -145,13 +146,13 @@ class DailyChecksModelAdmin(ModelAdmin):
 
 
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related("employee", "daily").order_by("-checking_time")
+        return super().get_queryset(request).select_related("employee", "daily", "person").order_by("-checking_time")
     
     def employee_name(self, obj):
-        return obj.employee.name
+        return obj.user_model.name
 
     def employee_last_name(self, obj):
-        return obj.employee.last_name
+        return obj.user_model.last_name
     
     def daily_day(self, obj):
         return obj.daily.date_day.strftime("%d/%m/%Y")

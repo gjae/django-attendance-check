@@ -3,7 +3,7 @@ from django import forms
 from django.core.exceptions import ObjectDoesNotExist
 
 from src.employees.models import Employee
-from src.clocking.models import DailyChecks, DailyCalendarObservation
+from src.clocking.models import DailyChecks, DailyCalendarObservation, DailyChecksProxyModelAdmin
 from src.settings.models import WorkCenter, ClientConfig
 from src.peladoydescabezado.models import Person
 from .exceptions import EmployeeDoenstBelongsToThisWorkCenterException, EmployeeDesactivedException
@@ -75,6 +75,36 @@ class CheckingObservationModelForm(forms.ModelForm):
     )
     class Meta:
         model = DailyCalendarObservation
+        exclude = (
+            "created", 
+            "modified"
+        )
+
+
+
+class DailyChecksProxyModelAdminForm(forms.ModelForm):
+    employee = forms.ModelChoiceField(
+        queryset=Employee.objects.filter(is_actived=True),
+        label="Trabajador",
+        required=False,
+        initial=None,
+        widget=forms.Select(attrs={
+            "class": "border border-base-200 bg-white font-medium min-w-20 placeholder-base-400 rounded-default shadow-xs text-font-default-light text-sm focus:outline-2 focus:-outline-offset-2 focus:outline-primary-600 group-[.errors]:border-red-600 focus:group-[.errors]:outline-red-600 dark:bg-base-900 dark:border-base-700 dark:text-font-default-dark dark:group-[.errors]:border-red-500 dark:focus:group-[.errors]:outline-red-500 dark:scheme-dark group-[.primary]:border-transparent px-3 py-2 w-full pr-8! max-w-2xl appearance-none truncate"
+        })
+    )
+
+    
+    person = forms.ModelChoiceField(
+        queryset=Person.objects.filter(is_actived=True),
+        label="Trabajador (Pelado y descabezado)",
+        required=False,
+        initial=None,
+        widget=forms.Select(attrs={
+            "class": "border border-base-200 bg-white font-medium min-w-20 placeholder-base-400 rounded-default shadow-xs text-font-default-light text-sm focus:outline-2 focus:-outline-offset-2 focus:outline-primary-600 group-[.errors]:border-red-600 focus:group-[.errors]:outline-red-600 dark:bg-base-900 dark:border-base-700 dark:text-font-default-dark dark:group-[.errors]:border-red-500 dark:focus:group-[.errors]:outline-red-500 dark:scheme-dark group-[.primary]:border-transparent px-3 py-2 w-full pr-8! max-w-2xl appearance-none truncate"
+        })
+    )
+    class Meta:
+        model = DailyChecksProxyModelAdmin
         exclude = (
             "created", 
             "modified"
