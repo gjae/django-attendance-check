@@ -299,16 +299,16 @@ def _get_xlsx_report_template(date_from = None, date_end = None, process = "DESC
                 
                 weight_totals += production[turn][day][str(u['identity'])]['weight_sum']
                 basket_totals += production[turn][day][str(u['identity'])]['basket_count']
-                ws[f"{cell}{current_totalization_row}"] = f"{production[turn][day][str(u['identity'])]['weight_sum']}" 
+                ws[f"{cell}{current_totalization_row}"] = f"{production[turn][day][str(u['identity'])]['weight_sum']}" if category != 3 else production[turn][day][str(u['identity'])]['basket_count']
                 ws[f"{cell}{current_totalization_row}"].alignment = center_alignment
                 if u['identity'] not in total_personal:
                     total_personal[u['identity']] = (current_totalization_row, 0)
 
-                total_personal[u['identity']] = (current_totalization_row, total_personal[u['identity']][1] + production[turn][day][str(u['identity'])]['weight_sum'] )
+                total_personal[u['identity']] = (current_totalization_row, total_personal[u['identity']][1] + production[turn][day][str(u['identity'])]['weight_sum'] if category != 3 else production[turn][day][str(u['identity'])]['basket_count'])
                 current_totalization_row += 1
 
             start_totalization_cell += skip_cells
-            ws[f"{cell}{current_totalization_row+1}"] = weight_totals
+            ws[f"{cell}{current_totalization_row+1}"] = weight_totals if category != 3 else basket_totals
             ws[f"{cell}{current_totalization_row+1}"].alignment = center_alignment
 
         ws[f"A{current_totalization_row+1}"] = "Total por día" if category != 3 else "Total por día de cestas"
