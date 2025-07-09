@@ -159,9 +159,10 @@ class BasketProductionManager(Manager):
             basket_count=Count("id"),
             created__date=F("control__date_upload")
             
-        ).order_by(
+        ).exclude(weight_sum=0).order_by(
             'control__date_upload', 'table__category', 'worker__id'
         )
+
 
         for resultado in resultados:
             diccionario[resultado["turn"]][resultado["created__date"]][f"{resultado['worker__identity']}"] = resultado

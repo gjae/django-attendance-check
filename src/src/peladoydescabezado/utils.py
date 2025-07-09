@@ -294,20 +294,21 @@ def _get_xlsx_report_template(date_from = None, date_end = None, process = "DESC
                 if str(u['identity']) not in production[turn][day]:
                     ws[f"{cell}{current_totalization_row}"] = Decimal(0.00)
                     ws[f"{cell}{current_totalization_row}"].alignment = center_alignment
+                    current_totalization_row += 1
                     continue
                 
                 weight_totals += production[turn][day][str(u['identity'])]['weight_sum']
                 basket_totals += production[turn][day][str(u['identity'])]['basket_count']
-                ws[f"{cell}{current_totalization_row}"] = f"{production[turn][day][str(u['identity'])]['weight_sum']}" if category != 3 else production[turn][day][str(u['identity'])]['basket_count']
+                ws[f"{cell}{current_totalization_row}"] = f"{production[turn][day][str(u['identity'])]['weight_sum']}" 
                 ws[f"{cell}{current_totalization_row}"].alignment = center_alignment
                 if u['identity'] not in total_personal:
                     total_personal[u['identity']] = (current_totalization_row, 0)
 
-                total_personal[u['identity']] = (current_totalization_row, total_personal[u['identity']][1] + production[turn][day][str(u['identity'])]['weight_sum'] if category != 3 else production[turn][day][str(u['identity'])]['basket_count'])
+                total_personal[u['identity']] = (current_totalization_row, total_personal[u['identity']][1] + production[turn][day][str(u['identity'])]['weight_sum'] )
                 current_totalization_row += 1
 
             start_totalization_cell += skip_cells
-            ws[f"{cell}{current_totalization_row+1}"] = weight_totals if category != 3 else basket_totals
+            ws[f"{cell}{current_totalization_row+1}"] = weight_totals
             ws[f"{cell}{current_totalization_row+1}"].alignment = center_alignment
 
         ws[f"A{current_totalization_row+1}"] = "Total por día" if category != 3 else "Total por día de cestas"
@@ -409,8 +410,7 @@ def generate_rport_xlsx_simple(context):
     ws.merge_cells("G1:K1")
     ws.merge_cells("G2:K2")
     ws.merge_cells("G3:K4")
-    if context["category"] != 3 and context["num_max_totalization_cells"] > 1:
-        ws.merge_cells(f"D14:{content_letter_end}14")
+    ws.merge_cells(f"D14:{content_letter_end}14")
 
     if context["num_max_totalization_cells"] < 3:
         ws.column_dimensions["D"].width = 30
@@ -424,26 +424,20 @@ def generate_rport_xlsx_simple(context):
         ws[f"A{row}"] = user.row
         ws[f"B{row}"] = user.identity
         ws[f"C{row}"] = f"{user.lastnames}, {user.names}"
-        if context["category"] != 3:
-            ws[f"{content_total_col}{row}"] = user.total if user.total else 0
-        else:
-            ws[f"{content_total_col}{row}"] = len(user.production)
+        ws[f"{content_total_col}{row}"] = user.total if user.total else 0
         col = 4
-        if context['category'] == 3: 
-            ws.cell(row=row, column=col, value=len(user.production))
-        else:
-            for counter in context["num_cells"]:
-                if counter < len(user.production):
-                    ws.cell(row=row, column=col, value=user.production[counter].weight)
-                else:
-                    break
-                col += 1
+        for counter in context["num_cells"]:
+            if counter < len(user.production):
+                ws.cell(row=row, column=col, value=user.production[counter].weight)
+            else:
+                break
+            col += 1
         row += 1
     ws[f"{content_total_col}{row}"] =  "Total Kg" if context["category"] != 3 else "Total cestas" 
     ws[f"{content_total_col}{row}"].alignment = Alignment(horizontal="right", vertical="center")
     ws[f"{content_total_col}{row}"].font = Font(bold=True, size=10, name="Arial Narrow")
     row += 1
-    ws[f"{content_total_col}{row}"] = context["weight_total"] if context["category"] != 3 else context["total_basckets"]
+    ws[f"{content_total_col}{row}"] = context["weight_total"]
 
     # output
     return wb
