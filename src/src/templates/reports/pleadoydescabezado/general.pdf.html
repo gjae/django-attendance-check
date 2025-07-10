@@ -141,7 +141,7 @@
     <div class="header-row">
         <!-- Sección 1: Logo -->
         <div class="header-section logo-section">
-            {% with '/static/images/branding/logo_inpromaro_lit.png' as image_path %}
+            {% with 'file:///app/src/static/images/branding/logo_inpromaro_lit.png' as image_path %}
             <img src="{{image_path}}" class="logo" alt="Logo" onerror="this.style.display='none'"> 
             {% endwith %}
         </div>

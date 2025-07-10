@@ -301,10 +301,11 @@ def _get_xlsx_report_template(date_from = None, date_end = None, process = "DESC
                 basket_totals += production[turn][day][str(u['identity'])]['basket_count']
                 ws[f"{cell}{current_totalization_row}"] = f"{production[turn][day][str(u['identity'])]['weight_sum']}" if category != 3 else production[turn][day][str(u['identity'])]['basket_count']
                 ws[f"{cell}{current_totalization_row}"].alignment = center_alignment
-                if u['identity'] not in total_personal:
-                    total_personal[u['identity']] = (current_totalization_row, 0)
+                identity = str(u['identity'])
+                if identity not in total_personal:
+                    total_personal[identity] = (current_totalization_row, 0)
 
-                total_personal[u['identity']] = (current_totalization_row, total_personal[u['identity']][1] + production[turn][day][str(u['identity'])]['weight_sum'] if category != 3 else production[turn][day][str(u['identity'])]['basket_count'])
+                total_personal[identity] = (current_totalization_row, total_personal[identity][1] + (production[turn][day][identity]['weight_sum'] if category != 3 else production[turn][day][str(u['identity'])]['basket_count']))
                 current_totalization_row += 1
 
             start_totalization_cell += skip_cells
@@ -410,7 +411,8 @@ def generate_rport_xlsx_simple(context):
     ws.merge_cells("G1:K1")
     ws.merge_cells("G2:K2")
     ws.merge_cells("G3:K4")
-    ws.merge_cells(f"D14:{content_letter_end}14")
+    if context["num_max_totalization_cells"] > 0:
+        ws.merge_cells(f"D14:{content_letter_end}14")
 
     if context["num_max_totalization_cells"] < 3:
         ws.column_dimensions["D"].width = 30
