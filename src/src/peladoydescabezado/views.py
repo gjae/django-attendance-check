@@ -28,7 +28,6 @@ def save_progress(request, *args, **kwargs):
         turn = int(turn)
     date = request.POST.get("load_date", datetime.now().date())
     control = Control.objects.control_by_turn(request.user, load_turn=turn, load_date=(date if turn is not None else None))
-    print(f"control: {control}")
     with transaction.atomic():
         if request.POST.get("action", "add") == "add":
             detail, _ = ControlDetail.objects.update_or_create(
@@ -185,7 +184,8 @@ def generate_pdf(request, *args, **kwargs):
 def _simple_excel(request):
     date = request.GET.get("fecha_inicio", datetime.now().date().strftime("%Y-%m-%d"))
     data = Person.objects.get_employers_with_production(date=date, category=int(request.GET.get("category", 0)))
-    num_max_totalization_cells = max([u.num_basckets for u in data])
+    basckets_list = [u.num_basckets for u in data]
+    num_max_totalization_cells = max(basckets_list if len(basckets_list) > 0 else [0, ])
     totalization_cells = range(0, num_max_totalization_cells)
     context = {
         "data": data,
