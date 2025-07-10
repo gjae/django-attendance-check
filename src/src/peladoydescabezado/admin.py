@@ -152,7 +152,7 @@ class WeightnessModelAdmin(ModelAdmin):
 @admin.register(Person)
 class PeopleModelAdmin(ModelAdmin):
     list_display = [
-       "personal_photo", "identity", "names", "lastnames", "created", "phone", "state"
+       "personal_photo", "identity", "names", "lastnames",  "department", "position", "created",  "state",
     ]
     form = PersonalModelForm
     fieldsets = (
@@ -173,6 +173,9 @@ class PeopleModelAdmin(ModelAdmin):
         })
     )
     actions = [print_carnet, active_employers, disable_employers]
+
+    def get_queryset(self, *args, **kwargs):
+        return super().get_queryset(*args, **kwargs).select_related("department", "position")
 
     def state(self, obj):
         if obj.is_actived:
