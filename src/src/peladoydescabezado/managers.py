@@ -25,6 +25,10 @@ class FarmManager(Manager):
         return farms
     
 
+class DepartmentManager(Manager):
+    def get_queryset(self, *args, **kwargs):
+        return super().get_queryset(*args, **kwargs).select_related("work_center")
+    
 class ControlManager(Manager):
 
     def control_by_turn(self, user, load_turn = None, load_date = None):

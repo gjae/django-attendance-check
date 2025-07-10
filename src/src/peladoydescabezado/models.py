@@ -5,8 +5,8 @@ from model_utils import Choices
 from django.contrib.auth import get_user_model
 
 from src.employees.models import EmployeePosition
-from src.settings.models import Department as BaseDepartment
-from src.peladoydescabezado.managers import FarmManager, ControlManager, PersonManager, BasketProductionManager
+from src.settings.models import Department as BaseDepartment, DepartmentQuerySet
+from src.peladoydescabezado.managers import FarmManager, ControlManager, PersonManager, BasketProductionManager ,DepartmentManager
 
 CATEGORIES = Choices(
     (0, "ppv", "PPV"),
@@ -30,6 +30,7 @@ User = get_user_model()
 
 # Create your models here.
 class Department(BaseDepartment):
+    objects = DepartmentManager.from_queryset(DepartmentQuerySet)()
     class Meta:
         verbose_name = "Departamento"
         verbose_name_plural = "Departamentos"

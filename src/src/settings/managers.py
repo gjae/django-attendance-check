@@ -29,4 +29,4 @@ class ClientConfigManager(models.Manager):
 
 class DepartmentManager(models.Manager):
     def get_queryset(self, *args, **kwargs):
-        return super().get_queryset(*args, **kwargs).select_related("work_center")
+        return super().get_queryset(*args, **kwargs).select_related("work_center").exclude(department__isnull=False)
