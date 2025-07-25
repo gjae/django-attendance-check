@@ -1,5 +1,6 @@
 from datetime import datetime
 from django.utils.html import mark_safe
+from django.db.models import Q
 from django.contrib import admin
 import logging
 from django.contrib import messages
@@ -69,7 +70,7 @@ class LoadTurnFilter(SimpleListFilter):
 
 @admin.action(description="Desactivar trabajador(es)")
 def disable_employers(modeladmin, request, queryset):
-    queryset.update(is_actived=False)
+    queryset.update(is_disabled=True)
     modeladmin.message_user(
         request,
         "Los trabajadores seleccionados fueron correctamente desactivados",
@@ -78,7 +79,7 @@ def disable_employers(modeladmin, request, queryset):
 
 @admin.action(description="Activar trabajador(es)")
 def active_employers(modeladmin, request, queryset):
-    queryset.update(is_actived=True)
+    queryset.update(is_disabled=False)
     modeladmin.message_user(
         request,
         "Los trabajadores seleccionados fueron correctamente activados",
@@ -151,6 +152,7 @@ class WeightnessModelAdmin(ModelAdmin):
 
 @admin.register(Person)
 class PeopleModelAdmin(ModelAdmin):
+    search_fields = ["names", "lastnames", "identity", ]
     list_display = [
        "personal_photo", "identity", "names", "lastnames",  "department", "position", "created",  "state",
     ]
@@ -278,7 +280,7 @@ class TableProxyModelAdmin(ModelAdmin):
             tables.append({"id": t.id, "description": t.description})
             reverse_resolve_tables[t.id] = t.description
 
-        for c in BasketProduction.objects.select_related("worker", "table").filter(control__turn=show_turn, control__date_upload=show_date):
+        for c in BasketProduction.objects.select_related("worker", "table").filter(control__turn=show_turn, control__date_upload=show_date, saved_by=request.user):
             current_turn_production.append({
                 "id": c.id,
                 "cedula": c.worker.identity,
@@ -289,8 +291,6 @@ class TableProxyModelAdmin(ModelAdmin):
             })
         
 
-        print(f"show_turn: {show_turn} ... ",BasketProduction.objects.select_related("worker", "table").filter(control__turn=show_turn, control__date_upload=show_date))
-        print("Turno: ", turns_id[get_current_turn()], " Horario ", get_current_turn(), BasketProduction.objects.filter( control__date_upload=datetime.now().date()).values("control__turn"))
         extra_context = {
             "farms": Farm.objects.get_farms_with_pool_as_dict(),
             "weightness": Weightness.objects.all(),
@@ -369,6 +369,6 @@ class RegisterModelAdmin(ModelAdmin):
     def changelist_view(self, request, extra_context=None):
         extra_context = {
             "departments": Department.objects.all(),
-            "persons": Person.objects.exclude(is_actived=False)
+            "persons": Person.objects.exclude(is_disabled=False)
         }
         return super().changelist_view(request, extra_context=extra_context)

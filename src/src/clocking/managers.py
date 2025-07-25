@@ -199,6 +199,9 @@ class CheckingManager(BaseCheckingManager):
             total_hours = 0
 
             checks = list(self.list_chunks(e.checks, 2, total_checks=0))
+            
+            if not e.is_actived:
+                continue
 
             if e.cedula not in days_checked_by_employer:
                 days_checked_by_employer[e.id] = len(checks)
@@ -239,6 +242,7 @@ class CheckingManager(BaseCheckingManager):
             .order_by("daily__date_day", "employee_id", "person_id")
         )
         filters = {}
+        print("Reporte actual")
             
         if user_id is not None:
             if is_employer_model:
@@ -281,6 +285,11 @@ class CheckingManager(BaseCheckingManager):
                 continue
             
             for idx, report in enumerate(datas):
+                print("Reporte ", report)
+                if report.employee_id is not None and not report.employee.is_actived:
+                    continue
+                if report.person_id is not None and  report.person.is_disabled:
+                    continue
                 if prev_report is None:
                     prev_report = report.daily_id
                     

@@ -128,6 +128,11 @@ def generate_pdf(request, *args, **kwargs):
     # Renderizar la plantilla HTML con el contexto proporcionado
     date = request.GET.get("fecha_inicio", datetime.now().date().strftime("%Y-%m-%d"))
     data = Person.objects.get_employers_with_production(date=date, category=int(request.GET.get("category", 0)))
+    saved_by = []
+    for us in data:
+        for p in us.production:
+            saved_by.append(p.saved_by.name)
+
     basckets_list = [u.num_basckets for u in data]
     num_max_totalization_cells = max(basckets_list if len(basckets_list) > 0 else [0, ])
     totalization_cells = range(0, num_max_totalization_cells)
@@ -142,6 +147,7 @@ def generate_pdf(request, *args, **kwargs):
         "category": int(request.GET.get("category", 0)),
         "category_text": CATEGORIES[int(request.GET.get("category", 0))],
         "total_basckets": sum([u.num_basckets for u in data]),
+        "created_by_names": "<br> ".join(saved_by) if len(saved_by) > 0 else "",
         "controls": Control.objects.filter(date_upload=date).prefetch_related(
             Prefetch(
                 "details",
@@ -187,6 +193,10 @@ def _simple_excel(request):
     basckets_list = [u.num_basckets for u in data]
     num_max_totalization_cells = max(basckets_list if len(basckets_list) > 0 else [0, ])
     totalization_cells = range(0, num_max_totalization_cells)
+    saved_by = []
+    for us in data:
+        for p in us.production:
+            saved_by.append(p.saved_by.name)
     context = {
         "data": data,
         "weight_total": sum([u.total for u in data if u is not None and u.total is not None]),
@@ -199,6 +209,7 @@ def _simple_excel(request):
         "category": int(request.GET.get("category", 0)),
         "category_text": CATEGORIES[int(request.GET.get("category", 0))],
         "total_basckets": sum([u.num_basckets for u in data]),
+        "created_by_names": ", ".join(saved_by) if len(saved_by) > 0 else "",
         "controls": Control.objects.filter(created__date=date).prefetch_related(
             Prefetch(
                 "details",

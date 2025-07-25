@@ -121,6 +121,10 @@ class Person(TimeStampedModel):
         return f"{self.names} {self.lastnames}"
 
     @property
+    def is_actived(self):
+        return not self.is_disabled
+
+    @property
     def picture(self):
         return self.personal_pic
     

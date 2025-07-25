@@ -78,6 +78,7 @@ class PersonManager(BaseCheckingManager, ClockingBaseCheckingManager):
                         .objects
                         .filter(control__date_upload=date)
                         .filter(table__category=category)
+                        .select_related("saved_by")
                         .select_related(
                             "control",
                             "table",

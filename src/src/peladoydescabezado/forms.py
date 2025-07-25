@@ -41,7 +41,7 @@ class PersonalModelForm(forms.ModelForm):
     def clean(self):
         data = super().clean()
         cedula = data.get("identity")
-        exists = Employee.objects.filter(cedula=int(cedula))
+        exists = Employee.objects.filter(cedula=int(cedula)).filter(is_actived=True)
 
         if exists.exists():
             raise forms.ValidationError(
@@ -61,6 +61,7 @@ class WeightnessModelForm(forms.ModelForm):
 
 
 class LoadWeightForm(forms.ModelForm):
+
     class Meta:
         model = BasketProduction
         fields = (
