@@ -441,6 +441,8 @@ def generate_rport_xlsx_simple(context):
     row += 1
     ws[f"{content_total_col}{row}"] = context["weight_total"]
 
+    ws[f"A{row+1}"].value = "Elaborado por: "
+    ws[f"B{row+1}"].value = context.get("created_by_names", "")
     # output
     return wb
 

@@ -68,7 +68,7 @@ class CheckingObservationModelForm(forms.ModelForm):
 
     
     person = forms.ModelChoiceField(
-        queryset=Person.objects.filter(is_actived=True),
+        queryset=Person.objects.filter(is_disabled=False),
         label="Trabajador (Pelado y descabezado)",
         required=False,
         initial=None
@@ -95,7 +95,7 @@ class DailyChecksProxyModelAdminForm(forms.ModelForm):
 
     
     person = forms.ModelChoiceField(
-        queryset=Person.objects.filter(is_actived=True),
+        queryset=Person.objects.filter(is_disabled=False),
         label="Trabajador (Pelado y descabezado)",
         required=False,
         initial=None,
