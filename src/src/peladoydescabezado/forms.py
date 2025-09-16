@@ -35,7 +35,7 @@ class PersonalModelForm(forms.ModelForm):
     class Meta:
         model = Person
         fields = (
-            "names", "lastnames", "identity", "personal_pic", "department", "position",
+            "names", "lastnames", "identity", "personal_pic", "department", "position", 
         )
 
     def clean(self):
