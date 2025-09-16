@@ -104,12 +104,7 @@ class Person(TimeStampedModel):
         "Número diario de canastas",
         default=1
     )
-
-    is_actived = models.BooleanField(
-        "Personal activado",
-        default=True
-    )
-
+    
     objects = PersonManager()
 
     class Meta:
