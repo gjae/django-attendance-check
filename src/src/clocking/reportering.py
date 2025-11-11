@@ -1,4 +1,5 @@
 from src.clocking.models import DailyChecks
+from typing import List
 from dataclasses import dataclass
 from django.db.models import (
     Window, F, Value, BooleanField, DateField, CharField, 
@@ -39,9 +40,9 @@ class AttendanceReport:
         self.name_field = "name" if related_name == "employee" else "names"
         self.lastname_field = "last_name" if related_name == "employee" else "lastnames"
         self.identification_field = "identity" if related_name != "employee" else "cedula"
+        
+        self.set_date_range = set(self.get_day_range(from_date, until_date))
 
-
-        print(f" fields: {self.name_field} // {self.lastname_field} // {self.identification_field}")
         self.queryset = self.general_report(self.from_date, self.until_date)
 
     def get_related_name(self):
@@ -190,6 +191,39 @@ class AttendanceReport:
     def get_queryset(self):
         return self.queryset
     
+    def get_day_range(self, start_date: str, end_date: str, date_format: str = "%Y-%m-%d") -> List[str]:
+        """
+        Genera una lista ordenada con todos los días entre dos fechas.
+        
+        Args:
+            start_date (str): Fecha de inicio en formato string
+            end_date (str): Fecha fin en formato string
+            date_format (str): Formato de las fechas (por defecto: YYYY-MM-DD)
+            
+        Returns:
+            List[str]: Lista de fechas en formato string ordenadas cronológicamente
+            
+        Raises:
+            ValueError: Si las fechas no están en el formato correcto o si start_date > end_date
+        """
+        # Convertir strings a objetos datetime
+        start = datetime.strptime(start_date, date_format) if isinstance(start_date, str) else start_date
+        end = datetime.strptime(end_date, date_format) if isinstance(end_date, str) else end_date
+        
+        # Validar que start_date no sea mayor que end_date
+        if start > end:
+            raise ValueError("start_date no puede ser mayor que end_date")
+        
+        # Generar la lista de días
+        days_list = []
+        current_date = start
+        
+        while current_date <= end:
+            days_list.append(current_date.date())
+            current_date += timedelta(days=1)
+        
+        return days_list
+    
     def group_by_date(self):
         new_data = defaultdict(lambda: [])
         row_counter = 0
@@ -220,6 +254,11 @@ class AttendanceReport:
 
         return new_data
     
+    def _complete_week_days(self, dates: List[TimeRecord]) -> List[TimeRecord]:
+        result = set([t.day for t in dates]).symmetric_difference(self.set_date_range)
+        return dates + [TimeRecord(start_time=None, end_time=None, total_hours=0, day=d if not isinstance(d, str) else datetime.strptime(d, "%Y-%m-%d")) for d in result]
+    
+
     def group_by_user(self):
         new_data = defaultdict(lambda: dict())
         row_counter = 0
@@ -250,6 +289,8 @@ class AttendanceReport:
                     )
                 ],
             }
+        for user_id in new_data:
+            new_data[user_id]["dates"] = sorted(self._complete_week_days(new_data[user_id]["dates"]), key=lambda x: x.day.date() if isinstance(x.day, datetime) else x.day)
 
         return new_data
 

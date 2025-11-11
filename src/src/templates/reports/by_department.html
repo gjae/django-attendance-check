@@ -8,6 +8,14 @@
 {% block title %}Generador de reporte por departamento{% endblock %}
 {% block report_identify %}Reporte por departamento{% endblock %}
 {% block body %}
+<!-- Loader -->
+<div id="loader" class="loader-overlay" style="display: none;">
+    <div class="loader-content">
+        <div class="loader-spinner"></div>
+        <p>Generando reporte...</p>
+    </div>
+</div>
+
 <div x-data="app()" class="container-fluid" x-init="$nextTick(()=> init())">
     <form :action="form == 'pdf' ? '/reports/department/pdf/': '/reports/department/excel/'" :method="form == 'pdf' ? 'get' : 'post'" id="formReport">
         {% csrf_token %}
@@ -87,13 +95,57 @@
                 </div>
             </div>
             <div class="col-12 mt-2">
-                <button class="btn btn-primary"  @click="generarRangoFechas" type="button">
+                <button class="btn btn-primary" @click="generarRangoFechas" type="button">
                     <i class="fas fa-download"></i> Generar
                 </button>
             </div>
         </div>
     </form>
 </div>
+
+<style>
+.loader-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.loader-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.loader-spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 2s linear infinite;
+    margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loader-content p {
+    margin: 0;
+    font-weight: bold;
+    color: #333;
+}
+</style>
 {{departments|json_script:"departments"}}
 {% endblock body %}
 {% block custom_js %}
@@ -119,6 +171,9 @@
                 this.rebuild($("#workcenter_id").val())
             },
             generarRangoFechas() {
+                // Mostrar loader
+                document.getElementById('loader').style.display = 'flex';
+                
                 let tipo = document.getElementById("id_date_range").value
                 let mes = parseInt(document.getElementById("id_month_selector").value)
                 let year = parseInt(document.getElementById("id_annuity_selector").value)
@@ -130,14 +185,20 @@
 
                 // Validaciones básicas
                 if (typeof mes !== 'number' || mes < 1 || mes > 12) {
+                    document.getElementById('loader').style.display = 'none';
                     throw new Error('El mes debe ser un número entre 1 y 12');
                 }
                 if (typeof year !== 'number' || year < 1000 || year > 9999) {
+                    document.getElementById('loader').style.display = 'none';
                     throw new Error('El año debe ser un número válido (entre 1000 y 9999)');
                 }
                 if (!['Q1', 'Q2', 0].includes(tipo)) {
+                    document.getElementById('loader').style.display = 'none';
                     throw new Error("El tipo debe ser 'Q1', 'Q2' o 0");
                 }
+
+                document.getElementById("loader").style.display = 'block';
+
 
                 // Ajustar mes a base 0 (JavaScript usa enero = 0)
                 const mesJS = mes - 1;
@@ -162,8 +223,10 @@
                 document.getElementById("id_start_at").value = fechaInicio.toISOString().split('T')[0];
                 document.getElementById("id_end_at").value = fechaFin.toISOString().split('T')[0];
 
-                document.getElementById("formReport").submit()
-
+                // Enviar formulario después de un pequeño delay para que se vea el loader
+                setTimeout(() => {
+                    document.getElementById("formReport").submit();
+                }, 100);
             },
             rebuild(wcId) {
                 let center = parseInt(wcId)

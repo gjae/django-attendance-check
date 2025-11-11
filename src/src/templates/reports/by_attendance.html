@@ -3,12 +3,64 @@
 
 {% block head %}
 <script src="/static/unfold/js/alpine.js" defer=""></script>
+<style>
+    
+.loader-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.loader-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.loader-spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 2s linear infinite;
+    margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loader-content p {
+    margin: 0;
+    font-weight: bold;
+    color: #333;
+}
+</style>
 {% endblock %}
 
 {% block title %}Generador de reporte de asistencia{% endblock %}
 {% block report_identify %}Reporte de asistencia{% endblock %}
 {% block body %}
+
 <div x-data="app()" class="container-fluid" x-init="$nextTick(()=> init())">
+    <!-- Loader -->
+    <div id="loader" class="loader-overlay"  style="display: none;">
+        <div class="loader-content">
+            <div class="loader-spinner"></div>
+            <p>Generando reporte...</p>
+        </div>
+    </div>
     <form :action="form == 'pdf' ? '/reports/attendance/pdf/': '/reports/attendance/excel/'" method="get" id="formReport">
         {% csrf_token %}
         <div class="row">
@@ -26,12 +78,21 @@
             <div class="col-12">
                 <hr>
             </div>
-            <div class="col-sm-12 col-lg-4">
-                <label for="employer_id">
-                    <strong>Departamento <span class="text-danger">*</span> </strong>
-                </label>
-                <select name="department" x-bind:disabled="!enable_office" required id="department_id" class="form-control select2bs5">
-                </select>
+            <div class="row">
+                <div class="col-sm-12 col-md-3 col-lg-3">
+                    <label for="id_report_type_3">
+                        <input type="checkbox" x-model="enable_office" name="by_office" @click="enable_office = !enable_office" :value="`${enable_office ? 1 : 0}`"> Por departamento
+                    </label>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-12 col-lg-4">
+                    <label for="employer_id">
+                        <strong>Departamento <span class="text-danger">*</span> </strong>
+                    </label>
+                    <select name="department" x-bind:disabled="!enable_office" required id="department_id" class="form-control select2bs5">
+                    </select>
+                </div>
             </div>
             <div class="col-sm-4 col-lg-4">
                 <input type="hidden" name="start_at" id="id_start_at" class="form-control">
@@ -90,11 +151,6 @@
                         <input type="radio" name="report_type" @click="form = 'excel'" value="2" id="id_type_report_2"> Generar en EXCEL
                     </label>
                 </div>
-                <div class="col-sm-12 col-md-3 col-lg-3">
-                    <label for="id_report_type_3">
-                        <input type="checkbox" x-model="enable_office" name="by_office" @click="enable_office = !enable_office" :value="`${enable_office ? 1 : 0}`"> Por departamento
-                    </label>
-                </div>
             </div>
             <div class="row">
                 <strong>Tipo de reporte</strong>
@@ -119,6 +175,7 @@
     </form>
 </div>
 {{departments|json_script:"departments"}}
+
 {% endblock body %}
 {% block custom_js %}
 <script>
@@ -184,6 +241,10 @@
                     // Todo el mes
                     fechaInicio = new Date(year, mesJS, 1);
                     fechaFin = new Date(year, mesJS + 1, 0);
+                }
+
+                if (this.form == 'pdf') {
+                    document.getElementById('loader').style.display = 'flex';
                 }
 
                 document.getElementById("id_start_at").value = fechaInicio.toISOString().split('T')[0];

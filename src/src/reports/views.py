@@ -684,12 +684,15 @@ class ReportAttendanceExcel(ReportBrandMixin, ReportExcelMixin):
         ws.merge_cells("A1:A6")
         img = Image("/app/src/static/images/branding/logo_inpromaro_lit_backup.png")
         ws.add_image(img, "A1")
-        ws.merge_cells("B1:G6")
+        if self.request.GET.get("type_report", "simple") =="simple":
+            ws.merge_cells("B1:G6")
+        else:
+            ws.merge_cells("B1:J6")
         department = None
         if int(self.request.GET.get("by_office", 0)) == 1:
             department = Department.objects.get(id=self.request.GET.get("department"))            
             ws["B1"].alignment = Alignment(horizontal="center", vertical="center")
-            ws["B1"].font = Font(bold=True, size=13, name="Arial")
+            ws["B1"].font = Font(bold=True, size=10, name="Arial")
 
         ws["B1"].value = self.get_headlines(department, int(self.request.GET.get("department", 0)))
         for i in range(6):
@@ -711,7 +714,6 @@ class ReportAttendanceExcel(ReportBrandMixin, ReportExcelMixin):
     
     def get_headers(self):
         headers = [
-            "",
             "Cédula", 
             "Nombre",
             "Apellido",
@@ -724,6 +726,8 @@ class ReportAttendanceExcel(ReportBrandMixin, ReportExcelMixin):
             headers.append("Fecha de salida")
             headers.append("Hora de salida")
             headers.append("Horas trabajadas")
+        else:
+            headers.insert(0, "")
         
         headers.append("Departamento")
         return headers
@@ -742,7 +746,6 @@ class ReportAttendanceExcel(ReportBrandMixin, ReportExcelMixin):
         
         else:
             columns = [
-                "",
                 record['cedula'],
                 record['name'],
                 record['last_name'],
@@ -841,9 +844,9 @@ class ReportAttendanceExcel(ReportBrandMixin, ReportExcelMixin):
                 checking_record = []
                 ws.append(self.process_row(record))
                 for time_record in record["dates"]:
-                    checking_record = ["", "", "", "", "",
-                                    f"{weekdays[time_record.start_time.weekday()]} {time_record.start_time.strftime('%d')} {months[time_record.start_time.month]} de {time_record.start_time.year}",
-                                    time_record.start_time.strftime("%I:%M"),
+                    checking_record = [ "", "", "", "",
+                                    f"{weekdays[time_record.day.weekday()]} {time_record.day.strftime('%d')} {months[time_record.day.month]} de {time_record.day.year}",
+                                    time_record.start_time.strftime("%I:%M") if time_record.start_time is not None else "",
                                     f"{weekdays[time_record.end_time.weekday()]} {time_record.end_time.strftime('%d')} {months[time_record.end_time.month]} de {time_record.end_time.year}" if time_record.end_time is not None else "",
                                     time_record.end_time.strftime("%I:%M") if time_record.end_time is not None else "",
                                     time_record.total_hours,
