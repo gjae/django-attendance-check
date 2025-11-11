@@ -541,11 +541,11 @@ def attendance_by_department_xlsx(context):
     row = 9
     total_hours = 0
     for user in context['data']:
-        sheet[f"A{row}"] = user["person"].identity
-        sheet[f"B{row}"] = user["person"].names
-        sheet[f"C{row}"] = user["person"].lastnames
-        sheet[f"D{row}"] = user["person"].position.position
-        sheet[f"E{row}"] = context["total_days_by_user"].get(user["person"].id, "--")
+        sheet[f"A{row}"] = user["person"]["cedula"]
+        sheet[f"B{row}"] = user["person"]["name"]
+        sheet[f"C{row}"] = user["person"]["last_name"]
+        sheet[f"D{row}"] = user["person"]["position"]["position"]
+        sheet[f"E{row}"] = context["total_days_by_user"].get(user["person"]["id"], "--")
         sheet[f"F{row}"] = user["abs_total_hours"]
         total_hours += user["abs_total_hours"]
         row += 1

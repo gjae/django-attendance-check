@@ -31,6 +31,10 @@ class BaseCheckingManager(models.Manager):
     def get_daily_report_model(self):
         from src.clocking.models import DailyChecks
         return DailyChecks
+    
+    def get_related_name(self):
+        return "employee"
+
 
 class CheckingManager(BaseCheckingManager):
 
@@ -164,71 +168,19 @@ class CheckingManager(BaseCheckingManager):
         for i in range(0, len(response), n):  
             yield response[i:i + n] 
 
-    def report_by_department(self, *, department, from_date, until_date):
-        from src.employees.models import Employee
-        from src.clocking.models import DailyChecks
-        logger = logging.getLogger("weasyprint")
-        logger.addHandler(logging.NullHandler())
-        logger.setLevel(40) 
-        response = []
-        days_checked_by_employer = {}
-        hours_accumulateds = 0
-
-        employers = (
-            self.get_model()
-            .objects
-            .select_related("position")
-            .filter(department_id=department)
-            .prefetch_related(
-                Prefetch(
-                    "daily_checks",
-                    queryset=(
-                        DailyChecks
-                        .objects
-                        .filter(
-                            daily__date_day__range=[from_date, until_date]
-                        )
-                        .order_by("daily_id", "id")
-                    ),
-                    to_attr="checks"
-                )
+    def report_by_department(self, *, department, from_date, until_date, is_simple = True):
+        from src.clocking.reportering import AttendanceReport
+        report = (
+            AttendanceReport(
+                from_date, 
+                until_date, 
+                related_name=self.get_related_name(), 
+                department=department
             )
+            .sort()
+            .make(simple = is_simple)
         )
-
-        for e in employers:
-            total_hours = 0
-
-            checks = list(self.list_chunks(e.checks, 2, total_checks=0))
-            
-            if not e.is_actived:
-                continue
-
-            if e.cedula not in days_checked_by_employer:
-                days_checked_by_employer[e.id] = len(checks)
-
-            for idx, sublist in enumerate(checks):
-                salida, entrada = sublist[1], sublist[0]
-                if salida.id < entrada.id:
-                    salida, entrada = salida, entrada
-                # if e.id == 678:
-                #    print(f"{salida} ({salida.daily_id}) - {entrada} ({entrada.daily_id}) = {round((salida.checking_time - entrada.checking_time).total_seconds() / 60 / 60, 2)}" )
-                total_hours +=  round((salida.checking_time - entrada.checking_time).total_seconds() / 60 / 60, 2)
-
-            hours_accumulateds += total_hours
-            response.append({
-                "created": e.checks[0].created.strftime("%d-%m-%Y") if len(e.checks) > 0 else "",
-                "employer": e,
-                "person": e,
-                "total_hours": total_hours,
-                "start_at": "",
-                "end_at": "SIN MARCAR" ,
-                "abs_total_hours": round(total_hours, 2),
-                "daily_id": -1
-            })
-
-            
-
-        return response, round(hours_accumulateds, 2), days_checked_by_employer
+        return report
 
     
     def report_by_employee(self, user_id = None, from_date = None, until_date = None, use_for_database = False, department = None, is_employer_model = True):

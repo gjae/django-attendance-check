@@ -64,6 +64,8 @@ class PersonManager(BaseCheckingManager, ClockingBaseCheckingManager):
     def get_identity_fieldname(self):
         return "identity"
     
+    def get_related_name(self):
+        return "person"
 
     def get_employers_with_production(self, date = None, category = 0):
         from src.peladoydescabezado.models import BasketProduction

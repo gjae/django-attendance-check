@@ -1,0 +1,116 @@
+{% extends 'reports/base.html' %}
+{% load reports_utils %}
+{% load clocking %}
+
+{% block custom_css %}
+<style>
+    body {
+        padding: 0;
+        margin: 0;
+        width: 100%; /* Asegura que no tenga un ancho fijo mayor */
+        box-sizing: border-box; /* Previene problemas de desbordamiento */
+    }
+    /* 1. Reglas @page mejoradas (Recomendación del mensaje anterior) */
+    @page {
+        size: Legal;
+        margin-left: 0.5cm; /* Margen seguro (ajusta si lo deseas) */
+        margin-right: 0.5cm;
+        margin-top: 0.5cm;
+        margin-bottom: 0.5cm;
+
+        @bottom-right {
+            content: "Página " counter(page) " de " counter(pages);
+            font-size: 8pt;
+            margin-bottom: 0.5cm;
+        }
+    }
+
+    /* 2. SOLUCIÓN ESPECÍFICA PARA BOOTSTRAP EN IMPRESIÓN */
+    @media print {
+        /* Anula los márgenes negativos de la clase .row */
+        .row {
+            margin-left: 0 !important;
+            margin-right: 0cm !important;
+        }
+
+        /* Opcional: Anula el padding de las columnas para evitar que se junten demasiado */
+        [class^="col-"], [class*=" col-"] {
+            padding-left: 0cm !important;
+            padding-right: 1cm !important;
+        }
+    }
+</style>
+{% endblock custom_css %}
+
+{% block content %} 
+
+<div class="container">
+    <div class="row">
+        {% if only_department %}
+        <div class="col-11 text-center">
+            Departamento: <strong>{{department.name}}</strong>
+        </div>
+        {% endif %}
+        <div class="col-11 text-center">
+            Desde <strong>{{range_start}}</strong> hasta <strong>{{ range_end }}</strong>
+        </div>
+    </div>
+    {% for key in data %}
+        <div class="px-0">
+        <div class="col-10">
+            <table class="table table-bordered table-stripped w-100" style="font-size: 6pt;">
+                <thead >
+                    <tr>
+                        <th colspan="{% if only_department %}8{% else %}9{% endif %}" style="font-size: 9pt;">
+                            Detalle del día {{key|date:"d/m/Y"}}
+                        </th>
+                    </tr>
+                    <tr class="text-center">
+                        <th></th>
+                        <th>Cédula</th>
+                        <th>Nombre</th>
+                        <th>Apellido</th>
+                        <th>Cargo</th>
+                        <th>Entrada</th>
+                        <th>Salida</th>
+                        <th>T.Hs</th>
+                        {% if not only_department %}
+                            <th>Departamento</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                        {% element_by_key dictionary=data key=key as records %}
+                        {% for record in records %}
+                        <tr>
+                            <td class="text-end">{{record.row}}</td>
+                            <td class="text-end">{{record.employer.cedula}}</td>
+                            <td class="text-center">{{record.employer.name}}</td>
+                            <td class="text-center">{{record.employer.last_name}}</td>
+                            <td class="text-center">{{record.employer.position.position}}</td>
+                            <td width="1%" class="px-0 text-right">{{record.start_at|time:"h:i A"}}</td>
+                            <td width="1%" class="px-0 text-right">{{record.end_at|time:"h:i A"}}</td>
+                            <td width="1%" class="px-0 text-right">{{record.total_hours}}</td>
+                            {% if not only_department %}
+                            <td class="text-center" width="1%">{{record.employer.department}}</td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tf>
+                        <td >
+                            <strong></strong>
+                        </td>
+                        <td colspan="{% if only_department %}7{% else %}8{% endif %}" style="text-align: end;">
+                            <strong>Total:</strong> {{records|length}}
+                        </td>
+                    </tf>
+                </tfoot>
+            </table>
+        </div>
+        </div>
+    {% endfor %}
+</div>
+
+{% endblock content %}

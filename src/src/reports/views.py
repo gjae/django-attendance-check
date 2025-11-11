@@ -160,7 +160,8 @@ class ReportByWorkerView(LoginRequiredMixin, TemplateView):
                     "name": str(d),
                     "users": [{
                         "id": u.id,
-                        "name": u.get_fullname()
+                        "name": u.get_fullname(),
+                        "cedula": u.cedula,
                     } for u in d.employers.all()]
                 } for d in w.all_departments]
             })
@@ -168,6 +169,9 @@ class ReportByWorkerView(LoginRequiredMixin, TemplateView):
 
         context["employers"] = Employee.objects.only_actives().order_by("last_name", "name")
         context["departments"] = workcenters
+        context["annuities"] = [2024, 2025, 2026]
+        context["current_annuity"] = 2025
+        context["current_month"] = datetime.now().month
         return context
 
 
@@ -258,6 +262,10 @@ class ReportByDepartmentView(LoginRequiredMixin, TemplateView):
 
 
         context["departments"] = workcenters
+        context["departments"] = workcenters
+        context["annuities"] = [2024, 2025, 2026]
+        context["current_annuity"] = 2025
+        context["current_month"] = datetime.now().month
         return context
 
 
@@ -287,64 +295,96 @@ class AttendanceReport(LoginRequiredMixin, TemplateView):
 
 
         context["departments"] = workcenters
+        context["annuities"] = [2024, 2025, 2026]
+        context["current_annuity"] = 2025
+        context["current_month"] = datetime.now().month
         return context
 
 class ReportByAttendancePdfView(BaseReportMixin, WeasyTemplateResponseMixin, TemplateView):
-    template_name = "reports/by_attendance.pdf.html"
     pdf_attachment = False
     report_type = "trabajador"
     branding_logo = "/app/src/static/images/branding/logo_inpromaro_lit.png"
     pdf_stylesheets = [
         '/app/src/static/css/bootstrap.min.css',
     ]
-    letterhead_lines = (
+    letterhead_lines = [
         "INPROMAR C.A",
         "Reporte de asistencia por departamento",
-    )
+    ]
 
+    def get_template_names(self):
+        if self.request.GET.get("type_report", "simple") == "simple":
+            return ["reports/by_attendance.pdf.html", ]
+        
+        return ["reports/by_detail_attendance.pdf.html", ]
 
     def get_pdf_filename(self):
         now = timezone.now()
+        kind = "departamento"
+        if int(self.request.GET.get("work_center", 1)) != 1:
+            kind = "empresa"
+
+        if self.request.GET.get("type_report", "simple") == "detallado":
+            kind = f"detallado_{kind}"
+
         return (
-            "departamento-{at}.pdf".format(at=now.strftime("%d-%m-%Y"), )
+            f"{kind}-{now.strftime('%d-%m-%Y')}.pdf"
         )
     
 
     def get_letterhead_lines(self):
         now = timezone.now()
         letterhead = super().get_letterhead_lines()
+
+        kind = ""
         
-        return letterhead + (
+        if int(self.request.GET.get("work_center", 1)) != 1:
+            kind = "por empresa"
+            letterhead[1] = f"Reporte de asistencia {kind}"
+        else:
+            kind = "por departamento" if int(self.request.GET.get("by_office", 0)) == 1 else ""
+            letterhead[1] = f"Reporte de asistencia {kind}"
+
+        return letterhead + [
             "<strrong>Fecha de generación {date}</strong>".format(date=now.strftime("%d/%m/%Y %I:%M %p")),
-        )
+        ]
     
-    def get_context_data(self):
-        context = super().get_context_data()
-        records = Employee.objects.select_related("position", "department").annotate(
-            row=Window(
-                RowNumber(),
-                order_by=["last_name", "name"]
-            ),
-            total_checks=Count(
-                "daily_checks",
-                filter=Q(
-                    daily_checks__daily__date_day__range=[
-                        self.request.GET.get("start_at"),
-                        self.request.GET.get("end_at")
-                    ]
-                ),
-                distinct=True
-            )
-        ).filter(total_checks__gte=1)
+    def get_records(self):
+        from src.clocking.reportering import AttendanceReport
+        department = None
         if int(self.request.GET.get("by_office", 0)) == 1:
-            records = records.filter(department_id=int(self.request.GET.get("department")))
+            department = int(self.request.GET.get("department"))
+        report = AttendanceReport(
+            self.request.GET.get("start_at"), 
+            self.request.GET.get("end_at"), 
+            department=department, 
+            include_unattendances=False,
+            work_center=int(self.request.GET.get("work_center", 1))
+        )
+
+        if self.request.GET.get("type_report", "simple") == "simple":
+            print("Records simple")
+            return report.sort().unique_by_user().make(simple=True)[0]
+        
+        return dict(report.sort().group_by_date())
+    
+    def _get_simple_report(self):
+        records = []
+        context = super().get_context_data()
+        records = self.get_records()
+
+        if int(self.request.GET.get("by_office", 0)) == 1:
             context["department"] = Department.objects.filter(id=int(self.request.GET.get("department"))).first()
 
-        context["data"] = records.distinct().order_by("row")
+        context["data"] = records
         context["range_start"] = datetime.strptime(self.request.GET.get("start_at"), "%Y-%m-%d").strftime("%d/%m/%Y")
         context["range_end"] = datetime.strptime(self.request.GET.get("end_at"), "%Y-%m-%d").strftime("%d/%m/%Y")
         context["only_department"] = int(self.request.GET.get("by_office", 0)) == 1
         return context
+    
+    def get_context_data(self):
+        print(f"Tipo de reporte ", self.request.GET)
+        return self._get_simple_report()
     
     def post(self, request, *args, **kwargs):
         return self.render_to_response(self.get_context_data())
@@ -372,15 +412,43 @@ class ReportExcelMixin(LoginRequiredMixin, View):
     def post_processing(self, data, sheet, wb):
         pass
 
+    def set_header(self, ws):
+        headers = self.get_headers()
+        ws.append(headers)
+
+    def set_sheet_title(self, ws, title = None):
+        if title is None:
+            ws.title = self.get_sheet_title()
+        else:
+            ws.title = title
+    
+    def get_worksheet(self):
+        workbook = Workbook()
+        ws = workbook.active
+        return workbook, ws
+    
+    def fit_column_size(self, ws):
+        dim_holder = DimensionHolder(worksheet=ws)
+        for col in range(ws.min_column, ws.max_column + 1):
+            dim_holder[get_column_letter(col)] = ColumnDimension(ws, min=col, max=col, width=20)
+        ws.column_dimensions = dim_holder
+
+    def get_response(self, workbook):
+        file_name = self.get_file_name()
+        response = HttpResponse(content_type="application/ms-excel")
+        content = "attachment; filename = {0}".format(file_name)
+        response["Content-Disposition"] = content
+        workbook.save(response)
+        return response
+    
+
     def post(self, request, *args, **kwargs):
         self.before_process()
-        workbook = Workbook()
-        headers = self.get_headers()
-        ws = workbook.active
+        workbook, ws = self.get_worksheet()
         self.before(ws)
-        ws.title = self.get_sheet_title()
+        self.set_sheet_title(ws)
+        self.set_header(ws)
 
-        ws.append(headers)
         data, total_hours, days_checkeds = self.get_report_content() 
 
         for record in data:
@@ -389,20 +457,8 @@ class ReportExcelMixin(LoginRequiredMixin, View):
         ws.append(self.get_footer(total_hours))
 
         self.post_processing(data, ws, workbook)
-
-
-        dim_holder = DimensionHolder(worksheet=ws)
-
-        for col in range(ws.min_column, ws.max_column + 1):
-            dim_holder[get_column_letter(col)] = ColumnDimension(ws, min=col, max=col, width=20)
-        
-        ws.column_dimensions = dim_holder
-        file_name = self.get_file_name()
-        response = HttpResponse(content_type="application/ms-excel")
-        content = "attachment; filename = {0}".format(file_name)
-        response["Content-Disposition"] = content
-        workbook.save(response)
-        return response
+        self.fit_column_size(ws)
+        return self.get_response(workbook)
     
 
 class ReportBrandMixin:
@@ -593,7 +649,7 @@ class ReportDepartmentExcel(ReportBrandMixin, ReportExcelMixin):
 class ReportAttendanceExcel(ReportBrandMixin, ReportExcelMixin):
 
  
-    def get(self, request, *args, **kwargs):
+    def default(self, request, *args, **kwargs):
         self.before_process()
         workbook = Workbook()
         headers = self.get_headers()
@@ -654,24 +710,53 @@ class ReportAttendanceExcel(ReportBrandMixin, ReportExcelMixin):
         )
     
     def get_headers(self):
-        return [
+        headers = [
             "",
-            "Cedula", 
+            "Cédula", 
             "Nombre",
             "Apellido",
             "Cargo",
-            "Departamento"
         ]
+
+        if self.request.GET.get("type_report", "simple") != "simple":
+            headers.append("Fecha de entrada")
+            headers.append("Hora de entrada")
+            headers.append("Fecha de salida")
+            headers.append("Hora de salida")
+            headers.append("Horas trabajadas")
+        
+        headers.append("Departamento")
+        return headers
     
     def process_row(self, record, *args, **kwargs):
-        return [
-            record.row,
-            record.cedula,
-            record.name,
-            record.last_name,
-            record.position.position,
-            record.department.name
-        ]
+        columns = []
+
+        if self.request.GET.get("type_report", "simple") == "simple":
+            columns =  [
+                record['row'],
+                record['employer']['cedula'],
+                record['employer']['name'],
+                record['employer']['last_name'],
+                record['employer']['position']['position'],
+            ]
+        
+        else:
+            columns = [
+                "",
+                record['cedula'],
+                record['name'],
+                record['last_name'],
+                record['position']['position'],
+                "--",
+                "--",
+                "--",
+                "--",
+                "--",
+            ]
+        
+        columns.append(record["employer"]['department'] if 'employer' in record else record['department'])
+        return columns
+    
 
     def get_sheet_title(self):
         return "Reporte por trabajador"
@@ -681,29 +766,103 @@ class ReportAttendanceExcel(ReportBrandMixin, ReportExcelMixin):
             at=calendar.timegm(timezone.now().timetuple())
         )
 
+    def get_records(self):
+        from src.clocking.reportering import AttendanceReport
+        department = None
+        if int(self.request.GET.get("by_office", 0)) == 1:
+            department = int(self.request.GET.get("department"))
+
+        report = AttendanceReport(
+            self.request.GET.get("start_at"), 
+            self.request.GET.get("end_at"), 
+            department=department, 
+            include_unattendances=False,
+            work_center=int(self.request.GET.get("work_center", 1))
+        )
+
+        if self.request.GET.get("type_report", "simple") == "simple":
+            print("Records simple")
+            return report.sort().unique_by_user().make(simple=True)[0]
+        
+        return dict(report.sort().group_by_user())
+    
+    def get(self, request, *args, **kwargs):
+        weekdays = {
+            0: "Lunes",
+            1: "Martes",
+            2: "Miércoles",
+            3: "Jueves",
+            4: "Viernes",
+            5: "Sábado",
+            6: "Domingo",
+        }
+
+        months = {
+            1: "Enero",
+            2: "Febrero",
+            3: "Marzo",
+            4: "Abril",
+            5: "Mayo",
+            6: "Junio",
+            7: "Julio",
+            8: "Agosto",
+            9: "Septiembre",
+            10: "Octubre",
+            11: "Noviembre",
+            12: "Diciembre",
+        }
+        if self.request.GET.get("type_report", "simple") == "simple":
+            return self.default(request, *args, **kwargs)
+        
+        new_page = False
+        workbook, ws = self.get_worksheet()
+        first_page = ws
+        self.before(ws)
+        self.set_sheet_title(ws, self.get_sheet_title())
+        self.set_header(ws)
+
+        data = self.get_records()
+        if self.request.GET.get("type_report", "simple") == "simple":
+            for records in data:
+                if new_page:
+                    title = f"Detalle del día {records.strftime('%d-%m-%Y')}"
+                    ws = workbook.create_sheet(title)
+                    self.before(ws)
+                    self.set_header(ws)
+                    self.post_processing(data[records], ws, workbook)
+                    self.fit_column_size(ws)
+
+                for record in data[records]:
+                    ws.append(self.process_row(record))
+                new_page = True
+        else:
+            for record in data.values():
+                current_record = self.process_row(record)
+                checking_record = []
+                ws.append(self.process_row(record))
+                for time_record in record["dates"]:
+                    checking_record = ["", "", "", "", "",
+                                    f"{weekdays[time_record.start_time.weekday()]} {time_record.start_time.strftime('%d')} {months[time_record.start_time.month]} de {time_record.start_time.year}",
+                                    time_record.start_time.strftime("%I:%M"),
+                                    f"{weekdays[time_record.end_time.weekday()]} {time_record.end_time.strftime('%d')} {months[time_record.end_time.month]} de {time_record.end_time.year}" if time_record.end_time is not None else "",
+                                    time_record.end_time.strftime("%I:%M") if time_record.end_time is not None else "",
+                                    time_record.total_hours,
+                                    ]
+                    ws.append(checking_record)
+
+
+        self.fit_column_size(first_page)
+        return self.get_response(workbook)
+        
+
     def get_report_content(self):
         self.context = {}
-        records =  Employee.objects.select_related("position", "department").annotate(
-            row=Window(
-                RowNumber(),
-                order_by=["last_name", "name", ]
-            ),
-            total_checks=Count(
-                "daily_checks",
-                filter=Q(
-                    daily_checks__daily__date_day__range=[
-                        self.request.GET.get("start_at"),
-                        self.request.GET.get("end_at")
-                    ]
-                ),
-                distinct=True
-            )
-        ).filter(total_checks__gte=1)
+        records = self.get_records()
+
         if int(self.request.GET.get("by_office", 0)) == 1:
-            records = records.filter(department_id=int(self.request.GET.get("department")))
             self.context["department"] = Department.objects.filter(id=int(self.request.GET.get("department"))).first()
 
-        self.context["data"] = records.distinct().order_by("row")
+        self.context["data"] = records
         self.context["range_start"] = datetime.strptime(self.request.GET.get("start_at"), "%Y-%m-%d").strftime("%d/%m/%Y")
         self.context["range_end"] = datetime.strptime(self.request.GET.get("end_at"), "%Y-%m-%d").strftime("%d/%m/%Y")
         self.context["only_department"] = int(self.request.GET.get("by_office", 0)) == 1

@@ -11,6 +11,8 @@ def day_has_observation(context, day, observations):
 
 @register.filter
 def get_total_days_by_user(user, counters):
+    if isinstance(user, dict):
+        return counters[user["id"]]
     return counters[user.id]
 
 @register.filter

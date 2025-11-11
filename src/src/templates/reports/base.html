@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reporte por {{report_type}}</title>
 
+    {% block custom_css %}
     <style>
         @page {
             size: Legal;
@@ -18,6 +19,7 @@
             }
         }
     </style>
+    {% endblock custom_css %}
 </head>
 <body>
     <div id="letterhead">

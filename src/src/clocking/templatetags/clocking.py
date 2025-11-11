@@ -29,3 +29,8 @@ def has_clocking_permissions(context):
         return groups.exists()
     
     return perms.exists()
+
+
+@register.simple_tag(takes_context=True)
+def element_by_key(context , dictionary, key):
+    return dictionary.get(key, [])
