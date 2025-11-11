@@ -849,7 +849,7 @@ class ReportAttendanceExcel(ReportBrandMixin, ReportExcelMixin):
                                     time_record.start_time.strftime("%I:%M") if time_record.start_time is not None else "",
                                     f"{weekdays[time_record.end_time.weekday()]} {time_record.end_time.strftime('%d')} {months[time_record.end_time.month]} de {time_record.end_time.year}" if time_record.end_time is not None else "",
                                     time_record.end_time.strftime("%I:%M") if time_record.end_time is not None else "",
-                                    time_record.total_hours,
+                                    round(time_record.total_hours, 2),
                                     ]
                     ws.append(checking_record)
 
