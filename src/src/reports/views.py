@@ -23,6 +23,7 @@ from src.reports.utils import has_observation
 from src.settings.models import Department
 from src.clocking.models import DailyChecks, DailyCalendarObservation
 from src.settings.models import WorkCenter
+from src.utils.number import truncate_float
 
 
 class ReportLetterheadException(Exception):
@@ -845,11 +846,11 @@ class ReportAttendanceExcel(ReportBrandMixin, ReportExcelMixin):
                 ws.append(self.process_row(record))
                 for time_record in record["dates"]:
                     checking_record = [ "", "", "", "",
-                                    f"{weekdays[time_record.day.weekday()]} {time_record.day.strftime('%d')} {months[time_record.day.month]} de {time_record.day.year}",
-                                    time_record.start_time.strftime("%I:%M") if time_record.start_time is not None else "",
-                                    f"{weekdays[time_record.end_time.weekday()]} {time_record.end_time.strftime('%d')} {months[time_record.end_time.month]} de {time_record.end_time.year}" if time_record.end_time is not None else "",
-                                    time_record.end_time.strftime("%I:%M") if time_record.end_time is not None else "",
-                                    round(time_record.total_hours, 2),
+                                    time_record.day.strftime('%d/%m/%Y'),
+                                    time_record.start_time.strftime("%I:%M %p") if time_record.start_time is not None else "",
+                                    time_record.end_time.strftime('%d/%m/%Y') if time_record.end_time is not None else "",
+                                    time_record.end_time.strftime("%I:%M %p") if time_record.end_time is not None else "",
+                                    truncate_float(time_record.total_hours, 2) + 0.01 if truncate_float(time_record.total_hours, 2) else "",
                                     ]
                     ws.append(checking_record)
 

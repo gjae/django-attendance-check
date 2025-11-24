@@ -20,8 +20,11 @@ class MyDetailView(DetailView):
         return Person
 
 class PrintCartnetView(WeasyTemplateResponseMixin, MyDetailView):
-    pdf_filename = 'carnet.pdf'
     pdf_attachment = False
+
+    def get_pdf_filename(self):
+        employer = self.get_context_data().get("current_carnet_data")
+        return f"{employer.name}_{employer.last_name}_{employer.cedula}.pdf"
 
 
     def get_context_data(self, **kwargs):

@@ -17,17 +17,19 @@
 </div>
 
 <div x-data="app()" class="container-fluid" x-init="$nextTick(()=> init())">
-    <form :action="form == 'pdf' ? '/reports/department/pdf/': '/reports/department/excel/'" :method="form == 'pdf' ? 'get' : 'post'" id="formReport">
+    <form :action="form == 'pdf' ? '/reports/department/pdf/': '/reports/department/excel/'"
+        :method="form == 'pdf' ? 'get' : 'post'" id="formReport">
         {% csrf_token %}
         <div class="row">
             <div class="col-sm-12 col-lg-4 mb-2">
                 <label for="employer_id">
-                    <strong>Empresa  </strong>
+                    <strong>Empresa </strong>
                 </label>
                 <select name="work_center" required id="workcenter_id" class="form-control select2bs5">
                     <option value="">--</option>
                     {% for department in departments %}
-                        <option {% if department.name == 'INPROMAR' %}selected{% endif %} value="{{department.id}}"> {{department.name}}</option>
+                    <option {% if department.name == 'INPROMAR' %}selected{% endif %} value="{{department.id}}">
+                        {{department.name}}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -42,55 +44,28 @@
                 </select>
             </div>
             <div class="col-sm-4 col-lg-4">
-                <input type="hidden" name="start_at" id="id_start_at" class="form-control">
-                <input type="hidden" name="end_at" id="id_end_at" class="form-control">
-                <label for="id_annuity_selector">
-                    <strong>Año <span class="text-danger">*</span> </strong>
+                <label for="id_start_at">
+                    <strong>Desde <span class="text-danger">*</span> </strong>
                 </label>
-                <select name="annuity" id="id_annuity_selector" required class="form-control">
-                    {% for year in annuities %}
-                        <option value="{{year}}" {% if year == current_annuity %}selected{% endif %}>{{year}}</option>
-                    {% endfor %}
-                </select>
+                <input type="date" name="start_at" id="id_start_at" required class="form-control">
             </div>
             <div class="col-sm-4 col-lg-4">
-                <label for="id_month_selector">
-                    <strong>Mes <span class="text-danger">*</span> </strong>
+                <label for="id_end_at">
+                    <strong>Hasta <span class="text-danger">*</span> </strong>
                 </label>
-                <select name="month" id="id_month_selector" class="form-control">
-                    <option {% if current_month == 1 %}selected{% endif %} value="1">Enero</option>
-                    <option {% if current_month == 2 %}selected{% endif %} value="2">Febrero</option>
-                    <option {% if current_month == 3 %}selected{% endif %} value="3">Marzo</option>
-                    <option {% if current_month == 4 %}selected{% endif %} value="4">Abril</option>
-                    <option {% if current_month == 5 %}selected{% endif %} value="5">Mayo</option>
-                    <option {% if current_month == 6 %}selected{% endif %} value="6">Junio</option>
-                    <option {% if current_month == 7 %}selected{% endif %} value="7">Julio</option>
-                    <option {% if current_month == 8 %}selected{% endif %} value="8">Agosto</option>
-                    <option {% if current_month == 9 %}selected{% endif %} value="9">Septiembre</option>
-                    <option {% if current_month == 10 %}selected{% endif %} value="10">Octubre</option>
-                    <option {% if current_month == 11 %}selected{% endif %} value="11">Noviembre</option>
-                    <option {% if current_month == 12 %}selected{% endif %} value="12">Diciembre</option>
-                </select>
-            </div>
-            <div class="col-sm-4 col-lg-4">
-                <label for="id_date_range">
-                    <strong>Rango de fecha <span class="text-danger">*</span> </strong>
-                </label>
-                <select name="date_range" id="id_date_range" class="form-control">
-                    <option value="Q1">Primera Quincena</option>
-                    <option value="Q2">Segunda Quincena</option>
-                    <option value="0">Todo el mes</option>
-                </select>
+                <input type="date" name="end_at" id="id_end_at" required class="form-control">
             </div>
             <div class="row">
                 <div class="col-sm-12 col-md-3 col-lg-3">
                     <label for="id_report_type_1">
-                        <input type="radio" name="report_type" @click="form = 'pdf'" value="1" checked id="id_type_report_1"> Generar PDF
+                        <input type="radio" name="report_type" @click="form = 'pdf'" value="1" checked
+                            id="id_type_report_1"> Generar PDF
                     </label>
                 </div>
                 <div class="col-sm-12 col-md-3 col-lg-3">
                     <label for="id_report_type_2">
-                        <input type="radio" name="report_type" @click="form = 'excel'" value="2" id="id_type_report_2"> Generar en EXCEL
+                        <input type="radio" name="report_type" @click="form = 'excel'" value="2" id="id_type_report_2">
+                        Generar en EXCEL
                     </label>
                 </div>
             </div>
@@ -104,47 +79,52 @@
 </div>
 
 <style>
-.loader-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.7);
-    z-index: 9999;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
+    .loader-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        z-index: 9999;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
 
-.loader-content {
-    background: white;
-    padding: 2rem;
-    border-radius: 8px;
-    text-align: center;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
+    .loader-content {
+        background: white;
+        padding: 2rem;
+        border-radius: 8px;
+        text-align: center;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
 
-.loader-spinner {
-    border: 4px solid #f3f3f3;
-    border-top: 4px solid #3498db;
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    animation: spin 2s linear infinite;
-    margin: 0 auto 1rem;
-}
+    .loader-spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #3498db;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 2s linear infinite;
+        margin: 0 auto 1rem;
+    }
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
+    @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
 
-.loader-content p {
-    margin: 0;
-    font-weight: bold;
-    color: #333;
-}
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+
+    .loader-content p {
+        margin: 0;
+        font-weight: bold;
+        color: #333;
+    }
 </style>
 {{departments|json_script:"departments"}}
 {% endblock body %}
@@ -162,66 +142,17 @@
                 }
 
                 this.started = true
-                console.log({datJsON: this.jsonData})
+                console.log({ datJsON: this.jsonData })
                 $("#workcenter_id").on("select2:select", (e) => {
-                    console.log({e, val: e.params.data})
+                    console.log({ e, val: e.params.data })
                     this.rebuild(e.params.data.id)
                 })
-                
+
                 this.rebuild($("#workcenter_id").val())
             },
             generarRangoFechas() {
                 // Mostrar loader
                 document.getElementById('loader').style.display = 'flex';
-                
-                let tipo = document.getElementById("id_date_range").value
-                let mes = parseInt(document.getElementById("id_month_selector").value)
-                let year = parseInt(document.getElementById("id_annuity_selector").value)
-
-                switch(tipo) {
-                    case "0":
-                        tipo = parseInt(tipo)
-                }
-
-                // Validaciones básicas
-                if (typeof mes !== 'number' || mes < 1 || mes > 12) {
-                    document.getElementById('loader').style.display = 'none';
-                    throw new Error('El mes debe ser un número entre 1 y 12');
-                }
-                if (typeof year !== 'number' || year < 1000 || year > 9999) {
-                    document.getElementById('loader').style.display = 'none';
-                    throw new Error('El año debe ser un número válido (entre 1000 y 9999)');
-                }
-                if (!['Q1', 'Q2', 0].includes(tipo)) {
-                    document.getElementById('loader').style.display = 'none';
-                    throw new Error("El tipo debe ser 'Q1', 'Q2' o 0");
-                }
-
-                document.getElementById("loader").style.display = 'block';
-
-
-                // Ajustar mes a base 0 (JavaScript usa enero = 0)
-                const mesJS = mes - 1;
-
-                let fechaInicio, fechaFin;
-
-                if (tipo === 'Q1') {
-                    // Quincena 1: del 1 al 15 del mes
-                    fechaInicio = new Date(year, mesJS, 1);
-                    fechaFin = new Date(year, mesJS, 15);
-                } else if (tipo === 'Q2') {
-                    // Quincena 2: del 16 al último día del mes
-                    fechaInicio = new Date(year, mesJS, 16);
-                    // Último día del mes: día 0 del mes siguiente
-                    fechaFin = new Date(year, mesJS + 1, 0);
-                } else if (tipo === 0) {
-                    // Todo el mes
-                    fechaInicio = new Date(year, mesJS, 1);
-                    fechaFin = new Date(year, mesJS + 1, 0);
-                }
-
-                document.getElementById("id_start_at").value = fechaInicio.toISOString().split('T')[0];
-                document.getElementById("id_end_at").value = fechaFin.toISOString().split('T')[0];
 
                 // Enviar formulario después de un pequeño delay para que se vea el loader
                 setTimeout(() => {

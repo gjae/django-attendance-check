@@ -95,45 +95,16 @@
                 </div>
             </div>
             <div class="col-sm-4 col-lg-4">
-                <input type="hidden" name="start_at" id="id_start_at" class="form-control">
-                <input type="hidden" name="end_at" id="id_end_at" class="form-control">
-                <label for="id_annuity_selector">
-                    <strong>Año <span class="text-danger">*</span> </strong>
+                <label for="id_start_at">
+                    <strong>Desde <span class="text-danger">*</span> </strong>
                 </label>
-                <select name="annuity" id="id_annuity_selector" required class="form-control">
-                    {% for year in annuities %}
-                        <option value="{{year}}" {% if year == current_annuity %}selected{% endif %}>{{year}}</option>
-                    {% endfor %}
-                </select>
+                <input type="date" name="start_at" id="id_start_at" required class="form-control">
             </div>
             <div class="col-sm-4 col-lg-4">
-                <label for="id_month_selector">
-                    <strong>Mes <span class="text-danger">*</span> </strong>
+                <label for="id_end_at">
+                    <strong>Hasta <span class="text-danger">*</span> </strong>
                 </label>
-                <select name="month" id="id_month_selector" class="form-control">
-                    <option {% if current_month == 1 %}selected{% endif %} value="1">Enero</option>
-                    <option {% if current_month == 2 %}selected{% endif %} value="2">Febrero</option>
-                    <option {% if current_month == 3 %}selected{% endif %} value="3">Marzo</option>
-                    <option {% if current_month == 4 %}selected{% endif %} value="4">Abril</option>
-                    <option {% if current_month == 5 %}selected{% endif %} value="5">Mayo</option>
-                    <option {% if current_month == 6 %}selected{% endif %} value="6">Junio</option>
-                    <option {% if current_month == 7 %}selected{% endif %} value="7">Julio</option>
-                    <option {% if current_month == 8 %}selected{% endif %} value="8">Agosto</option>
-                    <option {% if current_month == 9 %}selected{% endif %} value="9">Septiembre</option>
-                    <option {% if current_month == 10 %}selected{% endif %} value="10">Octubre</option>
-                    <option {% if current_month == 11 %}selected{% endif %} value="11">Noviembre</option>
-                    <option {% if current_month == 12 %}selected{% endif %} value="12">Diciembre</option>
-                </select>
-            </div>
-            <div class="col-sm-4 col-lg-4">
-                <label for="id_date_range">
-                    <strong>Rango de fecha <span class="text-danger">*</span> </strong>
-                </label>
-                <select name="date_range" id="id_date_range" class="form-control">
-                    <option value="Q1">Primera Quincena</option>
-                    <option value="Q2">Segunda Quincena</option>
-                    <option value="0">Todo el mes</option>
-                </select>
+                <input type="date" name="end_at" id="id_end_at" required class="form-control">
             </div>
             <div class="row">
                 <div class="col-12">
@@ -195,52 +166,6 @@
                 this.rebuild($("#workcenter_id").val())
             },
             generarRangoFechas() {
-                let tipo = document.getElementById("id_date_range").value
-                let mes = parseInt(document.getElementById("id_month_selector").value)
-                let year = parseInt(document.getElementById("id_annuity_selector").value)
-
-                switch(tipo) {
-                    case "0":
-                        tipo = parseInt(tipo)
-                }
-
-                // Validaciones básicas
-                if (typeof mes !== 'number' || mes < 1 || mes > 12) {
-                    throw new Error('El mes debe ser un número entre 1 y 12');
-                }
-                if (typeof year !== 'number' || year < 1000 || year > 9999) {
-                    throw new Error('El año debe ser un número válido (entre 1000 y 9999)');
-                }
-                if (!['Q1', 'Q2', 0].includes(tipo)) {
-                    throw new Error("El tipo debe ser 'Q1', 'Q2' o 0");
-                }
-
-                // Ajustar mes a base 0 (JavaScript usa enero = 0)
-                const mesJS = mes - 1;
-
-                let fechaInicio, fechaFin;
-
-                if (tipo === 'Q1') {
-                    // Quincena 1: del 1 al 15 del mes
-                    fechaInicio = new Date(year, mesJS, 1);
-                    fechaFin = new Date(year, mesJS, 15);
-                } else if (tipo === 'Q2') {
-                    // Quincena 2: del 16 al último día del mes
-                    fechaInicio = new Date(year, mesJS, 16);
-                    // Último día del mes: día 0 del mes siguiente
-                    fechaFin = new Date(year, mesJS + 1, 0);
-                } else if (tipo === 0) {
-                    // Todo el mes
-                    fechaInicio = new Date(year, mesJS, 1);
-                    fechaFin = new Date(year, mesJS + 1, 0);
-                }
-
-                if (this.form == 'pdf') {
-                    document.getElementById('loader').style.display = 'flex';
-                }
-
-                document.getElementById("id_start_at").value = fechaInicio.toISOString().split('T')[0];
-                document.getElementById("id_end_at").value = fechaFin.toISOString().split('T')[0];
 
                 document.getElementById("formReport").submit()
 
