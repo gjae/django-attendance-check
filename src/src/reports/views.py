@@ -722,6 +722,7 @@ class ReportAttendanceExcel(ReportBrandMixin, ReportExcelMixin):
         ]
 
         if self.request.GET.get("type_report", "simple") != "simple":
+            headers.append("Día")
             headers.append("Fecha de entrada")
             headers.append("Hora de entrada")
             headers.append("Fecha de salida")
@@ -846,6 +847,7 @@ class ReportAttendanceExcel(ReportBrandMixin, ReportExcelMixin):
                 ws.append(self.process_row(record))
                 for time_record in record["dates"]:
                     checking_record = [ "", "", "", "",
+                                    weekdays[time_record.day.weekday()],
                                     time_record.day.strftime('%d/%m/%Y'),
                                     time_record.start_time.strftime("%I:%M %p") if time_record.start_time is not None else "",
                                     time_record.end_time.strftime('%d/%m/%Y') if time_record.end_time is not None else "",
