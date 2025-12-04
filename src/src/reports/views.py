@@ -598,12 +598,12 @@ class ReportDepartmentExcel(ReportBrandMixin, ReportExcelMixin):
     
     def process_row(self, record, *args, **kwargs):
         observation = has_observation(record, self.observations)
-        days_checkeds = kwargs.get("days_checkeds", None)[record["employer"].id] if kwargs.get("days_checkeds", None) is not None else "--"
+        days_checkeds = kwargs.get("days_checkeds", None)[record["employer"]["id"]] if kwargs.get("days_checkeds", None) is not None else "--"
         return [
-            record["employer"].cedula,
-            record["employer"].name,
-            record["employer"].last_name,
-            record["employer"].position.position,
+            record["employer"]["cedula"],
+            record["employer"]["name"],
+            record["employer"]["last_name"],
+            record["employer"]["position"]["position"],
             days_checkeds,
             record["abs_total_hours"]
         ]
