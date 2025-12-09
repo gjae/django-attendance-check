@@ -102,10 +102,14 @@ class AttendanceReport:
                         # Solo usar como salida si es del mismo día
                         end_time=Value(None, TimeField()),
                         # Calcular horas solo si hay salida del mismo día
-                        total_hours=Value(0, output_field=FloatField()),
+                        total_hours=Value(0, output_field=FloatField())
                     )
                     .values(*VALUE_FIELDS)
                 )
+
+                print(f"Union: {self.union_model.__class__} // {Employee.__class__} => {self.union_model.__class__ == Employee.__class__}")
+                if self.union_model.__class__ == Employee.__class__:
+                    unattendances = unattendances.filter(is_actived=True)
 
             data_query = (
                 DailyChecks.objects
