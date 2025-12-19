@@ -107,9 +107,12 @@ class AttendanceReport:
                     .values(*VALUE_FIELDS)
                 )
 
-                print(f"Union: {self.union_model.__class__} // {Employee.__class__} => {self.union_model.__class__ == Employee.__class__}")
-                if self.union_model.__class__ == Employee.__class__:
+                # print(f"Union: {self.union_model.__class__} // {Employee.__class__} => {self.union_model.__class__ == Employee.__class__} ... {self.union_model._meta}")
+                if str(self.union_model._meta) != 'peladoydescabezado.person':
                     unattendances = unattendances.filter(is_actived=True)
+                else:
+                    unattendances = unattendances.filter(is_disabled=False)
+
 
             data_query = (
                 DailyChecks.objects
