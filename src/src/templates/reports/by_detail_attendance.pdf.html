@@ -90,7 +90,7 @@
                             <td class="text-center">{{record.employer.position.position}}</td>
                             <td width="1%" class="px-0 text-right">{{record.start_at|time:"h:i A"|default:""}}</td>
                             <td width="1%" class="px-0 text-right">{{record.end_at|time:"h:i A"|default:""}}</td>
-                            <td width="1%" class="px-0 text-right">{{record.total_hours}}</td>
+                            <td width="1%" class="px-0 text-right">{{record.total_hours|parse_float_to_hours}}</td>
                             {% if not only_department %}
                             <td class="text-center" width="1%">{{record.employer.department}}</td>
                             {% endif %}
