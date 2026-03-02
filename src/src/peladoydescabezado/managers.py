@@ -62,7 +62,7 @@ class PersonManager(BaseCheckingManager, ClockingBaseCheckingManager):
         return Person
 
     def get_identity_fieldname(self):
-        return "identity"
+        return "consecutive_code"
     
     def get_related_name(self):
         return "person"

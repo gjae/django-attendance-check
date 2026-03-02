@@ -43,20 +43,24 @@
                 {% endif %}
             </div>
         </div>
+        {% if print_ci_label %}
         <div class="row d-flex flex-row align-items-center justify-content-center "
             style="max-width: 60mm; padding-left: 3mm; z-index: 11; margin-top: -4mm; margin-left: -7mm;">
             <img src="file://{{current_carnet_data.picture.path}}"
                 style="height: 70px; width: 70px; border-radius: 50%; z-index: 12;" alt="">
 
         </div>
+        {% endif %}
         <div class="row">
             <div class="col-12" style="text-align: center;">
                 <div style="max-width: 55mm; font-size: 8pt; line-height: 120%; margin-left: -3mm; margin-top: 4mm;">
-                    <strong>{{current_carnet_data.name}}</strong>
+                    {% if print_ci_label %}<strong>{{current_carnet_data.name}}</strong>{% endif %}
                     <br>
                     <strong>{{current_carnet_data.last_name}}</strong>
                     <br>
-                    <strong style="font-size: 8pt; margin-top: -1mm;">C.I.: {{current_carnet_data.cedula}}</strong>
+                    <strong style="font-size: 8pt; margin-top: -1mm;">
+                      {% if print_ci_label%}  C.I.:{{current_carnet_data.cedula}}{% endif %} 
+                    </strong>
                 </div>
             </div>
         </div>
@@ -87,7 +91,7 @@
         style="page-break-before:always; max-width: 55mm; padding: 1mm; min-height: 83.5mm; font-size: 11pt; line-height: normal; text-align: center;">
         <div style="border: 0.5mm solid black;">
             <p style="padding: 3mm;">
-                Este carnet es intransferible y solo acredita al portador, titular de la cédula de identidad N°<span
+                Este carnet es intransferible y solo acredita al portador, titular {% if print_ci_label %}de la cédula de identidad{% else %}del carnet{% endif %} N°<span
                     style="text-decoration: underline;">{{current_carnet_data.cedula}}</span>,
                 como trabajador de esta entidad de trabajo.
             </p>

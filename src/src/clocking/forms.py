@@ -1,6 +1,7 @@
 import logging
 from django import forms
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Q
 
 from src.employees.models import Employee
 from src.clocking.models import DailyChecks, DailyCalendarObservation, DailyChecksProxyModelAdmin
@@ -10,7 +11,7 @@ from .exceptions import EmployeeDoenstBelongsToThisWorkCenterException, Employee
 
 class ClientMarkCheckForm(forms.Form):
     entrypoint = forms.ModelChoiceField(queryset=ClientConfig.objects.select_related("work_center").filter(work_center__isnull=False))
-    cedula = forms.IntegerField(
+    cedula = forms.CharField(
         label="Cédula escaneada del QR",
         error_messages={
             "required": "No se ha escaneado correctamente el QR"
@@ -21,10 +22,12 @@ class ClientMarkCheckForm(forms.Form):
 
     def clean_cedula(self):
         cedula = self.cleaned_data["cedula"]
+        print("Busacndo cedula ", cedula)
         if Employee.objects.allow_checking(cedula):
             return cedula
         
         elif Person.objects.allow_checking(cedula):
+            print("Retornando cedula ", cedula)
             return cedula
         
         raise forms.ValidationError(
@@ -32,11 +35,16 @@ class ClientMarkCheckForm(forms.Form):
         )
         
     def _get_employee_obj(self, cedula):
+        print("Cedula ", cedula)
         try:
             employee = Employee.objects.select_related("department", "department__work_center").get(cedula=cedula)
             return employee
         except ObjectDoesNotExist as e:
-            return Person.objects.select_related("department", "department__work_center").get(identity=cedula)
+            print("Consecutivo ",cedula)
+            return Person.objects.select_related("department", "department__work_center").filter(
+                Q(identity=int(cedula))
+                | Q(consecutive_code=cedula)
+            ).first()
 
     def save(self):
         log = logging.getLogger(__name__)
@@ -47,14 +55,14 @@ class ClientMarkCheckForm(forms.Form):
             if not employee.is_actived:
                 raise EmployeeDesactivedException("Trabajador no encontrado o no registrado.")
             current_work_center = self.cleaned_data.get("entrypoint").work_center
-            print(f"Workcenter: ", employee.department.work_center, current_work_center, self.cleaned_data.get("entrypoint").allow_clocking_from_another_workcenter)
-            if employee.department.work_center != current_work_center and not self.cleaned_data.get("entrypoint").allow_clocking_from_another_workcenter:
-                raise EmployeeDoenstBelongsToThisWorkCenterException("El trabajador no pertenece a este centro")
+            if isinstance(employee, Employee):
+                print(f"Workcenter: ", employee.department.work_center, current_work_center, self.cleaned_data.get("entrypoint").allow_clocking_from_another_workcenter)
+                if employee.department.work_center != current_work_center and not self.cleaned_data.get("entrypoint").allow_clocking_from_another_workcenter:
+                    raise EmployeeDoenstBelongsToThisWorkCenterException("El trabajador no pertenece a este centro")
         except ObjectDoesNotExist as e:
             log.exception(e)
             return None
         
-        print("employee", employee, employee.__class__)
         return DailyChecks.objects.checking_user(employee, entrypoint=self.cleaned_data.get("entrypoint", None))
     
 

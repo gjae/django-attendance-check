@@ -82,7 +82,7 @@ class DailyChecks(TimeStampedModel):
         if self.employee is not None:
             return self.employee.picture.url if self.employee.picture is not None and self.employee.picture.name else None
 
-        return self.person.picture.url if self.person.picture is not None and self.person.picture.name else None
+        return "/app/src/static/images/branding/logo_inpromaro_lit.png"
     
     @property 
     def user_model(self):

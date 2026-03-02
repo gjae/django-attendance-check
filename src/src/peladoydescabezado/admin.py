@@ -99,13 +99,6 @@ def print_carnet(modeladmin, request, queryset):
         return False
     
     employer: Person = queryset.first()
-    if employer.picture.name == '':
-        modeladmin.message_user(
-            request,
-            f"El trabajador {employer.get_fullname()} no tiene cargada una foto, por lo que su carnet no puede ser generado",
-            messages.ERROR
-        )
-        return False
 
 
     return HttpResponseRedirect(
@@ -154,27 +147,36 @@ class WeightnessModelAdmin(ModelAdmin):
 class PeopleModelAdmin(ModelAdmin):
     search_fields = ["names", "lastnames", "identity", ]
     list_display = [
-       "personal_photo", "identity", "names", "lastnames",  "department", "position", "created",  "state",
+       "identity", "names", "lastnames", "created", "state",
     ]
     form = PersonalModelForm
     fieldsets = (
-        ("Datos Personales", {
+        ("Datos de Carnet", {
             "fields": (
                 ("names", "lastnames", "identity"),
             ),
         }),
-        ("Identificación", {
-            "fields": (
-                ( "personal_pic", ),
-            ),
-        }),
-        ("Datos Laborales", {
-            "fields": (
-                ("department", "position", ), 
-            )
-        })
     )
     actions = [print_carnet, active_employers, disable_employers]
+
+    def get_form(self, request, obj=None, **kwargs):
+        Form = super().get_form(request, obj, **kwargs)
+        class FormWithRequest(Form):
+            def __init__(self, *args, **form_kwargs):
+                form_kwargs['request'] = request
+                super().__init__(*args, **form_kwargs)
+        return FormWithRequest
+
+    def save_model(self, request, obj, form, change):
+        obj.save(current_user=request.user)
+
+    class Media:
+        js = ("js/person_consecutive.js",)
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj:  # Editando un registro existente
+            return ["names", "lastnames", "identity"]
+        return []
 
     def get_queryset(self, *args, **kwargs):
         return super().get_queryset(*args, **kwargs).select_related("department", "position")

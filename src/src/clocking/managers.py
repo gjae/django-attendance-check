@@ -73,7 +73,7 @@ class CheckingManager(BaseCheckingManager):
         # caso se marca la salida correspondiente.
         # Si la ultima entrada fue hace mas de 24 horas entonces se marca una entrada del dia actual
         last_employer_check = None
-        last_24_hours = datetime.now() - timedelta(hours=24)
+        last_24_hours = datetime.now() - timedelta(hours=20)
         if isinstance(employee, Employee):
             last_employer_check = DailyChecks.objects.filter(Q(employee=employee)).order_by("id").last()
         elif isinstance(employee, Person):

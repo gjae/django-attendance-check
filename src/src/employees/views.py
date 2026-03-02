@@ -30,12 +30,13 @@ class PrintCartnetView(WeasyTemplateResponseMixin, MyDetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["current_carnet_data"] = None
+        context['print_ci_label'] = True
         
-        print("Generando carnet para ", self.request.GET)
         if self.request.GET.get("src") != "pelado":
             context["current_carnet_data"] = Employee.objects.filter(id=self.kwargs.get("pk")).first()
         else:
             context["current_carnet_data"] = Person.objects.filter(id=self.kwargs.get("pk")).first()
+            context['print_ci_label'] = False
 
         return context
     

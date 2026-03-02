@@ -30,6 +30,14 @@ class ClientMarkCheckFormView(JSONResponseMixin, FormView):
             "error_type": "identity"
         })
 
+    def get_position(self, cheecking):
+        if cheecking.person is not None:
+            return "VALOR AGREGADO"
+        return cheecking.employee.position.position if cheecking.employee is not None else cheecking.person.position.position
+ 
+        
+
+
     def form_valid(self, form):
         cheecking = None
         log = logging.getLogger(__name__)
@@ -89,7 +97,7 @@ class ClientMarkCheckFormView(JSONResponseMixin, FormView):
             "user_data": {
                 "id": cheecking.employee.id if cheecking.employee is not None else cheecking.person.id,
                 "name": cheecking.employee.get_fullname() if cheecking.employee is not None else cheecking.person.get_fullname(),
-                "position": cheecking.employee.position.position if cheecking.employee is not None else cheecking.person.position.position,
+                "position": self.get_position(cheecking),
                 "department": "SISTEMAS",
                 "photo": cheecking.get_picture()
             },

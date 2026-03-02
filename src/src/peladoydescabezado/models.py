@@ -1,3 +1,4 @@
+from collections import namedtuple
 from collections import OrderedDict
 from django.db import models
 from model_utils.models import TimeStampedModel
@@ -39,19 +40,19 @@ class Department(BaseDepartment):
 
 class Person(TimeStampedModel):
     names = models.CharField(
-        "Nombres",
+        "Mesa",
         max_length=150
     )
 
     lastnames = models.CharField(
-        "Apellidos",
+        "Código consecutivo",
         max_length=150
     )
 
     identity = models.PositiveIntegerField(
-        "Cédula",
+        "Consecutivo",
         db_index=True,
-        unique=True
+        unique=False
     )
 
     is_disabled = models.BooleanField(
@@ -105,6 +106,19 @@ class Person(TimeStampedModel):
         default=1
     )
     
+    consecutive = models.PositiveIntegerField(
+        "Consecutivo",
+        default=1
+    )
+
+    consecutive_code = models.CharField(
+        "Código del consecutivo",
+        max_length=10,
+        null=True,
+        default=None,
+        help_text="Código único para el consecutivo: Ej. PYD-001"
+    )
+
     objects = PersonManager()
 
     class Meta:
@@ -121,7 +135,11 @@ class Person(TimeStampedModel):
 
     @property
     def picture(self):
-        return self.personal_pic
+        if self.personal_pic and self.personal_pic.name:
+            return self.personal_pic
+
+        file_path = namedtuple("FileFake", ["path"])
+        return file_path("/app/src/static/images/branding/logo_inpromaro_lit.png")
     
     @property
     def name(self):
@@ -133,7 +151,7 @@ class Person(TimeStampedModel):
     
     @property
     def cedula(self):
-        return self.identity
+        return self.consecutive_code
     
     @property
     def allow_checking(self):
@@ -141,6 +159,31 @@ class Person(TimeStampedModel):
     
     def get_fullname(self):
         return self.__str__()
+
+    def save(self, *args, **kwargs):
+        from django.core.cache import cache
+        from django.db.models import Max
+
+        current_user = kwargs.pop('current_user', None)
+        user_id = current_user.pk if current_user else 'anonymous'
+        REDIS_KEY = f'person:next_consecutive:{user_id}'
+
+        if self._state.adding:
+            reserved = cache.get(REDIS_KEY)
+            if reserved is not None:
+                self.consecutive = reserved
+                self.consecutive_code = str(reserved).zfill(4)
+                cache.delete(REDIS_KEY)
+            else:
+                # Fallback: si el TTL expiró, calcular desde la BD
+                max_consecutive = Person.objects.aggregate(
+                    max_val=Max('consecutive')
+                )['max_val'] or 0
+                next_consecutive = max_consecutive + 1
+                self.consecutive = next_consecutive
+                self.consecutive_code = str(next_consecutive).zfill(4)
+
+        super().save(*args, **kwargs)
     
     @property
     def last_name(self):
