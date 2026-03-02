@@ -24,6 +24,7 @@ from src.settings.models import Department
 from src.clocking.models import DailyChecks, DailyCalendarObservation
 from src.settings.models import WorkCenter
 from src.utils.number import truncate_float, parse_float_to_time
+from src.reports.audit import log_report
 
 
 class ReportLetterheadException(Exception):
@@ -134,7 +135,20 @@ class ReportByWorkerPdfView(BaseReportMixin, WeasyTemplateResponseMixin, Templat
         return context
     
     def post(self, request, *args, **kwargs):
+        log_report(request, "Reporte por trabajador", "pdf", {
+            "empleado": request.GET.get("employer"),
+            "fecha_inicio": request.GET.get("start_at"),
+            "fecha_fin": request.GET.get("end_at"),
+        })
         return self.render_to_response(self.get_context_data())
+
+    def get(self, request, *args, **kwargs):
+        log_report(request, "Reporte por trabajador", "pdf", {
+            "empleado": request.GET.get("employer"),
+            "fecha_inicio": request.GET.get("start_at"),
+            "fecha_fin": request.GET.get("end_at"),
+        })
+        return super().get(request, *args, **kwargs)
 
 
 class ReportByWorkerView(LoginRequiredMixin, TemplateView):
@@ -233,7 +247,20 @@ class ReportByDepartmentPdfView(BaseReportMixin, WeasyTemplateResponseMixin, Tem
         return context
     
     def post(self, request, *args, **kwargs):
+        log_report(request, "Reporte por departamento", "pdf", {
+            "departamento": request.GET.get("department"),
+            "fecha_inicio": request.GET.get("start_at"),
+            "fecha_fin": request.GET.get("end_at"),
+        })
         return self.render_to_response(self.get_context_data())
+
+    def get(self, request, *args, **kwargs):
+        log_report(request, "Reporte por departamento", "pdf", {
+            "departamento": request.GET.get("department"),
+            "fecha_inicio": request.GET.get("start_at"),
+            "fecha_fin": request.GET.get("end_at"),
+        })
+        return super().get(request, *args, **kwargs)
 
 
 class ReportByDepartmentView(LoginRequiredMixin, TemplateView):
@@ -388,7 +415,22 @@ class ReportByAttendancePdfView(BaseReportMixin, WeasyTemplateResponseMixin, Tem
         return self._get_simple_report()
     
     def post(self, request, *args, **kwargs):
+        log_report(request, "Reporte de asistencia", "pdf", {
+            "departamento": request.GET.get("department"),
+            "fecha_inicio": request.GET.get("start_at"),
+            "fecha_fin": request.GET.get("end_at"),
+            "tipo": request.GET.get("type_report", "simple"),
+        })
         return self.render_to_response(self.get_context_data())
+
+    def get(self, request, *args, **kwargs):
+        log_report(request, "Reporte de asistencia", "pdf", {
+            "departamento": request.GET.get("department"),
+            "fecha_inicio": request.GET.get("start_at"),
+            "fecha_fin": request.GET.get("end_at"),
+            "tipo": request.GET.get("type_report", "simple"),
+        })
+        return super().get(request, *args, **kwargs)
 
 
 class ReportExcelMixin(LoginRequiredMixin, View):
@@ -459,6 +501,10 @@ class ReportExcelMixin(LoginRequiredMixin, View):
 
         self.post_processing(data, ws, workbook)
         self.fit_column_size(ws)
+        log_report(request, self.get_sheet_title(), "xlsx", {
+            "fecha_inicio": request.POST.get("start_at"),
+            "fecha_fin": request.POST.get("end_at"),
+        })
         return self.get_response(workbook)
     
 
@@ -678,6 +724,11 @@ class ReportAttendanceExcel(ReportBrandMixin, ReportExcelMixin):
         content = "attachment; filename = {0}".format(file_name)
         response["Content-Disposition"] = content
         workbook.save(response)
+        log_report(request, "Reporte de asistencia", "xlsx", {
+            "fecha_inicio": request.GET.get("start_at"),
+            "fecha_fin": request.GET.get("end_at"),
+            "tipo": request.GET.get("type_report", "simple"),
+        })
         return response
     
     def before(self, ws):
@@ -858,6 +909,11 @@ class ReportAttendanceExcel(ReportBrandMixin, ReportExcelMixin):
 
 
         self.fit_column_size(first_page)
+        log_report(request, "Reporte de asistencia (detallado)", "xlsx", {
+            "fecha_inicio": request.GET.get("start_at"),
+            "fecha_fin": request.GET.get("end_at"),
+            "tipo": request.GET.get("type_report", "simple"),
+        })
         return self.get_response(workbook)
         
 

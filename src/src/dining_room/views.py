@@ -17,6 +17,7 @@ from src.employees.models import Employee
 from src.clocking.models import DailyChecks
 from src.dining_room.managers import EmployerNotPresentException, EmployerHasBeenCheckedException
 from src.peladoydescabezado.models import Person
+from src.reports.audit import log_report
 from unfold.views import UnfoldModelAdminViewMixin
 
 # Create your views here.
@@ -137,6 +138,7 @@ def report_dining_today_excel(request, *args, **kwargs):
         
     response["Content-Disposition"] = content
     workbook.save(response)
+    log_report(request, "Reporte comedor diario", "xlsx", {"fecha": str(print_date)})
     return response
 
 def index(request, *args, **kwargs):

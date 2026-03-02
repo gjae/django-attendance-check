@@ -15,6 +15,7 @@ from src.peladoydescabezado.forms import LoadWeightForm
 from src.peladoydescabezado.utils import get_xlsx_report_template, generate_rport_xlsx_simple, attendance_by_department_xlsx, attendance_by_personal_xlsx
 from src.peladoydescabezado.exceptions import WorkerIsNotPresentException
 from src.clocking.models import DailyCalendarObservation
+from src.reports.audit import log_report
 
 @csrf_exempt
 @login_required
@@ -121,6 +122,7 @@ def weight_save_current_report(request, *args, **kwargs):
     
     # Guardar el libro en la respuesta
     template.save(response)
+    log_report(request, "Relación diaria de personal", "xlsx", {"fecha_inicio": str(date_from), "fecha_fin": str(date_end), "turno": turn})
     return response
 
 
@@ -184,6 +186,7 @@ def generate_pdf(request, *args, **kwargs):
     response['X-Frame-Options'] = 'ALLOW-FROM *'
     response['Content-Type'] = 'application/pdf'
     response['Content-Transfer-Encoding'] = 'binary'
+    log_report(request, "Control entrega valor agregado", "pdf", {"fecha": date, "categoria": int(request.GET.get("category", 0))})
     
     return response
 
@@ -231,6 +234,7 @@ def _simple_excel(request):
     
     # Guardar el libro en la respuesta
     book.save(response)
+    log_report(request, "Valor agregado (Excel)", "xlsx", {"fecha": date, "categoria": int(request.GET.get("category", 0))})
     return response
 
 
@@ -306,6 +310,7 @@ def generate_assistence_pdf(request, *args, **kwargs):
     response['X-Frame-Options'] = 'ALLOW-FROM *'
     response['Content-Type'] = 'application/pdf'
     response['Content-Transfer-Encoding'] = 'binary'
+    log_report(request, "Asistencia por departamento (P&D)", "pdf", {"fecha_inicio": date, "fecha_fin": until_date, "departamento": department.name if department else None})
     
     return response
 
@@ -348,6 +353,7 @@ def generate_assistence_xlsx(request, *args, **kwargs):
     
     # Guardar el libro en la respuesta
     book.save(response)
+    log_report(request, "Asistencia por departamento (P&D)", "xlsx", {"fecha_inicio": date, "fecha_fin": until_date, "departamento": department.name if department else None})
     return response
 
 
@@ -428,6 +434,7 @@ def generate_personal_pdf(request, *args, **kwargs):
     response['X-Frame-Options'] = 'ALLOW-FROM *'
     response['Content-Type'] = 'application/pdf'
     response['Content-Transfer-Encoding'] = 'binary'
+    log_report(request, "Asistencia por trabajador (P&D)", "pdf", {"fecha_inicio": date, "fecha_fin": until_date, "persona": person.get_fullname()})
     
     return response
 
@@ -474,6 +481,7 @@ def generate_personal_xlsx(request, *args, **kwargs):
     
     # Guardar el libro en la respuesta
     book.save(response)
+    log_report(request, "Asistencia por trabajador (P&D)", "xlsx", {"fecha_inicio": date, "fecha_fin": until_date, "persona": person.get_fullname()})
     return response
 
 @login_required

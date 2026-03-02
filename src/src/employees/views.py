@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.views.generic import DetailView
 from django.conf import settings
 from django_weasyprint import WeasyTemplateResponseMixin
+from src.reports.audit import log_report
 from src.peladoydescabezado.models import Person
 
 # Create your views here.
@@ -39,6 +40,10 @@ class PrintCartnetView(WeasyTemplateResponseMixin, MyDetailView):
             context['print_ci_label'] = False
 
         return context
+
+    def get(self, request, *args, **kwargs):
+        log_report(request, "Impresión de carnet", "pdf", {"pk": self.kwargs.get("pk"), "src": request.GET.get("src", "employee")})
+        return super().get(request, *args, **kwargs)
     
 
 
