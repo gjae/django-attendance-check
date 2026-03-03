@@ -187,7 +187,7 @@ def check_dining_employer(request, card_id, *args, **kwargs):
     
     check = None
     if emp is None:
-        emp = Person.objects.select_related("position", "department").filter(identity=card_id).first()
+        emp = Person.objects.select_related("position", "department").filter(consecutive_code=card_id).first()
         print("Segundo intento ...")
         if emp is None:
             return JsonResponse({
@@ -237,7 +237,7 @@ def check_dining_employer(request, card_id, *args, **kwargs):
             "position": emp.position.position if emp.position is not None else '',
             "department": emp.department.name if emp.department is not None else '',
             "id": emp.id,
-            "avatar": emp.picture.url if emp is not None and emp.picture.name else '',
+            "avatar": emp.picture.url if emp is not None and not isinstance(emp, Person) and emp.picture.name else '',
             "is_birthday": emp.is_birthday,
             "check_turn": check.conf_dining_room.check_name,
             "check_at": check.created.strftime("%I:%M %p")
