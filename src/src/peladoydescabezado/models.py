@@ -161,27 +161,15 @@ class Person(TimeStampedModel):
         return self.__str__()
 
     def save(self, *args, **kwargs):
-        from django.core.cache import cache
         from django.db.models import Max
 
-        current_user = kwargs.pop('current_user', None)
-        user_id = current_user.pk if current_user else 'anonymous'
-        REDIS_KEY = f'person:next_consecutive:{user_id}'
-
         if self._state.adding:
-            reserved = cache.get(REDIS_KEY)
-            if reserved is not None:
-                self.consecutive = reserved
-                self.consecutive_code = str(reserved).zfill(4)
-                cache.delete(REDIS_KEY)
-            else:
-                # Fallback: si el TTL expiró, calcular desde la BD
-                max_consecutive = Person.objects.aggregate(
-                    max_val=Max('consecutive')
-                )['max_val'] or 0
-                next_consecutive = max_consecutive + 1
-                self.consecutive = next_consecutive
-                self.consecutive_code = str(next_consecutive).zfill(4)
+            max_consecutive = Person.objects.aggregate(
+                max_val=Max('consecutive')
+            )['max_val'] or 0
+            next_consecutive = max_consecutive + 1
+            self.consecutive = next_consecutive
+            self.consecutive_code = str(next_consecutive).zfill(4)
 
         super().save(*args, **kwargs)
     

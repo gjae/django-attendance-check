@@ -63,8 +63,7 @@ class PersonalModelForm(forms.ModelForm):
 
         # Precargar valores solo en creación (sin instancia guardada)
         if not self.instance.pk:
-            user = self.request.user if self.request else None
-            consecutive = get_consecutive_code(self.instance, user=user)
+            consecutive = get_consecutive_code(self.instance)
             if 'lastnames' in self.fields:
                 self.fields['lastnames'].initial = consecutive
             if 'identity' in self.fields:

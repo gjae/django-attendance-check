@@ -697,28 +697,13 @@ def attendance_by_personal_xlsx(context):
     return wb
 
 
-def get_consecutive_code(person: Person, user=None) -> str:
-    from django.core.cache import cache
+def get_consecutive_code(person: Person) -> str:
     from django.db.models import Max
 
-    user_id = user.pk if user else 'anonymous'
-    REDIS_KEY = f'person:next_consecutive:{user_id}'
-
-    # 1. Revisar si existe un consecutivo reservado en Redis para este usuario
-    reserved = cache.get(REDIS_KEY)
-
-    if reserved is not None:
-        # Ya existe un consecutivo reservado: retornarlo sin incrementar
-        return str(reserved).zfill(4)
-
-    # No existe: obtener MAX(consecutive) de la tabla Person
     max_consecutive = Person.objects.aggregate(
         max_val=Max('consecutive')
     )['max_val'] or 0
     next_consecutive = max_consecutive + 1
-
-    # Reservar el consecutivo en Redis con TTL de 5 minutos
-    cache.set(REDIS_KEY, next_consecutive, timeout=300)
 
     return str(next_consecutive).zfill(4)
 

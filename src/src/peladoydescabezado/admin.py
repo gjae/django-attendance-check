@@ -168,7 +168,7 @@ class PeopleModelAdmin(ModelAdmin):
         return FormWithRequest
 
     def save_model(self, request, obj, form, change):
-        obj.save(current_user=request.user)
+        obj.save()
 
     class Media:
         js = ("js/person_consecutive.js",)
