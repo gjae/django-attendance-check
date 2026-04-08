@@ -371,6 +371,6 @@ class RegisterModelAdmin(ModelAdmin):
     def changelist_view(self, request, extra_context=None):
         extra_context = {
             "departments": Department.objects.all(),
-            "persons": Person.objects.exclude(is_disabled=True)
+            "persons": Person.objects.exclude(is_disabled=True).select_related().order_by("names", "lastnames", "consecutive")
         }
         return super().changelist_view(request, extra_context=extra_context)
