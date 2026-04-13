@@ -35,7 +35,7 @@
                             <td class="text-end">{{record.employer.cedula}}</td>
                             <td class="text-center">{{record.employer.name}}</td>
                             <td class="text-center">{{record.employer.last_name}}</td>
-                            <td class="text-center">{{record.employer.position.position}}</td>
+                            <td class="text-center">{{record.employer.position.position|default:"N/A"}}</td>
                             {% if not only_department %}
                             <td class="text-center">{{record.employer.department}}</td>
                             {% endif %}

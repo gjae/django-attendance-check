@@ -119,7 +119,8 @@ class AttendanceReport:
                 .filter(daily__date_day=day)
                 .filter(
                     Q(employee__isnull=False, employee__department__work_center_id=self.work_center)
-                    | Q(person__isnull=False, person__department__work_center_id=self.work_center)
+                    | Q(person__isnull=False, person__department__work_center_id=self.work_center) 
+                    | Q(person__isnull=False, person__department__isnull=True)  
                 )
                 .select_related(self.get_related_name())
                 .annotate(
@@ -181,6 +182,7 @@ class AttendanceReport:
                 .values(*VALUE_FIELDS)
             )
 
+            print("Workcenter ", self.work_center)
             if self.department is not None:
                 if self.unattendances:
                     unattendances = unattendances.filter(current_department_id=self.department)
@@ -191,7 +193,6 @@ class AttendanceReport:
             else:
                 daily_union = daily_union.union(data_query.union(unattendances)) if self.unattendances else daily_union.union(data_query)
         
-
         return daily_union
 
 

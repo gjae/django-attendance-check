@@ -4,9 +4,15 @@ from django.contrib import admin
 from django.db.models.query import QuerySet
 from django.db.models import Count, Q
 from django.http.request import HttpRequest
-from .models import DailyCalendar, DailyChecks, DailyCalendarObservation, DailyChecksProxyModelAdmin
+from .models import (
+    DailyCalendar,
+    DailyChecks,
+    DailyCalendarObservation,
+    DailyChecksProxyModelAdmin,
+)
 from unfold.admin import ModelAdmin
 from django.utils.html import format_html
+from django.contrib import messages
 
 from unfold.admin import StackedInline, TabularInline
 
@@ -20,74 +26,102 @@ class CheckingCalendarAdmin(TabularInline):
     model = DailyChecks
 
     def get_queryset(self, request: HttpRequest) -> QuerySet[Any]:
-        return super().get_queryset(request).filter(person__isnull=True).order_by("-created").select_related(
-            "employee", 
-            "employee__position",
-            "daily",
-            "person",
-            "person__position"
+        return (
+            super()
+            .get_queryset(request)
+            .filter(person__isnull=True)
+            .order_by("-created")
+            .select_related(
+                "employee", "employee__position", "daily", "person", "person__position"
+            )
         )
-    
+
     def get_readonly_fields(self, request: HttpRequest, obj):
         if obj:
-            return ["employee", 'checking_time', 'checking_type']
+            return ["employee", "checking_time", "checking_type"]
         else:  # When object is created
-            return [] # no editable field    
+            return []  # no editable field
+
 
 class PeladoCheckingCalendarAdmin(TabularInline):
     model = DailyChecks
 
     def get_queryset(self, request: HttpRequest) -> QuerySet[Any]:
-        return super().get_queryset(request).filter(person__isnull=False).order_by("-created").select_related(
-            "employee", 
-            "employee__position",
-            "daily",
-            "person",
-            "person__position"
+        return (
+            super()
+            .get_queryset(request)
+            .filter(person__isnull=False)
+            .order_by("-created")
+            .select_related(
+                "employee", "employee__position", "daily", "person", "person__position"
+            )
         )
-    
+
     def get_readonly_fields(self, request: HttpRequest, obj):
         if obj:
-            return ["employee", 'checking_time', 'checking_type']
+            return ["employee", "checking_time", "checking_type"]
         else:  # When object is created
-            return [] # no editable field    
+            return []  # no editable field
+
 
 @admin.register(DailyCalendar)
 class DailyCalendarAdmin(ModelAdmin):
     list_display = ["date_day", "checkings"]
     inlines = [CheckingCalendarAdmin, PeladoCheckingCalendarAdmin]
-    readonly_fields = ["date_day", ]
+    readonly_fields = [
+        "date_day",
+    ]
 
     def get_queryset(self, request: HttpRequest):
-        return super().get_queryset(request).annotate(
-            total_checkings=Count("daily_user_checks", distinct=True, filter=Q(daily_user_checks__checking_type=0))
+        return (
+            super()
+            .get_queryset(request)
+            .annotate(
+                total_checkings=Count(
+                    "daily_user_checks",
+                    distinct=True,
+                    filter=Q(daily_user_checks__checking_type=0),
+                )
+            )
         )
-
 
     def has_add_permission(self, request) -> bool:
         return False
-    
+
     def has_delete_permission(self, request, obj=None) -> bool:
         return False
 
     def has_change_permission(self, request, obj=None) -> bool:
         return False
-    
+
     def checkings(self, obj):
         return obj.total_checkings
-    
+
     checkings.short_description = "Chequeos hasta el momento"
+
 
 @admin.register(DailyCalendarObservation)
 class DailyCalendarObservationAdmin(ModelAdmin):
-    list_display = ["created", "calendar_day", "employer", "soporte", ]
-    list_filter = ["calendar_day", "employer", ]
+    list_display = [
+        "created",
+        "calendar_day",
+        "employer",
+        "soporte",
+    ]
+    list_filter = [
+        "calendar_day",
+        "employer",
+    ]
     form = CheckingObservationModelForm
 
     class Media:
-        js = ('js/jquery.min.js', 'js/select2/select2.full.min.js', 'js/select2/select2_observations.js')   
+        js = (
+            "js/jquery.min.js",
+            "js/select2/select2.full.min.js",
+            "js/select2/select2_observations.js",
+        )
         css = {
-            'all': ('css/select2/select2.css',),
+            "all": ("css/select2/select2.css",),
         }
 
     def get_queryset(self, request):
@@ -98,16 +132,16 @@ class DailyCalendarObservationAdmin(ModelAdmin):
 
     def has_change_permission(self, request, obj=None) -> bool:
         return False
-    
+
     def soporte(self, obj):
         if obj.support is None or obj.support.name is None or obj.support.name == "":
             return ""
-        
+
         return format_html(
             "<a href='{}'><span class='material-symbols-outlined'>download</span></a>",
             obj.support.url,
         )
-    
+
     soporte.short_description = "Soporte"
 
 
@@ -129,34 +163,65 @@ class FilterByDateCalendar(admin.SimpleListFilter):
         return queryset.filter(daily__date_day=self.value())
 
 
+@admin.action(description="Eliminar chequeo(s)")
+def delete_checkings(modeladmin, request, queryset):
+    try:
+        queryset.update(deleted_at=datetime.now())
+        modeladmin.message_user(
+            request, "Chequeos eliminados correctamente", messages.SUCCESS
+        )
+    except Exception as e:
+        modeladmin.message_user(request, f"Error al eliminar: {str(e)}", messages.ERROR)
+
 
 @admin.register(DailyChecksProxyModelAdmin)
 class DailyChecksModelAdmin(ModelAdmin):
-    list_display = ["employee_name", "employee_last_name", "daily_day",  "checking_time", "checking_type"]
-    search_fields = ['employee__name', "employee__last_name", "daily__date_day"]
+    list_display = [
+        "employee_name",
+        "employee_last_name",
+        "daily_day",
+        "checking_time",
+        "checking_type",
+    ]
+    search_fields = ["employee__name", "employee__last_name", "daily__date_day"]
     list_filter = ["checking_type", FilterByDateCalendar]
-    list_per_page  = 15
+    list_per_page = 15
     form = DailyChecksProxyModelAdminForm
+    actions = [delete_checkings]
 
     class Media:
-        js = ('js/jquery.min.js', 'js/select2/select2.full.min.js', 'js/select2/start_select_clockin.js')   
+        js = (
+            "js/jquery.min.js",
+            "js/select2/select2.full.min.js",
+            "js/select2/start_select_clockin.js",
+        )
         css = {
-            'all': ('css/select2/select2.css',),
+            "all": ("css/select2/select2.css",),
         }
 
-
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related("employee", "daily", "person").order_by("-checking_time")
-    
+        return (
+            super()
+            .get_queryset(request)
+            .select_related("employee", "daily", "person")
+            .order_by("-checking_time")
+        )
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        if "delete_checkings" in actions:
+            del actions["delete_checkings"]
+        return actions
+
     def employee_name(self, obj):
         return obj.user_model.name
 
     def employee_last_name(self, obj):
         return obj.user_model.last_name
-    
+
     def daily_day(self, obj):
         return obj.daily.date_day.strftime("%d/%m/%Y")
-    
+
     employee_name.short_description = "Nombre"
     employee_last_name.short_description = "Apellido"
     daily_day.short_description = "Día"

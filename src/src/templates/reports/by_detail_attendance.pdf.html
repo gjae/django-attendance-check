@@ -87,7 +87,7 @@
                             <td class="text-end">{{record.employer.cedula}}</td>
                             <td class="text-center">{{record.employer.name}}</td>
                             <td class="text-center">{{record.employer.last_name}}</td>
-                            <td class="text-center">{{record.employer.position.position}}</td>
+                            <td class="text-center">{{record.employer.position.position|default:"N/A"}}</td>
                             <td width="1%" class="px-0 text-right">{{record.start_at|time:"h:i A"|default:""}}</td>
                             <td width="1%" class="px-0 text-right">{{record.end_at|time:"h:i A"|default:""}}</td>
                             <td width="1%" class="px-0 text-right">{{record.total_hours|parse_float_to_hours}}</td>

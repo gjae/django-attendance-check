@@ -46,8 +46,8 @@ class TimeReportManager(models.Manager):
             total=AbsoluteSum("total_hours")
         ).order_by("employer_id").values("employer_id", "employer__name", "employer__last_name", "employer__cedula", "employer__position__position", "total")
 
-        if department_id is not None:
-            data = data.filter(employer__department_id=department_id)
+        #if department_id is not None:
+        #    data = data.filter(employer__department_id=department_id)
 
         for record in data:
             total_hours  += record["total"]
