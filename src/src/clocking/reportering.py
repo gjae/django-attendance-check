@@ -326,7 +326,7 @@ class AttendanceReport:
 
         data.sort(key=lambda x: (
             x["day"], 
-            x["department_name"] if x["department_name"] is not None else "",
+            x["department_name"] if x["department_name"] is not None else 999999,
             x["uemployer_lastname"], 
             x["uemployer_name"],
             x["uemployer_cedula"], 
