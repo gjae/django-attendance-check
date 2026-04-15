@@ -324,12 +324,16 @@ class AttendanceReport:
                 filter(lambda d: d["row_number"] % 2 == 1, self.queryset)
             )
 
+        data = list(
+            filter(lambda d: d["uemployer"] is not None and d["uemployer"] != "" and d["uemployer_cedula"] is not None, data)
+        )
+        print(data)
         data.sort(key=lambda x: (
             x["day"], 
             x["department_name"] if x["department_name"] is not None else 999999,
-            x["uemployer_lastname"], 
-            x["uemployer_name"],
-            x["uemployer_cedula"], 
+            x["uemployer_lastname"] if x["uemployer_lastname"] is not None else "", 
+            x["uemployer_name"] if x["uemployer_name"] is not None else "",
+            x["uemployer_cedula"] if x["uemployer_cedula"] is not None else "", 
         ))
         
         self.queryset = data
