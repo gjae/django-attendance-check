@@ -1,7 +1,7 @@
 {% extends 'reports/base.html' %}
 {% load reports_utils %}
 
-{% block content %} 
+{% block content %}
 
 <div class="container-fluid p-0">
     {% if show_metadata %}
@@ -19,6 +19,7 @@
             <table class="table table-stripped" style="font-size: 10px;">
                 <thead>
                     <tr class="text-center">
+                        {% if from_peladoydescabezado %}<th></th>{% endif %}
                         <th>Cédula</th>
                         <th>Nombre</th>
                         <th>Apellido</th>
@@ -32,6 +33,7 @@
                         {% day_has_observation record observations as has_observation %}
                         <tr>
                             {% if record.employer is not None %}
+                            {% if from_peladoydescabezado %}<td>{{forloop.counter}}</td>{% endif %}
                             <td class="text-end">{{record.employer.cedula}}</td>
                             <td class="text-center">{{record.employer.name}}</td>
                             <td class="text-center">{{record.employer.last_name}}</td>
@@ -58,7 +60,7 @@
                         <td >
                             <strong>Total</strong>
                         </td>
-                        <td colspan="5" style="text-align: end;">{{total_hours}}</td>
+                        <td colspan="{% if from_peladoydescabezado %}6{% else %}5{% endif %}" style="text-align: end;">{{total_hours}}</td>
                     </tr>
                 </tbody>
             </table>

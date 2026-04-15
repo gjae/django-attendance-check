@@ -17,7 +17,7 @@ class ClientMarkCheckForm(forms.Form):
             "required": "No se ha escaneado correctamente el QR"
         }
     )
-    
+
 
 
     def clean_cedula(self):
@@ -25,15 +25,15 @@ class ClientMarkCheckForm(forms.Form):
         print("Busacndo cedula ", cedula)
         if Employee.objects.allow_checking(cedula):
             return cedula
-        
+
         elif Person.objects.allow_checking(cedula):
             print("Retornando cedula ", cedula)
             return cedula
-        
+
         raise forms.ValidationError(
             "La cédula que intenta escanear no se encuentra registrada o está desactivada"
         )
-        
+
     def _get_employee_obj(self, cedula):
         print("Cedula ", cedula)
         try:
@@ -49,7 +49,7 @@ class ClientMarkCheckForm(forms.Form):
     def save(self):
         log = logging.getLogger(__name__)
         employee = None
-        
+
         try:
             employee = self._get_employee_obj(self.cleaned_data.get("cedula"))
             if not employee.is_actived:
@@ -62,9 +62,9 @@ class ClientMarkCheckForm(forms.Form):
         except ObjectDoesNotExist as e:
             log.exception(e)
             return None
-        
+
         return DailyChecks.objects.checking_user(employee, entrypoint=self.cleaned_data.get("entrypoint", None))
-    
+
 
 class CheckingObservationModelForm(forms.ModelForm):
     employer = forms.ModelChoiceField(
@@ -74,7 +74,7 @@ class CheckingObservationModelForm(forms.ModelForm):
         initial=None
     )
 
-    
+
     person = forms.ModelChoiceField(
         queryset=Person.objects.filter(is_disabled=False),
         label="Trabajador (Pelado y descabezado)",
@@ -84,7 +84,7 @@ class CheckingObservationModelForm(forms.ModelForm):
     class Meta:
         model = DailyCalendarObservation
         exclude = (
-            "created", 
+            "created",
             "modified"
         )
 
@@ -101,7 +101,7 @@ class DailyChecksProxyModelAdminForm(forms.ModelForm):
         })
     )
 
-    
+
     person = forms.ModelChoiceField(
         queryset=Person.objects.filter(is_disabled=False),
         label="Trabajador (Pelado y descabezado)",
@@ -114,6 +114,7 @@ class DailyChecksProxyModelAdminForm(forms.ModelForm):
     class Meta:
         model = DailyChecksProxyModelAdmin
         exclude = (
-            "created", 
-            "modified"
+            "created",
+            "modified",
+            "deleted_at",
         )

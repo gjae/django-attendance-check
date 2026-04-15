@@ -205,6 +205,8 @@ class DailyChecksModelAdmin(ModelAdmin):
             .get_queryset(request)
             .select_related("employee", "daily", "person")
             .order_by("-checking_time")
+            .exclude(deleted_at__isnull=False)
+            .exclude(person__isnull=False)
         )
 
     def get_actions(self, request):

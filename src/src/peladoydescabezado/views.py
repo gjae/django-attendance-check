@@ -362,6 +362,7 @@ def generate_assistence_pdf(request, *args, **kwargs):
         "total_days_by_user": total_days_by_user,
         "show_metadata": False,
         "observations": report_data,
+        "from_peladoydescabezado": True,
         "letterheads": (
             "INPROMAR C.A",
             "Reporte de asistencia por trabajador",

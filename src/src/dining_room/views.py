@@ -60,9 +60,9 @@ def report_dining_today_excel(request, *args, **kwargs):
     )
 
     thin_border = Border(
-        left=Side(style='thin'), 
-        right=Side(style='thin'), 
-        top=Side(style='thin'), 
+        left=Side(style='thin'),
+        right=Side(style='thin'),
+        top=Side(style='thin'),
         bottom=Side(style='thin')
     )
     aligment = Alignment(horizontal="center", vertical="center")
@@ -95,7 +95,7 @@ def report_dining_today_excel(request, *args, **kwargs):
         ws[f"A{data_row_from}"].value = data.row_number
         ws[f"B{data_row_from}"].value = data.employer_object.cedula
         ws[f"C{data_row_from}"].value = data.employer_object.get_fullname()
-        ws[f"E{data_row_from}"].value = data.employer_object.department.name
+        ws[f"E{data_row_from}"].value = data.employer_object.department.name if data.employer_object.department is not None else ''
         ws[f"F{data_row_from}"].value = data.conf_dining_room.check_name
         ws[f"G{data_row_from}"].value = data.created.strftime("%d/%m/%Y %I:%M %p")
 
@@ -127,7 +127,7 @@ def report_dining_today_excel(request, *args, **kwargs):
     ws[f"C{data_row_from}"].value = "Beneficio"
     ws[f"D{data_row_from}"].value = "Total/Día"
 
-    
+
     data_row_from += 1
     for benefit in total_by_benefit:
         ws[f"C{data_row_from}"].value = benefit["check_name"]
@@ -135,7 +135,7 @@ def report_dining_today_excel(request, *args, **kwargs):
         ws[f"C{data_row_from}"].border = thin_border
         ws[f"D{data_row_from}"].border = thin_border
         data_row_from += 1
-        
+
     response["Content-Disposition"] = content
     workbook.save(response)
     log_report(request, "Reporte comedor diario", "xlsx", {"fecha": str(print_date)})
@@ -152,9 +152,9 @@ def index(request, *args, **kwargs):
 
     print(f"current_turn: {current_turn}")
     return render(
-        request, 
-        "dining_room/index.html", 
-        {"today_checks": today_checks, 
+        request,
+        "dining_room/index.html",
+        {"today_checks": today_checks,
         "statistics": context['today_statistics'],
         "current_turn": current_turn,
         "total_checks": today_checks.filter(conf_dining_room=current_turn).count()}
@@ -175,7 +175,7 @@ def default_today_last_checks(request, *args, **kwargs):
             "check_turn": check.conf_dining_room.check_name,
             "check_at": check.created.strftime("%I:%M %p")
         })
-        
+
     return JsonResponse({
         "error": False,
         "data": response
@@ -184,26 +184,26 @@ def default_today_last_checks(request, *args, **kwargs):
 
 def check_dining_employer(request, card_id, *args, **kwargs):
     emp = Employee.objects.select_related("position", "department").filter(cedula=card_id).first()
-    
+
     check = None
     if emp is None:
         emp = Person.objects.select_related("position", "department").filter(consecutive_code=card_id).first()
         print("Segundo intento ...")
         if emp is None:
             return JsonResponse({
-                "error": True, 
-                "can_check": False, 
+                "error": True,
+                "can_check": False,
                 "checked": False,
                 "employer": None,
                 "error_message": "Cédula no encontrada o no registrada"
             })
-    
+
     try:
         check = DiningChecking.objects.make_check_if_can(emp)
     except EmployerHasBeenCheckedException:
         return JsonResponse({
-            "error": True, 
-            "can_check": True, 
+            "error": True,
+            "can_check": True,
             "checked": False,
             "employer": None,
             "error_message": "El trabajador ya ha recibido el beneficio"
@@ -211,22 +211,22 @@ def check_dining_employer(request, card_id, *args, **kwargs):
 
     except EmployerNotPresentException:
         return JsonResponse({
-            "error": True, 
-            "can_check": True, 
+            "error": True,
+            "can_check": True,
             "checked": False,
             "employer": None,
             "error_message": "El trabajador no se encuentra asistente o ya ha marcado su salida"
         })
-    
+
     if check is None:
         return JsonResponse({
-            "error": True, 
-            "can_check": True, 
+            "error": True,
+            "can_check": True,
             "checked": False,
             "employer": None,
             "error_message": "No se ha encontrado configuración de beneficio para este horario"
         })
-    
+
     return JsonResponse({
         "error": False,
         "can_check": True,
