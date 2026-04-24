@@ -230,7 +230,7 @@ class EmployeeAdmin(ModelAdmin):
 
     def actived(self, obj):
         if obj.is_actived:
-            return "Actiado"
+            return "Activado"
 
         return "Desactivado"
 

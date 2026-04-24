@@ -95,3 +95,42 @@ class LoadWeightForm(forms.ModelForm):
             "control",
             "saved_by",
         )
+
+
+_SELECT_WIDGET_CLASS = (
+    "border border-base-200 bg-white font-medium min-w-20 placeholder-base-400 "
+    "rounded-default shadow-xs text-font-default-light text-sm focus:outline-2 "
+    "focus:-outline-offset-2 focus:outline-primary-600 group-[.errors]:border-red-600 "
+    "focus:group-[.errors]:outline-red-600 dark:bg-base-900 dark:border-base-700 "
+    "dark:text-font-default-dark dark:group-[.errors]:border-red-500 "
+    "dark:focus:group-[.errors]:outline-red-500 dark:scheme-dark "
+    "group-[.primary]:border-transparent px-3 py-2 w-full pr-8! max-w-2xl "
+    "appearance-none truncate"
+)
+
+
+class PersonDailyChecksProxyForm(forms.ModelForm):
+    """
+    Formulario para el admin de Asignar Chequeos (Personal P&D).
+    Solo expone el campo `person`; el campo `employee` se excluye del formulario
+    porque esta vista es exclusiva para trabajadores de Pelado y Descabezado.
+    """
+
+    person = forms.ModelChoiceField(
+        queryset=Person.objects.filter(is_disabled=False).order_by(
+            "names", "lastnames", "consecutive"
+        ),
+        label="Trabajador (Pelado y Descabezado)",
+        required=True,
+        widget=forms.Select(attrs={"class": _SELECT_WIDGET_CLASS}),
+    )
+
+    class Meta:
+        model = DailyChecks
+        fields = (
+            "person",
+            "daily",
+            "checking_type",
+            "checking_time",
+            "entrypoint",
+        )

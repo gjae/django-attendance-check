@@ -119,6 +119,24 @@ class DailyChecksProxyModelAdmin(DailyChecks):
         proxy = True
 
 
+class PersonDailyChecksProxy(DailyChecks):
+    """
+    Proxy sobre DailyChecks registrado bajo la app peladoydescabezado.
+    Permite gestionar los chequeos del personal de Pelado y Descabezado
+    desde su propia sección del admin, sin mezclarlos con los de Employee.
+    Al definirse aquí (dentro de clocking) se evita el import circular con
+    peladoydescabezado.models que importa Person.
+    """
+
+    class Meta:
+        proxy = True
+        app_label = "peladoydescabezado"
+        ordering = ["-daily__date_day", "person_id", "-id"]
+        verbose_name = "Asignar chequeo (Personal P&D)"
+        verbose_name_plural = "Asignar chequeos (Personal P&D)"
+
+
+
 class DailyCalendarObservation(TimeStampedModel):
     OBSERVATION_TYPE_CHOICES = Choices(
         # (1, "checkin", "Entrada"),

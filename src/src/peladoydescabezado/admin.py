@@ -25,11 +25,12 @@ from .models import (
     BasketProduction,
     ReportProxyModel,
 )
-from src.clocking.models import DailyChecks
+from src.clocking.models import DailyChecks, PersonDailyChecksProxy
 from src.peladoydescabezado.forms import (
     FarmModelForm,
     PersonalModelForm,
     WeightnessModelForm,
+    PersonDailyChecksProxyForm,
 )
 
 from src.peladoydescabezado.utils import get_current_turn
@@ -147,7 +148,7 @@ class WeightnessModelAdmin(ModelAdmin):
 class PersonCheckingRecord(TabularInline):
     model = DailyChecks
     can_delete = True
-    fields = ["fecha", "time", "checking_type"]
+    fields = ["fecha_creacion", "register_date", "time", "checking_type"]
     max_num = 10
     extra = 0
 
@@ -161,8 +162,17 @@ class PersonCheckingRecord(TabularInline):
 
     def get_readonly_fields(self, request, obj):
         if obj:
-            return ["fecha", "time", "checking_type", "daily"]
+            return ["fecha_creacion", "register_date", "time", "checking_type", "daily"]
         return []
+
+    def fecha_creacion(self, obj):
+        return obj.checking_time.strftime("%d/%m/%Y") if obj.created else "-"
+
+    def register_date(self, obj):
+        return obj.fecha
+
+    fecha_creacion.short_description = "Fecha de creación del registro"
+    register_date.short_description = "Fecha del chequeo"
 
     def has_delete_permission(self, request, obj=None):
         return True
@@ -430,3 +440,117 @@ class RegisterModelAdmin(ModelAdmin):
             .order_by("names", "lastnames", "consecutive"),
         }
         return super().changelist_view(request, extra_context=extra_context)
+
+
+# ---------------------------------------------------------------------------
+# Asignar Chequeos — Personal Pelado y Descabezado
+# ---------------------------------------------------------------------------
+
+
+class FilterByDatePersonChecks(admin.SimpleListFilter):
+    """Filtro por fecha aplicado sobre el campo daily__date_day."""
+
+    title = "Buscar por fecha"
+    parameter_name = "datelookup"
+
+    def lookups(self, request, model_admin):
+        from datetime import timedelta
+
+        ayer = (datetime.now() - timedelta(hours=24)).strftime("%Y-%m-%d")
+        hoy = datetime.now().strftime("%Y-%m-%d")
+        return [
+            (ayer, "Ayer"),
+            (hoy, "Hoy"),
+        ]
+
+    def queryset(self, request, queryset):
+        if not self.value():
+            return queryset
+        return queryset.filter(daily__date_day=self.value())
+
+
+@admin.action(description="Eliminar chequeo(s)")
+def delete_person_checkings(modeladmin, request, queryset):
+    """Soft-delete: marca deleted_at en los chequeos seleccionados."""
+    try:
+        queryset.update(deleted_at=datetime.now())
+        modeladmin.message_user(
+            request,
+            "Chequeos eliminados correctamente.",
+            messages.SUCCESS,
+        )
+    except Exception as exc:
+        modeladmin.message_user(
+            request,
+            f"Error al eliminar: {exc}",
+            messages.ERROR,
+        )
+
+
+@admin.register(PersonDailyChecksProxy)
+class PersonDailyChecksAdmin(ModelAdmin):
+    """
+    Vista admin dedicada a los chequeos del personal de Pelado y Descabezado.
+    Solo muestra registros donde person__isnull=False y deleted_at__isnull=True.
+    """
+
+    list_display = [
+        "person_name",
+        "person_lastname",
+        "daily_day",
+        "checking_time",
+        "checking_type",
+    ]
+    search_fields = [
+        "person__names",
+        "person__lastnames",
+        "daily__date_day",
+    ]
+    list_filter = ["checking_type", FilterByDatePersonChecks]
+    list_per_page = 15
+    form = PersonDailyChecksProxyForm
+    actions = [delete_person_checkings]
+
+    class Media:
+        js = (
+            "js/jquery.min.js",
+            "js/select2/select2.full.min.js",
+            "js/select2/start_select_clockin.js",
+        )
+        css = {
+            "all": ("css/select2/select2.css",),
+        }
+
+    def get_queryset(self, request):
+        return (
+            super()
+            .get_queryset(request)
+            .select_related("person", "daily")
+            .filter(person__isnull=False)
+            .exclude(deleted_at__isnull=False)
+            .order_by("-checking_time")
+        )
+
+    def get_actions(self, request):
+        # Eliminar la acción genérica de borrado de Django; solo usamos soft-delete.
+        actions = super().get_actions(request)
+        if "delete_selected" in actions:
+            del actions["delete_selected"]
+        return actions
+
+    # ------------------------------------------------------------------
+    # Columnas de display
+    # ------------------------------------------------------------------
+
+    def person_name(self, obj):
+        return obj.person.names if obj.person else "-"
+
+    def person_lastname(self, obj):
+        return obj.person.lastnames if obj.person else "-"
+
+    def daily_day(self, obj):
+        return obj.daily.date_day.strftime("%d/%m/%Y") if obj.daily else "-"
+
+    person_name.short_description = "Nombre"
+    person_lastname.short_description = "Apellido"
+    daily_day.short_description = "Día"
