@@ -12,12 +12,20 @@ class ClockingManager(models.Manager):
     def get_or_create_clocking_day(self):
         """
         Verifica que la fecha actual ha sido registrada en el calendario del sistema
-        para realizar los checkeos, si la fecha actual no ha sido registrada, será registrada
-        y se retornara la referencia
+        para realizar los checkeos. Si la hora es antes de las 3:00 AM, el día de chequeo
+        se considerará el día anterior.
         """
+        now = timezone.now()
+        if timezone.is_aware(now):
+            now = timezone.localtime(now)
+            
+        # Restar 3 horas: si son las 02:59 AM del 15 de mayo,
+        # (02:59 - 3 horas) = 23:59 del 14 de mayo -> date() será 14 de mayo.
+        # Si son las 03:00 AM del 15 de mayo,
+        # (03:00 - 3 horas) = 00:00 del 15 de mayo -> date() será 15 de mayo.
+        effective_date = (now - timedelta(hours=3)).date()
 
-        today = timezone.now()
-        current_date, _ = self.get_or_create(date_day=today.date())
+        current_date, _ = self.get_or_create(date_day=effective_date)
 
         return current_date
 
@@ -57,123 +65,108 @@ class CheckingManager(BaseCheckingManager):
             else:
                 raise CheckingOutputTooRecentException()
 
+    def get_today_checks(self, employee, daily):
+        """
+        Retorna los fichajes del empleado para el día especificado.
+        Retorna un diccionario indicando la entrada y/o salida si existen.
+        """
+        from src.clocking.models import DailyChecks
+        from src.employees.models import Employee
+        from src.peladoydescabezado.models import Person
+
+        kwargs = {'daily': daily}
+        if isinstance(employee, Employee):
+            kwargs['employee'] = employee
+        elif isinstance(employee, Person):
+            kwargs['person'] = employee
+
+        checks = DailyChecks.objects.filter(**kwargs).order_by('id')
+        result = {'entry': None, 'exit': None}
+        
+        for check in checks:
+            if check.checking_type == DailyChecks.CHECK_STATUS_CHOISE.entrada:
+                result['entry'] = check
+            elif check.checking_type == DailyChecks.CHECK_STATUS_CHOISE.salida:
+                result['exit'] = check
+                
+        return result
+
     def checking_user(self, employee, *, entrypoint=None):
         """
-        Realiza un check para el usuario para el día actual. Si el usuario
-        tiene una entrada en el día actual entonces solo marca una salida
-
-        Por día de calendario solo se puede tener máximo una entrada y una salida
-
-        si el día anterior no tuvo salida y/o entrada, igual será marcado el día
-        actual e ignorará el anterior
+        Realiza un check para el usuario basado en la hora actual (umbral de 16:00).
+        - Si son las 15:59 o inferior:
+            - Si no tiene entrada, la crea.
+            - Si ya tiene entrada, no hace nada (retorna la existente).
+        - Si son las 16:00 o superior:
+            - Si no tiene entrada, crea una entrada y una salida simultáneas.
+            - Si ya tiene entrada pero no salida, crea la salida.
+            - Si ya tiene entrada y salida, no hace nada (retorna la existente).
         """
 
         from src.clocking.models import DailyCalendar, DailyChecks, Employee
         from src.peladoydescabezado.models import Person
 
-        # Consultar el ultimo registro de chequeo del usuario y verificar si el ultimo registro es una entrada
-        # en caso de ser una entrada entonces se verifica si esa entrada fue hace menos de 24 horas, en ese
-        # caso se marca la salida correspondiente.
-        # Si la ultima entrada fue hace mas de 24 horas entonces se marca una entrada del dia actual
-        last_employer_check = None
-        last_24_hours = datetime.now() - timedelta(hours=20)
-        if isinstance(employee, Employee):
-            last_employer_check = (
-                DailyChecks.objects.filter(Q(employee=employee)).order_by("id").last()
-            )
-        elif isinstance(employee, Person):
-            last_employer_check = (
-                DailyChecks.objects.filter(Q(person=employee)).order_by("id").last()
-            )
-
-        if (
-            last_employer_check is not None
-            and last_employer_check.checking_type
-            == DailyChecks.CHECK_STATUS_CHOISE.entrada
-            and (datetime.now() - last_employer_check.created).days < 1
-        ):
-            self.raise_exception_is_checktimeout(last_employer_check)
-            check_daily = last_employer_check.daily
-            if isinstance(employee, Employee):
-                return DailyChecks.objects.create(
-                    employee=employee,
-                    daily=check_daily,
-                    checking_type=DailyChecks.CHECK_STATUS_CHOISE.salida,
-                    entrypoint=entrypoint,
-                )
-            elif isinstance(employee, Person):
-                return DailyChecks.objects.create(
-                    person=employee,
-                    daily=check_daily,
-                    checking_type=DailyChecks.CHECK_STATUS_CHOISE.salida,
-                    entrypoint=entrypoint,
-                )
-
-        last_employer_check = None
-        employee_calendar = None
-
         daily = DailyCalendar.objects.get_or_create_clocking_day()
+        today_checks = self.get_today_checks(employee, daily)
+        
+        has_entry = today_checks['entry'] is not None
+        has_exit = today_checks['exit'] is not None
+        
+        # Determinar si la hora actual local es >= 16:00
+        now = timezone.now()
+        if timezone.is_aware(now):
+            now = timezone.localtime(now)
+            
+        is_after_4pm = now.hour >= 16
+
+        kwargs = {'daily': daily, 'entrypoint': entrypoint}
         if isinstance(employee, Employee):
-            employee_calendar = DailyChecks.objects.filter(
-                employee=employee, daily=daily
-            )
-            last_employer_check = (
-                DailyChecks.objects.filter(employee=employee).order_by("id").last()
-            )
+            kwargs['employee'] = employee
         elif isinstance(employee, Person):
-            employee_calendar = DailyChecks.objects.filter(person=employee, daily=daily)
-            last_employer_check = (
-                DailyChecks.objects.filter(person=employee).order_by("id").last()
-            )
+            kwargs['person'] = employee
 
-        if last_employer_check is not None:
-            self.raise_exception_is_checktimeout(last_employer_check)
-
-        if not employee_calendar.exists():
-            if isinstance(employee, Employee):
-                return DailyChecks.objects.create(
-                    employee=employee, daily=daily, entrypoint=entrypoint
+        if is_after_4pm:
+            if not has_entry:
+                # No tiene entrada y es tarde, creamos ambas para cuadrar el día
+                DailyChecks.objects.create(
+                    checking_type=DailyChecks.CHECK_STATUS_CHOISE.entrada,
+                    **kwargs
                 )
-            elif isinstance(employee, Person):
-                return DailyChecks.objects.create(
-                    person=employee, daily=daily, entrypoint=entrypoint
-                )
-
-        if employee_calendar.exists():
-            checking = employee_calendar.first()
-            checking_timeout = checking.checking_time + timedelta(minutes=3)
-            # Si el tiempo en que el usuario ha realizado el chequeo es menor a 3 minutos
-            # no permite que se realice un nuevo chequeo hasta pasados esos 3 minutos
-            if timezone.now() <= checking_timeout:
-                if checking.checking_type == 0:
-                    raise CheckingTooRecentException()
-                else:
-                    raise CheckingOutputTooRecentException()
-
-        if (
-            employee_calendar.exists()
-            and employee_calendar.first().checking_type
-            == DailyChecks.CHECK_STATUS_CHOISE.entrada
-        ):
-            checking = employee_calendar.first()
-            self.raise_exception_is_checktimeout(checking)
-
-            if isinstance(employee, Employee):
-                return DailyChecks.objects.create(
-                    employee=employee,
-                    daily=daily,
+                exit_check = DailyChecks.objects.create(
                     checking_type=DailyChecks.CHECK_STATUS_CHOISE.salida,
-                    entrypoint=entrypoint,
+                    **kwargs
                 )
-            elif isinstance(employee, Person):
+                return exit_check
+            elif not has_exit:
+                # Tiene entrada, validar timeout solo si la entrada es muy reciente
+                # (3 min) para evitar salidas accidentales por doble clic
+                self.raise_exception_is_checktimeout(today_checks['entry'])
                 return DailyChecks.objects.create(
-                    person=employee,
-                    daily=daily,
                     checking_type=DailyChecks.CHECK_STATUS_CHOISE.salida,
-                    entrypoint=entrypoint,
+                    **kwargs
                 )
-
-        return employee_calendar.first()
+            else:
+                # Ya tiene ambas: bloquear si la salida es muy reciente
+                self.raise_exception_is_checktimeout(today_checks['exit'])
+                return today_checks['exit']
+        else:
+            if not has_entry:
+                # No tiene entrada y es temprano, crearla
+                return DailyChecks.objects.create(
+                    checking_type=DailyChecks.CHECK_STATUS_CHOISE.entrada,
+                    **kwargs
+                )
+            elif not has_exit:
+                # Tiene entrada pero no salida: salida anticipada
+                self.raise_exception_is_checktimeout(today_checks['entry'])
+                return DailyChecks.objects.create(
+                    checking_type=DailyChecks.CHECK_STATUS_CHOISE.salida,
+                    **kwargs
+                )
+            else:
+                # Ya tiene ambas: bloquear si la salida es muy reciente
+                self.raise_exception_is_checktimeout(today_checks['exit'])
+                return today_checks['exit']
 
     def _build_report_object(
         self, entry, out=None, total_hours=0, use_for_database=False
