@@ -112,12 +112,12 @@ class CheckingManager(BaseCheckingManager):
         has_entry = today_checks['entry'] is not None
         has_exit = today_checks['exit'] is not None
         
-        # Determinar si la hora actual local es >= 16:00
+        # Determinar si la hora actual local es >= 16:50
         now = timezone.now()
         if timezone.is_aware(now):
             now = timezone.localtime(now)
             
-        is_after_4pm = now.hour >= 16
+        is_after_4pm = now.hour > 16 or (now.hour == 16 and now.minute >= 50)
 
         kwargs = {'daily': daily, 'entrypoint': entrypoint}
         if isinstance(employee, Employee):
