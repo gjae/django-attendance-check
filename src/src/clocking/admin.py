@@ -204,7 +204,7 @@ class DailyChecksModelAdmin(ModelAdmin):
             super()
             .get_queryset(request)
             .select_related("employee", "daily", "person")
-            .order_by("-checking_time")
+            .order_by("employee__name", "employee__last_name", "-checking_time")
             .exclude(deleted_at__isnull=False)
             .exclude(person__isnull=False)
         )
