@@ -2,8 +2,10 @@
 
 ## Iteración: Reportes de comedor con builder (2026-11-04)
 
-Último commit confirmado: `b722927` feat(comedor) (lo anterior). Esta iteración NO está
-commiteada aún.
+Último commit confirmado: `5114fd7` feat(comedor) — reportes builder, cargas con
+procedencia y UI de gestión (2026-11-04). Incluye la iteración anterior completa
+(`b722927` trabajadores fantasma) más TODO el trabajo de reportes/UI de esta
+memoria.
 
 1. **Patrón Builder** (`src/src/dining_room/reportering.py`, archivo nuevo):
    - `BaseReportBuilder`: encadena `with_format()` ('excel' por defecto, PDF/CSV reservados →
