@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date as date_cls
 from django.urls import path
 from django.contrib import admin
 from django.utils.html import mark_safe
@@ -10,8 +10,14 @@ from django.contrib import admin
 _admin_site_get_urls = admin.site.get_urls
 
 # Register your models here.
-from .models import DiningChecking, ConfDiningRoom
-from .forms import ConfDiningRoomForm
+from .models import (
+    DiningChecking,
+    ConfDiningRoom,
+    GhostEmployee,
+    GhostServiceLoad,
+)
+from .forms import ConfDiningRoomForm, GhostServiceLoadForm
+from src.reports.auditlog_admin import FriendlyLogEntryAdmin  # noqa: F401
 from .views import ReportAdminView
 
 
@@ -133,7 +139,225 @@ class ReportModelAdmin(ModelAdmin):
             path("dining_room/reports/", ReportAdminView.as_view(model_admin=self), name="dining_room.reports"),
         ]
 
-def get_urls():        
+@admin.register(GhostEmployee)
+class GhostEmployeeModelAdmin(ModelAdmin):
+    """
+    Admin de comedor para crear y gestionar procedencias.
+
+    Solo requiere un nombre para identificar su procedencia; no llevan un
+    registro de asistencia asociado y no afectan los cálculos de asistencia
+    del personal fijo. El flag interno is_removed (borrado lógico) no se
+    muestra en el formulario.
+    """
+
+    list_display = ["id", "name", "is_actived", "created"]
+    search_fields = ["name"]
+    list_filter = ["is_actived"]
+    exclude = ["is_removed"]
+
+    def has_view_permission(self, request, obj=None):
+        """
+        Controla que solo usuarios con permiso de vista sobre Procedencias
+        puedan acceder al listado y detalle.
+
+        Parámetros:
+            request (HttpRequest): petición actual.
+            obj (GhostEmployee | None): registro puntual, si aplica.
+
+        Retorna:
+            bool: True si el usuario tiene el permiso correspondiente.
+        """
+        return request.user.has_perm("dining_room.view_ghostemployee")
+
+    def has_add_permission(self, request):
+        """
+        Controla que solo usuarios con permiso de alta puedan crear
+        Procedencias.
+
+        Parámetros:
+            request (HttpRequest): petición actual.
+
+        Retorna:
+            bool: True si el usuario tiene el permiso correspondiente.
+        """
+        return request.user.has_perm("dining_room.add_ghostemployee")
+
+    def has_change_permission(self, request, obj=None):
+        """
+        Controla que solo usuarios con permiso de edición puedan modificar
+        Procedencias.
+
+        Parámetros:
+            request (HttpRequest): petición actual.
+            obj (GhostEmployee | None): registro puntual, si aplica.
+
+        Retorna:
+            bool: True si el usuario tiene el permiso correspondiente.
+        """
+        return request.user.has_perm("dining_room.change_ghostemployee")
+
+
+@admin.register(GhostServiceLoad)
+class GhostServiceLoadModelAdmin(ModelAdmin):
+    """
+    Admin de cocina para cargar la cantidad de servicios entregados a
+    trabajadores fantasma por día y tipo de servicio.
+
+    La primera carga de un día/tipo de servicio es la carga original; las
+    siguientes se registran como erratas y SUMAN al total del día sin
+    sobreescritura, permitiendo el control de beneficios fantasma sin afectar
+    la asistencia del personal fijo.
+    """
+
+    list_display = [
+        "id",
+        "created",
+        "day",
+        "service_type_name",
+        "quantity",
+        "note",
+        "loaded_by",
+    ]
+    list_filter = ["date_day", "service_type"]
+    date_hierarchy = "date_day"
+
+    form = GhostServiceLoadForm
+    change_form_template = "unfold/dining/ghost_serviceload_change_form.html"
+
+    def has_view_permission(self, request, obj=None):
+        """
+        Controla que solo usuarios con permiso de vista sobre Totalización de
+        servicios puedan acceder al listado y detalle.
+
+        Parámetros:
+            request (HttpRequest): petición actual.
+            obj (GhostServiceLoad | None): registro puntual, si aplica.
+
+        Retorna:
+            bool: True si el usuario tiene el permiso correspondiente.
+        """
+        return request.user.has_perm("dining_room.view_ghostserviceload")
+
+    def has_add_permission(self, request):
+        """
+        Controla que solo usuarios con permiso de alta puedan registrar
+        totalizaciones de servicios.
+
+        Parámetros:
+            request (HttpRequest): petición actual.
+
+        Retorna:
+            bool: True si el usuario tiene el permiso correspondiente.
+        """
+        return request.user.has_perm("dining_room.add_ghostserviceload")
+
+    def has_change_permission(self, request, obj=None):
+        """
+        Controla que solo usuarios con permiso de edición puedan modificar
+        totalizaciones de servicios.
+
+        Parámetros:
+            request (HttpRequest): petición actual.
+            obj (GhostServiceLoad | None): registro puntual, si aplica.
+
+        Retorna:
+            bool: True si el usuario tiene el permiso correspondiente.
+        """
+        return request.user.has_perm("dining_room.change_ghostserviceload")
+
+    def has_delete_permission(self, request, obj=None):
+        """
+        Habilita la opción "Eliminar" de Totalización de servicios únicamente
+        para usuarios con el permiso dining_room.delete_ghostserviceload.
+
+        La eliminación queda registrada en AUDITLOG automáticamente porque el
+        modelo está registrado en django-auditlog (LogEntry de tipo delete),
+        conservando el responsable vía AuditlogMiddleware.
+
+        Parámetros:
+            request (HttpRequest): petición actual.
+            obj (GhostServiceLoad | None): registro puntual, si aplica.
+
+        Retorna:
+            bool: True si el usuario tiene permiso de eliminación.
+        """
+        return request.user.has_perm("dining_room.delete_ghostserviceload")
+
+    def get_changeform_initial_data(self, request):
+        """
+        Precarga el día de hoy al abrir el formulario de totalización de
+        servicios. El responsable de la carga no se precarga en el formulario
+        porque se asigna automáticamente al usuario con sesión activa en
+        save_model.
+
+        Parámetros:
+            request (HttpRequest): petición actual.
+
+        Retorna:
+            dict: datos iniciales del formulario.
+        """
+        return {"date_day": date_cls.today()}
+
+    def save_model(self, request, obj, form, change):
+        """
+        Guarda la carga asignando automáticamente como responsable (loaded_by)
+        al usuario con sesión activa y determinando el flag de errata cuando
+        es una carga nueva (la primera del día/servicio es original, el resto
+        erratas).
+
+        Parámetros:
+            request (HttpRequest): petición actual.
+            obj (GhostServiceLoad): instancia a guardar.
+            form (ModelForm): formulario validado.
+            change (bool): True si es edición de un registro existente.
+
+        Retorna:
+            None.
+        """
+        obj.loaded_by = request.user
+        if not change:
+            obj.is_errata = GhostServiceLoad.objects.actives().filter(
+                date_day=obj.date_day, service_type=obj.service_type
+            ).exists()
+
+        super().save_model(request, obj, form, change)
+        self.message_user(
+            request,
+            (
+                f"Carga de {obj.quantity} servicios registrada para "
+                f"{obj.service_type} el {obj.date_day.strftime('%d/%m/%Y')}"
+            ),
+            messages.SUCCESS,
+        )
+
+    @admin.display(description="Día")
+    def day(self, obj):
+        """
+        Formatea el día de la carga en la lista del admin.
+
+        Parámetros:
+            obj (GhostServiceLoad): registro del listado.
+
+        Retorna:
+            str: fecha formateada dd/mm/aaaa.
+        """
+        return obj.date_day.strftime("%d/%m/%Y")
+
+    @admin.display(description="Tipo de servicio", empty_value="S/A")
+    def service_type_name(self, obj):
+        """
+        Muestra el nombre del tipo de servicio de la carga.
+
+        Parámetros:
+            obj (GhostServiceLoad): registro del listado.
+
+        Retorna:
+            str: nombre del beneficio/servicio o 'S/A' si no está asociado.
+        """
+        return obj.service_type.check_name if obj.service_type is not None else "S/A"
+
+
+def get_urls():
     urls = _admin_site_get_urls()
     urls = urls +  [
          path("dining_room/reports/", admin.site.admin_view(ReportAdminView.as_view()), name="dining_room.reports"),

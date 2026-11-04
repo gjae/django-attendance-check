@@ -49,6 +49,16 @@ class Employee(TimeStampedModel, SoftDeletableModel):
         "Empleado activo",
         default=True
     )
+    is_internal = models.BooleanField(
+        "Personal interno",
+        default=True,
+        help_text=(
+            "Indica si el trabajador es personal fijo interno de la empresa. "
+            "Los registros con is_internal=False se comportan como trabajadores "
+            "fantasmas: no requieren marcar asistencia para recibir beneficios del "
+            "comedor y no afectan los cálculos de asistencia del personal fijo."
+        ),
+    )
 
     class Meta:
         verbose_name = "Trabajador"
@@ -72,6 +82,19 @@ class Employee(TimeStampedModel, SoftDeletableModel):
 
         return True
     
+    @property
+    def is_ghost(self) -> bool:
+        """
+        Indica si el trabajador se comporta como "trabajador fantasma".
+
+        Retorna:
+            bool: True cuando is_internal=False, es decir, el trabajador no es
+            personal fijo interno y no debe afectar los cálculos de asistencia
+            del personal fijo ni requerir marcación de asistencia para recibir
+            beneficios del comedor.
+        """
+        return not self.is_internal
+
     @property
     def is_birthday(self):
         today = date.today()

@@ -1,6 +1,7 @@
 from django import forms
+from django.utils import timezone
 
-from .models import ConfDiningRoom
+from .models import ConfDiningRoom, GhostServiceLoad
 
 class ConfDiningRoomForm(forms.ModelForm):
 
@@ -11,3 +12,76 @@ class ConfDiningRoomForm(forms.ModelForm):
             "is_all_day",
             "is_removed"
         ]
+
+
+class GhostServiceLoadForm(forms.ModelForm):
+    """
+    Formulario del admin de comedor para registrar la cantidad de servicios
+    entregados a los registrados bajo Procedencias (GhostServiceLoad).
+
+    El responsable de la carga no se selecciona en el formulario: se asigna
+    automáticamente al usuario con sesión activa (request.user) desde el
+    ModelAdmin. La fecha debe cargarse en formato DD/MM/AAAA y no se permiten
+    cargas con fechas futuras.
+    """
+
+    date_day = forms.DateField(
+        label="Día de la carga",
+        input_formats=["%d/%m/%Y", "%Y-%m-%d"],
+        widget=forms.DateInput(
+            format="%d/%m/%Y",
+            attrs={
+                "name": "date_day",
+                "id": "id_date_day",
+                "autocomplete": "off",
+                "placeholder": "DD/MM/AAAA",
+                # Clases tailwind de unfold para mantener consistencia visual con
+                # los demás inputs del admin (mismo estilo que los selects del
+                # admin de clocking)
+                "class": (
+                    "border border-base-200 bg-white font-medium min-w-20 "
+                    "placeholder-base-400 rounded-default shadow-xs "
+                    "text-font-default-light text-sm focus:outline-2 "
+                    "focus:-outline-offset-2 focus:outline-primary-600 "
+                    "group-[.errors]:border-red-600 focus:group-[.errors]:outline-red-600 "
+                    "dark:bg-base-900 dark:border-base-700 dark:text-font-default-dark "
+                    "dark:group-[.errors]:border-red-500 dark:focus:group-[.errors]:outline-red-500 "
+                    "dark:scheme-dark group-[.primary]:border-transparent px-3 py-2 w-full "
+                    "pr-8! max-w-2xl truncate"
+                ),
+            },
+        ),
+    )
+
+    class Meta:
+        model = GhostServiceLoad
+        fields = ["date_day", "service_type", "quantity", "note"]
+        exclude = ["is_removed", "is_errata", "loaded_by"]
+
+    def clean_date_day(self):
+        """
+        Valida que la fecha de la carga no sea futura.
+
+        Parámetros:
+            Ninguno (usa self.cleaned_data).
+
+        Retorna:
+            date: la fecha validada de la carga.
+
+        Lanza:
+            ValidationError: cuando la fecha indicada es posterior a hoy.
+        """
+        date_day = self.cleaned_data.get("date_day")
+
+        try:
+            today = timezone.localtime(timezone.now()).date()
+        except (ValueError, TypeError):
+            # USE_TZ=False: timezone.now() es naive y ya está en hora local
+            today = timezone.now().date()
+
+        if date_day and date_day > today:
+            raise forms.ValidationError(
+                "No se pueden registrar cargas con fechas futuras"
+            )
+
+        return date_day

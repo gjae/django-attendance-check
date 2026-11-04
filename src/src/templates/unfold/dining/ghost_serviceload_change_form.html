@@ -1,0 +1,52 @@
+{% extends "admin/change_form.html" %}
+{% load static %}
+{% block footer %}{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/vanilla_calendar.min.css' %}">
+<script src="{% static 'js/vanilla_calendar.js' %}"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        var input = document.getElementById("id_date_day");
+        if (!input) { return; }
+
+        // Límite: no se permiten cargas con fechas futuras
+        var today = new Date();
+        var isoToday = today.toISOString().split("T")[0];
+
+        var options = {
+            input: true,
+            actions: {
+                changeToInput: function (event, self) {
+                    // El vanilla-calendar-pro vendido expone el input como
+                    // self.HTMLInputElement (no self.HTMLInput)
+                    if (self.selectedDates[0]) {
+                        self.HTMLInputElement.value = self.selectedDates[0];
+                        self.hide();
+                    } else {
+                        self.HTMLInputElement.value = "";
+                        self.hide();
+                    }
+                },
+            },
+            settings: {
+                format: "dd/mm/yyyy",
+                range: {
+                    max: isoToday,
+                },
+                visibility: {
+                    theme: "light",
+                },
+            },
+            locale: {
+                months: [
+                    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+                    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+                ],
+                weekday: ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"],
+            },
+        };
+
+        var calendar = new VanillaCalendar(input, options);
+        calendar.init();
+    });
+</script>
+{% endblock %}

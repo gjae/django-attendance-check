@@ -1,17 +1,19 @@
 from django.shortcuts import render
 from datetime import datetime
 import time
+from django.contrib.auth.decorators import login_required, permission_required
 from django.http.response import JsonResponse
 from django.forms.models import model_to_dict
 from django.views.generic import TemplateView
 from django.http.response import HttpResponse
-from django.db.models import Window, Q, Count
+from django.db.models import Sum, Window, Q, Count
 from django.db.models.functions import RowNumber
 
 from openpyxl import Workbook
 from openpyxl.styles.borders import Border, Side
 from openpyxl.styles import Alignment, Font
 
+from src.dining_room.models import GhostServiceLoad
 from src.dining_room.models import DiningChecking , ConfDiningRoom
 from src.employees.models import Employee
 from src.clocking.models import DailyChecks
@@ -30,7 +32,17 @@ class ReportAdminView(UnfoldModelAdminViewMixin, TemplateView):
     template_name = "dining_room/report_admin_template.html"
 
 
+@login_required
+@permission_required("dining_room.view_conf_diningroom", raise_exception=True)
 def report_dining_today_excel(request, *args, **kwargs):
+    """
+    Genera y descarga el reporte Excel del comedor para el día solicitado.
+
+    Requiere sesión activa y el permiso dining_room.view_conf_diningroom. Los
+    "servicios entregados a procedencias" (GhostServiceLoad, cargas originales
+    y erratas, estas últimas suman) se agregan al total por beneficio sin
+    afectar los cálculos de asistencia del personal fijo.
+    """
     workbook = Workbook()
     ws = workbook.active
     current_date = datetime.now()
@@ -57,6 +69,22 @@ def report_dining_today_excel(request, *args, **kwargs):
         )
         .filter(total_by_benefit__gt=0)
         .values("total_by_benefit", "check_name")
+    )
+
+    # Los servicios entregados a "trabajadores fantasma" (erratas incluidas,
+    # estas suman) se suman al total por beneficio sin afectar la asistencia.
+    ghost_totals_by_benefit = GhostServiceLoad.objects.totals_for_date(print_date)
+    combined_totals = {
+        benefit["check_name"]: benefit["total_by_benefit"]
+        for benefit in total_by_benefit
+    }
+    for ghost_total in ghost_totals_by_benefit:
+        service_name = ghost_total["service_type__check_name"]
+        combined_totals[service_name] = (
+            combined_totals.get(service_name, 0) + ghost_total["total"]
+        )
+    total_ghost_services = sum(
+        ghost_total["total"] for ghost_total in ghost_totals_by_benefit
     )
 
     thin_border = Border(
@@ -129,12 +157,21 @@ def report_dining_today_excel(request, *args, **kwargs):
 
 
     data_row_from += 1
-    for benefit in total_by_benefit:
-        ws[f"C{data_row_from}"].value = benefit["check_name"]
-        ws[f"D{data_row_from}"].value = benefit["total_by_benefit"]
+    for service_name, service_total in combined_totals.items():
+        ws[f"C{data_row_from}"].value = service_name
+        ws[f"D{data_row_from}"].value = service_total
         ws[f"C{data_row_from}"].border = thin_border
         ws[f"D{data_row_from}"].border = thin_border
         data_row_from += 1
+
+    # Fila de control: total de servicios entregados a trabajadores fantasma
+    # incluidos en los totales anteriores (no afecta asistencia de personal fijo)
+    ws[f"C{data_row_from}"].value = "Servicios entregados a trabajadores fantasma"
+    ws[f"D{data_row_from}"].value = total_ghost_services
+    ws[f"C{data_row_from}"].font = font
+    ws[f"D{data_row_from}"].font = font
+    ws[f"C{data_row_from}"].border = thin_border
+    ws[f"D{data_row_from}"].border = thin_border
 
     response["Content-Disposition"] = content
     workbook.save(response)

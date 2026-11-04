@@ -68,16 +68,23 @@ class CheckDiningRoomManager(models.Manager):
 
     def make_check_if_can(self, employer: models.Model, credential_card_id: Optional[int] = None, *args, **kwargs):
         """
-        Hace un chequeo de parte del empleado 
-        en caso de poder
+        Hace un chequeo de parte del empleado
+        en caso de poder.
+
+        Los trabajadores fantasma (Employee con is_internal=False) no requieren
+        marcar asistencia para recibir el beneficio; se registra su chequeo de
+        comedor igualmente para llevar el control de beneficios entregados,
+        sin afectar los cálculos de asistencia del personal fijo.
         """
         from src.clocking.models import DailyChecks, Employee, Person
         is_present = 0
-        current_person = None
         current_employer = None
+        current_person = None
         print(f"Empleado: {employer}")
+        is_ghost_employee = False
         if isinstance(employer, Employee):
             current_employer = employer
+            is_ghost_employee = not employer.is_internal
             is_present = DailyChecks.objects.filter(employee_id=employer.id, daily__date_day=datetime.now().date()).count()
         elif isinstance(employer, Person):
             current_person = employer
@@ -86,7 +93,7 @@ class CheckDiningRoomManager(models.Manager):
 
         current_checking_turn = self.get_current_checking_turn(employer)
 
-        if is_present == 0 or is_present % 2 == 0:
+        if (is_present == 0 or is_present % 2 == 0) and not is_ghost_employee:
             raise EmployerNotPresentException()
     
 
