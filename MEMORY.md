@@ -1,6 +1,97 @@
 # MEMORY.md — Resumen de iteraciones (django-attendance-check / INPROMAR)
 
-> **Último commit**: `feat(comedor): trabajadores fantasma, totalización de servicios y auditoría` (ver `git log` para el hash actual; 13 archivos, 2026-11-04). `src/manage.py` (settings production→local) y `AGENTS.md` quedaron SIN confirmar: no forman parte de esta iteración.
+## Iteración: Reportes de comedor con builder (2026-11-04)
+
+Último commit confirmado: `b722927` feat(comedor) (lo anterior). Esta iteración NO está
+commiteada aún.
+
+1. **Patrón Builder** (`src/src/dining_room/reportering.py`, archivo nuevo):
+   - `BaseReportBuilder`: encadena `with_format()` ('excel' por defecto, PDF/CSV reservados →
+     `UnsupportedReportFormatException`), `with_output()` ('download' por defecto /
+     'display' = vista previa HTML), `enable_header(True/False)` y
+     `add_dataset(rows, layout)` (método para inyectar el dataset + su distribución desde el
+     handler).
+   - `ExcelReportBuilder`: renderiza cada dataset en su propia hoja de Excel; layout soporta
+     `sheet_title`, `start` (celda inicial, ej: 'B7'), `columns`, `row_fields`,
+     `section_field` + `merge_key` (fusiona verticalmente la 1.a columna por sección,
+     ej: Procedencia) y `totals` + `totals_title` (bloque final saltando 2 líneas).
+2. **Handler reescrito** (`report_dining_today_excel` en `dining_room/views.py`, misma URL
+   `dining_room.today_report_xlsx`, permisos y `log_report` audit):
+   - `parse_report_filters(query)`: normaliza `report_type` ('empresa'|'totalizacion'),
+     `print_date` (compat) o `start_date`/`end_date`, `work_center` (id|'all') y
+     `procedencia` (id|'all').
+   - `company_checks_dataset(filters)`: reporte por empresa — copiada 1:1 de la
+     versión original (commit c7cf574, validada con diff celda-a-celda: valores,
+     fuentes, negritas y merges coinciden). Header en UNA fila A1:G1 con texto exacto
+     "PERSONAL ASISTENTE AL {fecha} INPROMARCA" (rango: "DESDE ... HASTA ...
+     INPROMARCA"), SIN logo; fila 3 fusionada A3:G3 con solo "Trabajador" (Arial 14);
+     datos desde fila 4: A=N° (centrado), B=Cédula (centrado), C:D fusionado=Nombre,
+     E=Departamento, F=Beneficio, G=Fecha y hora; anchos A=10/C=40/E=20/F=10/G=20
+     (B y D quedan default); bloque de totales SIN negritas saltando 4 líneas con
+     "Beneficio" en C y "Total/Día" fusionado D:E (conteo por beneficio global del
+     rango, como el original). Se mantiene: rango de fechas + una hoja por WorkCenter
+     (pestaña = nombre de la empresa, identidad solo en la pestaña). El reporte de
+     empresa NO incluye datos de procedencias/totalización (eso vive solo en el
+     reporte por totalización). Llaves del layout usadas: `header_rows=1`,
+     `data_center_columns=2`, `merge_header_row`, `row_merge [2,3]`, `column_widths`,
+     `totals_skip=4`, `totals_label_offset=2`, `totals_value_label`,
+     `totals_value_span=2`, `totals_bold=False`.
+
+   - `totalization_services_dataset(filters)`: reporte por totalización (Excel): secciones
+     por Procedencia desde **B7** (columnas Procedencia / Beneficio / Total), celdas de
+     procedencia fusionadas por cantidad de beneficios, y al final tras saltar 2 líneas el
+     "Total por tipo de servicio" general. **Actualización (2026-11-04)**:
+     `GhostServiceLoad.procedencia` (FK nullable a GhostEmployee, migración
+     `0015_ghostserviceload_procedencia`) vincula cada carga con su
+     procedencia: el reporte totaliza de verdad por procedencia (agrupando
+     procedencia__name + service_type), las cargas históricas sin FK caen en la sección
+      "Sin procedencia registrada" y el total general por servicio se calcula sobre los
+     datos del filtro. La errata automática (is_errata) ahora evalúa por
+     día+servicio+procedencia (model.save, register_load, admin save_model).
+   - `ExcelReportBuilder._sanitize_sheet_title` (fix 500 en /dining_room/reports/): el
+     nombre de hoja por empresa tenía "/" (fechas dd/mm) → Excel lo prohíbe. Sanitiza
+     `[]:*?/\` y comillas → "-", recorta a 31 caracteres y agrega sufijo «N» para títulos
+     duplicados.
+   - Form/admin de cargas: selector de Procedencia (obligatorio, queryset filtrado por
+     is_removed=False, widget con clases tailwind/unfold consistente con el resto del
+     admin), columna "Procedencia" en el listado y filtro por procedencia; cargas previas
+     a la FK muestran "S/A".
+   - Selectores del modal de reportes (Procedencia y Empresa) usan las mismas clases
+     tailwind/unfold + chevron SVG propio (appearance-none vía CSS `#reportModal select`).
+3. **Modal de reportes** (`templates/unfold/dining/management.html`): el botón
+   "Descargar reporte" de la Gestión de comedor (DiningRoomProxyModel) abre un modal Alpine
+   para elegir tipo (Por empresa / Totalización), empresa o procedencia (con opción
+   "todas"), y fecha específica o rango desde/hasta; genera la URL con querystring y
+   descarga en pestaña nueva.
+4. **Contexto del modal**: `ConfDiningRoomReportModelView.changelist_view` inyecta
+   `work_centers`, `procedencias` y `today_iso`.
+
+### Pendiente
+- Commit de esta iteración; prueba del Excel en Docker (builder no ejecutado en runtime).
+- Validar `makemigrations --check` no pendiente (no hubo cambios de modelos esta iteración).
+
+### Ajustes de header del reporte de totalización (2026-11-04, misma iteración)
+- `ExcelReportBuilder._render_on_sheet` ahora soporta `header_text` (layout) y calcula el
+  ancho de la fusión con la **longitud del texto** (`_calculate_header_span`, ~9 caracteres
+  por celda, mínimo la cantidad de columnas del dataset); fuente del header reducida a 11pt.
+- `ExcelReportBuilder._add_corporate_logo` inserta el logo corporativo en A1 si el layout
+  define `logo_path` (ruta absoluta resuelta con `staticfiles finders`,
+  `images/branding/logo_inpromaro_lit.png`).
+- El texto de header del totalización es:
+  "REPORTE ENTREGA DE BENEFICIO ALIMENTARIO AL PERSONAL DESDE DD/MM/AAAA HASTA DD/MM/AAAA"
+  (fechas del rango seleccionado) y la primera columna ya **no dice "Procedencia"**
+  (header vacío; los nombres de procedencia siguen como secciones fusionadas en col. B).
+
+### Ajustes finos (2026-11-04, misma iteración)
+- `ExcelReportBuilder._fit_columns_to_content`: ajusta el ancho de cada columna según su
+  contenido más largo (headers, valores, secciones); el ancho mínimo de la columna de
+  procedencia queda relativo al nombre de procedencia más largo (+padding, mínimo 7).
+- Modal de reportes (`management.html`) alineado con la modal de
+  peladoydescabezado (`reports.html`): `<dialog>` nativo de **450px / max 95vw**
+  centrado con `translate(-50%, -50%)`, `p-6 rounded-lg shadow-xl` con
+  `backdrop:bg-black/50`, cierre por backdrop/X; el botón "Descargar reporte"
+  abre con `$refs.reportModal.showModal()` y la descarga se dispara por
+  submit del form (`@submit.prevent` + apertura en pestaña nueva).
 
 ## Iteración: Permisos, auditoría amigable y UI (2026-11-03b)
 

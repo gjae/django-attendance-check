@@ -18,6 +18,7 @@ from .models import (
 )
 from .forms import ConfDiningRoomForm, GhostServiceLoadForm
 from src.reports.auditlog_admin import FriendlyLogEntryAdmin  # noqa: F401
+from src.settings.models import WorkCenter
 from .views import ReportAdminView
 
 
@@ -55,6 +56,17 @@ class ConfDiningRoomReportModelView(ModelAdmin):
         extra_context = {}
         extra_context['today_statistics'] = DiningChecking.objects.statistics_of()
         extra_context['today_statistics']["presents"] = extra_context['today_statistics']["assistants"] - extra_context['today_statistics']["retired"]
+        # Empresas (WorkCenter) y procedencias (GhostEmployee) para el modal
+        # de descarga de reportes (por empresa / por totalización)
+        extra_context['work_centers'] = list(
+            WorkCenter.objects.filter(is_removed=False).order_by("name")
+            .values("id", "name")
+        )
+        extra_context['procedencias'] = list(
+            GhostEmployee.objects.filter(is_removed=False)
+            .order_by("name").values("id", "name")
+        )
+        extra_context['today_iso'] = datetime.now().date().isoformat()
 
         return super().changelist_view(request, extra_context=extra_context)
 
@@ -213,12 +225,13 @@ class GhostServiceLoadModelAdmin(ModelAdmin):
         "id",
         "created",
         "day",
+        "procedencia_name",
         "service_type_name",
         "quantity",
         "note",
         "loaded_by",
     ]
-    list_filter = ["date_day", "service_type"]
+    list_filter = ["date_day", "service_type", "procedencia"]
     date_hierarchy = "date_day"
 
     form = GhostServiceLoadForm
@@ -302,8 +315,8 @@ class GhostServiceLoadModelAdmin(ModelAdmin):
         """
         Guarda la carga asignando automáticamente como responsable (loaded_by)
         al usuario con sesión activa y determinando el flag de errata cuando
-        es una carga nueva (la primera del día/servicio es original, el resto
-        erratas).
+        es una carga nueva (la primera del día/servicio/procedencia es
+        original, el resto erratas).
 
         Parámetros:
             request (HttpRequest): petición actual.
@@ -317,7 +330,9 @@ class GhostServiceLoadModelAdmin(ModelAdmin):
         obj.loaded_by = request.user
         if not change:
             obj.is_errata = GhostServiceLoad.objects.actives().filter(
-                date_day=obj.date_day, service_type=obj.service_type
+                date_day=obj.date_day,
+                service_type=obj.service_type,
+                procedencia=obj.procedencia,
             ).exists()
 
         super().save_model(request, obj, form, change)
@@ -342,6 +357,20 @@ class GhostServiceLoadModelAdmin(ModelAdmin):
             str: fecha formateada dd/mm/aaaa.
         """
         return obj.date_day.strftime("%d/%m/%Y")
+
+    @admin.display(description="Procedencia", empty_value="S/A")
+    def procedencia_name(self, obj):
+        """
+        Muestra el nombre de la procedencia de la carga.
+
+        Parámetros:
+            obj (GhostServiceLoad): registro del listado.
+
+        Retorna:
+            str: nombre de la procedencia o 'S/A' si la carga no la tiene
+            (cargas históricas creadas antes de la FK).
+        """
+        return str(obj.procedencia) if obj.procedencia is not None else "S/A"
 
     @admin.display(description="Tipo de servicio", empty_value="S/A")
     def service_type_name(self, obj):

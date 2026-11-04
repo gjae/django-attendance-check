@@ -2,19 +2,18 @@ from django.shortcuts import render
 from datetime import datetime
 import time
 from django.contrib.auth.decorators import login_required, permission_required
-from django.http.response import JsonResponse
+from django.http import JsonResponse
+from django.contrib.staticfiles import finders
 from django.forms.models import model_to_dict
 from django.views.generic import TemplateView
 from django.http.response import HttpResponse
 from django.db.models import Sum, Window, Q, Count
 from django.db.models.functions import RowNumber
 
-from openpyxl import Workbook
-from openpyxl.styles.borders import Border, Side
-from openpyxl.styles import Alignment, Font
-
+from src.dining_room.models import DiningChecking, ConfDiningRoom
 from src.dining_room.models import GhostServiceLoad
-from src.dining_room.models import DiningChecking , ConfDiningRoom
+from src.dining_room.reportering import ExcelReportBuilder
+from src.settings.models import WorkCenter
 from src.employees.models import Employee
 from src.clocking.models import DailyChecks
 from src.dining_room.managers import EmployerNotPresentException, EmployerHasBeenCheckedException
@@ -36,147 +35,63 @@ class ReportAdminView(UnfoldModelAdminViewMixin, TemplateView):
 @permission_required("dining_room.view_conf_diningroom", raise_exception=True)
 def report_dining_today_excel(request, *args, **kwargs):
     """
-    Genera y descarga el reporte Excel del comedor para el día solicitado.
+    Handler del builder de reportes de comedor (dining_room.reportering).
 
-    Requiere sesión activa y el permiso dining_room.view_conf_diningroom. Los
-    "servicios entregados a procedencias" (GhostServiceLoad, cargas originales
-    y erratas, estas últimas suman) se agregan al total por beneficio sin
-    afectar los cálculos de asistencia del personal fijo.
+    Genera el reporte según los parámetros de la descarga hecha desde el
+    modal de gestión de comedor (DiningRoomProxyModel):
+
+    - report_type: 'empresa' (default) o 'totalizacion'.
+    - print_date: fecha única (compatibilidad con el enlace anterior).
+    - start_date / end_date: rango de fechas (end_date inclusive).
+    - work_center: id de empresa o 'all' (solo reporte por empresa).
+    - procedencia: id de GhostEmployee o 'all' (solo reporte por
+      totalización; las cargas no están asociadas a una procedencia, por
+      tanto la sección muestra los totales globales del rango).
+
+    Requiere sesión activa y el permiso dining_room.view_conf_diningroom.
+    Los "servicios entregados a procedencias" (GhostServiceLoad, cargas
+    originales y erratas, estas últimas suman) se agregan al total por
+    beneficio sin afectar los cálculos de asistencia del personal fijo.
+
+    Parámetros:
+        request (HttpRequest): petición con los filtros de reporte.
+
+    Retorna:
+        HttpResponse: archivo Excel (o tabla HTML en salida display)
+        auditado con log_report.
     """
-    workbook = Workbook()
-    ws = workbook.active
-    current_date = datetime.now()
-    current_time = datetime.now().time()
-    print_date = request.GET.get("print_date", None)
-    if print_date is not None:
-        print_date = datetime.strptime(print_date, "%Y-%m-%d").date()
-    else:
-        print_date = current_date.date()
+    filters = parse_report_filters(request.GET)
 
-    today_data = DiningChecking.objects.select_related("employer", "conf_dining_room", "employer__department", "person").filter(created__date=print_date, conf_dining_room__isnull=False , conf_dining_room__is_removed=False).annotate(
-        row_number=Window(
-            RowNumber(),
-            order_by=["employer__last_name", "employer__name", "-created"]
-        )
-    ).order_by("row_number", "conf_dining_room__check_name")
+    builder = ExcelReportBuilder().enable_header()
 
-    total_by_benefit = (
-        ConfDiningRoom
-        .objects
-        .values("check_name")
-        .annotate(
-            total_by_benefit=Count("checkings__id", filter=Q(checkings__created__date=print_date))
-        )
-        .filter(total_by_benefit__gt=0)
-        .values("total_by_benefit", "check_name")
+    datasets = (
+        totalization_services_dataset(filters)
+        if filters["report_type"] == "totalizacion"
+        else company_checks_dataset(filters)
     )
 
-    # Los servicios entregados a "trabajadores fantasma" (erratas incluidas,
-    # estas suman) se suman al total por beneficio sin afectar la asistencia.
-    ghost_totals_by_benefit = GhostServiceLoad.objects.totals_for_date(print_date)
-    combined_totals = {
-        benefit["check_name"]: benefit["total_by_benefit"]
-        for benefit in total_by_benefit
-    }
-    for ghost_total in ghost_totals_by_benefit:
-        service_name = ghost_total["service_type__check_name"]
-        combined_totals[service_name] = (
-            combined_totals.get(service_name, 0) + ghost_total["total"]
-        )
-    total_ghost_services = sum(
-        ghost_total["total"] for ghost_total in ghost_totals_by_benefit
+    for dataset in datasets:
+        builder.add_dataset(dataset["rows"], dataset["layout"])
+
+    response = builder.build()
+    log_report(
+        request,
+        (
+            "Reporte totalización de servicios de comedor"
+            if filters["report_type"] == "totalizacion"
+            else "Reporte comedor por empresa"
+        ),
+        "xlsx",
+        {
+            "report_type": filters["report_type"],
+            "start_date": str(filters["start_date"]),
+            "end_date": str(filters["end_date"]),
+            "work_center": str(filters["work_center"]),
+            "procedencia": str(filters["procedencia"]),
+        },
     )
-
-    thin_border = Border(
-        left=Side(style='thin'),
-        right=Side(style='thin'),
-        top=Side(style='thin'),
-        bottom=Side(style='thin')
-    )
-    aligment = Alignment(horizontal="center", vertical="center")
-    font_subtitle = Font(name="Arial", size=14)
-    font = Font(
-        name="Calibri",
-        size=11,
-        bold=True
-    )
-    data_row_from = 4
-
-    ws.merge_cells("A1:G1")
-    ws.merge_cells("A3:G3")
-    ws["A1"].value = f"PERSONAL ASISTENTE AL {print_date.strftime('%d/%m/%Y')} INPROMARCA"
-    ws["A3"].value = "Trabajador"
-    ws["C3"].border = thin_border
-    ws["B3"].border = thin_border
-    ws["D3"].border = thin_border
-    ws["E3"].border = thin_border
-    ws["F3"].border = thin_border
-    ws["G3"].border = thin_border
-    ws["A3"].border = thin_border
-
-    ws["A1"].font = font
-    ws["A3"].alignment = aligment
-    ws["A1"].alignment= aligment
-    ws["A3"].font= font_subtitle
-
-    for data in today_data:
-        ws[f"A{data_row_from}"].value = data.row_number
-        ws[f"B{data_row_from}"].value = data.employer_object.cedula
-        ws[f"C{data_row_from}"].value = data.employer_object.get_fullname()
-        ws[f"E{data_row_from}"].value = data.employer_object.department.name if data.employer_object.department is not None else ''
-        ws[f"F{data_row_from}"].value = data.conf_dining_room.check_name
-        ws[f"G{data_row_from}"].value = data.created.strftime("%d/%m/%Y %I:%M %p")
-
-        ws.merge_cells(f"C{data_row_from}:D{data_row_from}")
-        ws[f"A{data_row_from}"].border = thin_border
-        ws[f"B{data_row_from}"].border = thin_border
-        ws[f"C{data_row_from}"].border = thin_border
-        ws[f"D{data_row_from}"].border = thin_border
-        ws[f"E{data_row_from}"].border = thin_border
-        ws[f"F{data_row_from}"].border = thin_border
-        ws[f"G{data_row_from}"].border = thin_border
-
-        ws[f"B{data_row_from}"].alignment = aligment
-        ws[f"A{data_row_from}"].alignment = aligment
-        data_row_from = data_row_from + 1
-
-    ws.column_dimensions["A"].width = 10
-    ws.column_dimensions["C"].width = 40
-    ws.column_dimensions["E"].width = 20
-    ws.column_dimensions["F"].width = 10
-    ws.column_dimensions["G"].width = 20
-    response = HttpResponse(content_type="application/ms-excel")
-    content = "attachment; filename =Comedor_{0}.xlsx".format(
-        int(time.mktime(current_date.timetuple()))
-    )
-
-    data_row_from += 4
-    ws.merge_cells(f"D{data_row_from}:E{data_row_from}")
-    ws[f"C{data_row_from}"].value = "Beneficio"
-    ws[f"D{data_row_from}"].value = "Total/Día"
-
-
-    data_row_from += 1
-    for service_name, service_total in combined_totals.items():
-        ws[f"C{data_row_from}"].value = service_name
-        ws[f"D{data_row_from}"].value = service_total
-        ws[f"C{data_row_from}"].border = thin_border
-        ws[f"D{data_row_from}"].border = thin_border
-        data_row_from += 1
-
-    # Fila de control: total de servicios entregados a trabajadores fantasma
-    # incluidos en los totales anteriores (no afecta asistencia de personal fijo)
-    ws[f"C{data_row_from}"].value = "Servicios entregados a trabajadores fantasma"
-    ws[f"D{data_row_from}"].value = total_ghost_services
-    ws[f"C{data_row_from}"].font = font
-    ws[f"D{data_row_from}"].font = font
-    ws[f"C{data_row_from}"].border = thin_border
-    ws[f"D{data_row_from}"].border = thin_border
-
-    response["Content-Disposition"] = content
-    workbook.save(response)
-    log_report(request, "Reporte comedor diario", "xlsx", {"fecha": str(print_date)})
     return response
+
 
 def index(request, *args, **kwargs):
     current_date = datetime.now().date()
@@ -217,6 +132,307 @@ def default_today_last_checks(request, *args, **kwargs):
         "error": False,
         "data": response
     })
+
+
+def parse_report_filters(query):
+    """
+    Traduce los parámetros GET del modal de reportes a un diccionario de
+    filtros normalizado para el builder de reportes de comedor.
+
+    Parámetros:
+        query (QueryDict): parámetros GET de la petición.
+
+    Retorna:
+        dict: filtros normalizados:
+            report_type (str): 'empresa' | 'totalizacion'.
+            start_date (date), end_date (date): rango solicitado
+            (print_date único se mapea al rango).
+            work_center (int | 'all'): empresa seleccionada.
+            procedencia (int | 'all'): procedencia seleccionada
+            (solo usado como etiqueta en totalización).
+    """
+    today = datetime.now().date()
+
+    start_date = query.get("start_date")
+    end_date = query.get("end_date")
+    print_date = query.get("print_date")
+
+    if print_date and not start_date and not end_date:
+        start_date = end_date = print_date
+
+    def to_date(value, fallback):
+        try:
+            return datetime.strptime(value, "%Y-%m-%d").date()
+        except (TypeError, ValueError):
+            return fallback
+
+    start_date = to_date(start_date, today)
+    end_date = to_date(end_date, start_date)
+
+    work_center = query.get("work_center", "all")
+    if work_center != "all":
+        try:
+            work_center = int(work_center)
+        except (TypeError, ValueError):
+            work_center = "all"
+
+    procedencia = query.get("procedencia", "all")
+    if procedencia != "all":
+        try:
+            procedencia = int(procedencia)
+        except (TypeError, ValueError):
+            procedencia = "all"
+
+    return {
+        "report_type": "totalizacion" if query.get("report_type") == "totalizacion" else "empresa",
+        "start_date": start_date,
+        "end_date": end_date,
+        "work_center": work_center,
+        "procedencia": procedencia,
+    }
+
+
+def company_checks_dataset(filters):
+    """
+    Arma el dataset del reporte "por empresa" replicando el layout del
+    reporte original de comedor (7 columnas A-G, header A1:G1 en una fila,
+    fila de encabezado fusionada con solo "Trabajador", nombre fusionado
+    C:D por fila y bloque "Beneficio / Total/Día" sin negritas), con los
+    cambios nuevos: rango de fechas y una hoja por empresa (WorkCenter).
+    Los servicios de procedencias NO se mezclan aquí: corresponden
+    exclusivamente al reporte por totalización.
+
+    Parámetros:
+        filters (dict): filtros de parse_report_filters.
+
+    Retorna:
+        list[dict]: datasets [{rows, layout}] para el ExcelReportBuilder.
+    """
+    work_centers = WorkCenter.objects.filter(is_removed=False)
+    if isinstance(filters["work_center"], int):
+        work_centers = work_centers.filter(id=filters["work_center"])
+
+    title_date = (
+        f"AL {filters['start_date'].strftime('%d/%m/%Y')}"
+        if filters["start_date"] == filters["end_date"]
+        else (
+            f"DESDE {filters['start_date'].strftime('%d/%m/%Y')} "
+            f"HASTA {filters['end_date'].strftime('%d/%m/%Y')}"
+        )
+    )
+
+    datasets = []
+    for work_center in work_centers.order_by("name"):
+        checkings = (
+            DiningChecking.objects
+            .select_related(
+                "employer", "conf_dining_room",
+                "employer__department", "person", "person__department",
+            )
+            .filter(
+                created__date__range=[filters["start_date"], filters["end_date"]],
+                conf_dining_room__isnull=False,
+                conf_dining_room__is_removed=False,
+            )
+            .filter(
+                Q(employer__department__work_center=work_center)
+                | Q(person__department__work_center=work_center)
+            )
+            .annotate(
+                row_number=Window(
+                    RowNumber(),
+                    order_by=["employer__last_name", "employer__name", "-created"]
+                )
+            )
+            .order_by("row_number", "conf_dining_room__check_name")
+        )
+
+        rows = [
+            {
+                "row_number": data.row_number,
+                "cedula": data.employer_object.cedula,
+                "fullname": data.employer_object.get_fullname(),
+                "department": (
+                    data.employer_object.department.name
+                    if data.employer_object.department is not None else ""
+                ),
+                "check_turn": data.conf_dining_room.check_name,
+                "check_at": data.created.strftime("%d/%m/%Y %I:%M %p"),
+                "work_center": work_center.name,
+            }
+            for data in checkings
+        ]
+
+        totals = []
+        totals_by_benefit = (
+            ConfDiningRoom.objects
+            .filter(
+                checkings__created__date__range=[
+                    filters["start_date"], filters["end_date"]
+                ],
+                checkings__is_removed=False,
+                is_removed=False,
+            )
+            .annotate(total_by_benefit=Count("checkings__id"))
+            .filter(total_by_benefit__gt=0)
+            .order_by("check_name")
+        )
+        for benefit in totals_by_benefit:
+            totals.append({
+                "label": benefit.check_name,
+                "total": benefit.total_by_benefit,
+            })
+
+        datasets.append({
+            "rows": rows,
+            "layout": {
+                # Pestaña de la hoja con la empresa; el header mantiene el
+                # texto exacto del reporte original INPROMARCA
+                "sheet_title": work_center.name,
+                "header_text": f"PERSONAL ASISTENTE {title_date} INPROMARCA",
+                "header_rows": 1,
+                "start": "A3",
+                "columns": ["Trabajador", "", "", "", "", "", ""],
+                "row_fields": [
+                    "row_number", "cedula", "fullname", "", "department",
+                    "check_turn", "check_at",
+                ],
+                "data_center_columns": 2,
+                "merge_header_row": True,
+                "row_merge": [2, 3],
+                "column_widths": {
+                    "A": 10, "C": 40, "E": 20, "F": 10, "G": 20,
+                },
+                "totals": totals,
+                "totals_title": "Beneficio",
+                "totals_label_offset": 2,
+                "totals_value_label": "Total/Día",
+                "totals_value_span": 2,
+                "totals_skip": 4,
+                "totals_bold": False,
+            },
+        })
+
+    if not datasets:
+        datasets.append({"rows": [], "layout": {
+            "sheet_title": "PERSONAL ASISTENTE (sin datos en el rango)",
+            "header_text": (
+                f"PERSONAL ASISTENTE {title_date} INPROMARCA "
+                "(sin datos en el rango)"
+            ),
+            "header_rows": 1,
+            "start": "A3",
+            "columns": ["Trabajador", "", "", "", "", "", ""],
+            "row_fields": ["", "", "", "", "", "", ""],
+            "data_center_columns": 2,
+            "merge_header_row": True,
+            "row_merge": [2, 3],
+            "column_widths": {"A": 10, "C": 40, "E": 20, "F": 10, "G": 20},
+            "totals": [],
+            "totals_title": "Beneficio",
+            "totals_label_offset": 2,
+            "totals_value_label": "Total/Día",
+            "totals_value_span": 2,
+            "totals_skip": 4,
+            "totals_bold": False,
+        }})
+
+    return datasets
+
+
+def totalization_services_dataset(filters):
+    """
+    Arma el dataset del reporte "por totalización": secciones por
+    procedencia (GhostEmployee) con su beneficio y total **por procedencia**
+    (cada carga está asociada a una procedencia vía GhostServiceLoad.
+    procedencia); las cargas sin procedencia (históricas/null) se agrupan en
+    la sección "Sin procedencia registrada". Al final del archivo, el
+    reporte salta 2 líneas e indica el total por tipo de servicio de forma
+    general sobre los datos incluidos.
+
+    Parámetros:
+        filters (dict): filtros de parse_report_filters (incluye
+            procedencia: id o 'all').
+
+    Retorna:
+        list[dict]: dataset único [{rows, layout}] para el ExcelReportBuilder.
+    """
+    loads = (
+        GhostServiceLoad.objects
+        .actives()
+        .filter(
+            date_day__range=[filters["start_date"], filters["end_date"]],
+        )
+        .exclude(service_type=None)
+    )
+
+    if isinstance(filters["procedencia"], int):
+        loads = loads.filter(procedencia_id=filters["procedencia"])
+
+    # Totales por procedencia y tipo de servicio (las erratas suman)
+    grouped = list(
+        loads.values("procedencia__name", "service_type__check_name")
+        .annotate(total=Sum("quantity"))
+        .order_by("procedencia__name", "service_type__check_name")
+    )
+
+    def procedencia_label(name):
+        return name if name else "Sin procedencia registrada"
+
+    total_by_service_general: Dict[str, float] = {}
+    rows = []
+    for item in grouped:
+        procedencia_name = procedencia_label(item["procedencia__name"])
+        service_name = item["service_type__check_name"]
+        total = item["total"] or 0
+        rows.append({
+            "procedencia": procedencia_name,
+            "servicio": service_name,
+            "total": total,
+        })
+        total_by_service_general[service_name] = (
+            total_by_service_general.get(service_name, 0) + total
+        )
+
+    # Si el filtro fue 'all' y no existen procedencias con cargas en el
+    # rango, el dataset queda vacío (hoja con solo el header y totales nulos)
+    if not rows:
+        rows = [{
+            "procedencia": "Sin cargas en el rango seleccionado",
+            "servicio": "",
+            "total": "",
+        }]
+
+    range_label = (
+        filters["start_date"].strftime("%d/%m/%Y")
+        if filters["start_date"] == filters["end_date"]
+        else (
+            f"DEL {filters['start_date'].strftime('%d/%m/%Y')} AL "
+            f"{filters['end_date'].strftime('%d/%m/%Y')}"
+        )
+    )
+
+    layout = {
+        "sheet_title": f"TOTALIZACIÓN DE SERVICIO ENTREGADO {range_label}",
+        "header_text": (
+            f"REPORTE ENTREGA DE BENEFICIO ALIMENTARIO AL PERSONAL DESDE "
+            f"{filters['start_date'].strftime('%d/%m/%Y')} "
+            f"HASTA {filters['end_date'].strftime('%d/%m/%Y')}"
+        ),
+        "logo_path": str(finders.find("images/branding/logo_inpromaro_lit.png")),
+        "start": "B7",
+        "columns": ["", "Beneficio", "Total"],
+        "row_fields": ["procedencia", "servicio", "total"],
+        "section_field": "procedencia",
+        "merge_key": "procedencia",
+        "merge_columns": 1,
+        "totals": [
+            {"label": name, "total": total}
+            for name, total in sorted(total_by_service_general.items())
+        ],
+        "totals_title": "Total por tipo de servicio",
+    }
+    return [{"rows": rows, "layout": layout}]
 
 
 def check_dining_employer(request, card_id, *args, **kwargs):

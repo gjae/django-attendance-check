@@ -145,14 +145,16 @@ class GhostServiceLoadManager(models.Manager):
         loaded_by=None,
         date_day=None,
         note="",
+        procedencia=None,
     ):
         """
         Registra una carga de servicios entregados a trabajadores fantasma.
 
-        La primera carga del día para un tipo de servicio se marca como carga
-        original (is_errata=False); toda carga posterior del mismo día y tipo
-        de servicio es una "errata" (is_errata=True). Las erratas SUMAN al total
-        del día, nunca sobreescriben.
+        La primera carga del día para un tipo de servicio y procedencia se
+        marca como carga original (is_errata=False); toda carga posterior del
+        mismo día, tipo de servicio y procedencia es una "errata"
+        (is_errata=True). Las erratas SUMAN al total del día, nunca
+        sobreescriben.
 
         Parámetros:
             service_type (ConfDiningRoom): tipo de servicio (configurable por la
@@ -161,6 +163,8 @@ class GhostServiceLoadManager(models.Manager):
             loaded_by (User | None): usuario responsable de la carga.
             date_day (date | None): día de la carga; por defecto hoy.
             note (str): nota opcional, útil para explicar la errata.
+            procedencia (GhostEmployee | None): procedencia a la que
+                corresponde la carga.
 
         Retorna:
             GhostServiceLoad: la carga registrada.
@@ -169,7 +173,9 @@ class GhostServiceLoadManager(models.Manager):
             date_day = date_cls.today()
 
         prior_exists = self.actives().filter(
-            date_day=date_day, service_type=service_type
+            date_day=date_day,
+            service_type=service_type,
+            procedencia=procedencia,
         ).exists()
 
         return self.create(
@@ -179,6 +185,7 @@ class GhostServiceLoadManager(models.Manager):
             is_errata=prior_exists,
             loaded_by=loaded_by,
             note=note,
+            procedencia=procedencia,
         )
 
     def totals_for_date(self, date_day=None):
@@ -272,6 +279,19 @@ class GhostServiceLoad(TimeStampedModel, SoftDeletableModel):
         null=True,
         default=None,
     )
+    procedencia = models.ForeignKey(
+        GhostEmployee,
+        on_delete=models.PROTECT,
+        related_name="service_loads",
+        verbose_name="Procedencia",
+        null=True,
+        default=None,
+        help_text=(
+            "Procedencia (registro fantasma) a la que corresponde esta carga "
+            "de servicios; permite filtrar y totalizar el reporte por "
+            "procedencia"
+        ),
+    )
     quantity = models.PositiveIntegerField(
         "Cantidad de servicios entregados",
         default=0,
@@ -319,8 +339,9 @@ class GhostServiceLoad(TimeStampedModel, SoftDeletableModel):
         Guarda la carga determinando el flag de errata.
 
         Si is_errata no fue fijado previamente en la instancia, se calcula
-        verificando si ya existen cargas activas para el mismo día y tipo de
-        servicio: la primera carga es la original y las siguientes erratas.
+        verificando si ya existen cargas activas para el mismo día, tipo de
+        servicio y procedencia: la primera carga es la original y las
+        siguientes erratas.
 
         Parámetros:
             *args, **kwargs: argumentos estándar de Model.save().
@@ -332,6 +353,7 @@ class GhostServiceLoad(TimeStampedModel, SoftDeletableModel):
             prior_exists = GhostServiceLoad.objects.actives().filter(
                 date_day=self.date_day,
                 service_type=self.service_type,
+                procedencia=self.procedencia,
             ).exists()
             self.is_errata = prior_exists
 
