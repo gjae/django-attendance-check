@@ -2,10 +2,79 @@
 
 ## Iteración: Reportes de comedor con builder (2026-11-04)
 
-Último commit confirmado: `5114fd7` feat(comedor) — reportes builder, cargas con
-procedencia y UI de gestión (2026-11-04). Incluye la iteración anterior completa
-(`b722927` trabajadores fantasma) más TODO el trabajo de reportes/UI de esta
+Último commit confirmado: `5f6c20d` feat(comedor) — relación procedencia-empresa,
+logo fiel y conteos sin duplicar (2026-11-07). Incluye las iteraciones anteriores
+completas además de TODO el trabajo de reportes/UI de esta
 memoria.
+
+## Iteración: conteos duplicados + reporte general con chequeos reales (2026-11-07)
+
+1. **Bug contador duplicado (fix)** (`views.py` — `company_checks_dataset`): el
+   "Beneficio / Total/Día" del reporte por empresa contaba **2× cada entrega** porque
+   `ConfDiningRoom` filtraba la relación multi-valor `checkings__…` en DOS llamadas
+   `.filter()` separadas → Django crea un JOIN independiente por cada filtro y el mismo
+   chequeo entra 2 veces en el `Count("checkings__id")`. El conteo ahora se arma DESDE
+   `DiningChecking` (join único por lado employer/person, que son FK single-valued y no
+   multiplican) agrupado por `conf_dining_room__check_name` con `values+annotate`.
+
+2. **Reporte general: cargas + chequeos reales** (decisión del usuario): el bloque
+   final "Total por tipo de servicio" de `totalization_services_dataset`, al generar
+   con TODAS las procedencias (`procedencia='all'`) suma: **TODAS las cargas del rango**
+   (ya sumadas por el bucle de secciones, con o sin empresa, erratas incluidas) **+
+   entrega por chequeo del comedor** (DiningChecking del rango por beneficio, armada
+   sin joins duplicados). **Corrección del 2026-11-07**: el primer intento sumaba las
+   cargas ligadas a empresa POR SEPARADO (bloque `related_loads`) y el bucle de
+   secciones ya las incluía → totalización duplicada (30 carga + 30 repetida + 1
+   chequeo = 61 en el caso de prueba "30 entregas + 1 chequeo" que debía dar 31). El
+   bloque `related_loads` se eliminó: las cargas cuentan UNA vez en el total del
+   general, haya o no tengan empresa (la relación con empresa solo influye en el
+   reporte POR EMPRESA). Con procedencia específica el bloque muestra solo sus cargas.
+
+3. **Caso de prueba 123456** (chequeo + 1 carga): si la carga estaba ligada a la empresa
+   del empleado, `Almuerzo = 2` es el diseño acordado (1 chequeo + 1 carga); si la carga
+   NO estaba ligada, el 2 venía del bug del doble JOIN (corregido) → ahora 1. Hacer al
+   usuario re-probar ambos casos.
+
+4. Nota: los chequeos de empleados cuyo departamento NO tiene work_center no aparecen en
+   ninguna hoja por empresa (filtro employer/person → department.work_center); hoy eso
+   también los excluye de la totalización real del reporte general... vigilar con datos
+   reales (posible necesario un bucket "Sin empresa" en el futuro).
+
+## Iteración: Logo sin distorsión + relación Procedencia–Empresa (2026-11-07)
+
+1. **Logo del reporte general** (`dining_room/reportering.py` —
+   `ExcelReportBuilder._add_corporate_logo`): el logo YA NO se reescala a las celdas
+   (antes era la causa de la distorsión: el PNG es **cuadrado 166×166px** y se forzaba a
+   90×32). Ahora se inserta en su **tamaño natural** (aspect ratio intacto) y **las celdas
+   que lo contienen se adaptan al logo**: filas 1..header_rows reparten su altura
+   (px→pt ×0.75, min 15pt) y la columna ancla crece hasta `(w+5)/7` caracteres si
+   estaba menor. Verificado: 166×166, filas 1-2 a 62.25pt, col A 24.43 chars,
+   header B1:K2 intacto.
+
+2. **FK opcional Procedencia→Empresa**:
+   - `GhostEmployee.work_center` (`settings.WorkCenter`, `null=True`, `PROTECT`,
+     `related_name="ghost_employees"`) — migración `0016_ghostemployee_work_center`
+     (escrita a mano; Docker sin acceso en la sesión).
+   - `GhostEmployeeForm` nuevo (`forms.py`): selector de Empresa **opcional** con clases
+     tailwind/unfold (mismo patrón que los selects del comedor).
+   - `GhostEmployeeModelAdmin` (`admin.py`): columna "Empresa" ("General" si null),
+     filtro por empresa y form nuevo.
+
+3. **Totalización por empresa con procedencias** (`views.py` —
+   `company_checks_dataset`): el bloque "Beneficio / Total/Día" de cada hoja de
+   empresa ahora es **por empresa y discriminado por tipo de beneficio**:
+   chequeos de esa empresa (employer/person → department.work_center) +
+   **Sum de GhostServiceLoad de procedencias con `work_center == esa empresa`**
+   (erratas suman). Registros fantasma NUNCA generan filas de chequeo (solo
+   totales, req. del usuario); procedencias **sin empresa** no se atribuyen a
+   ninguna hoja por empresa → solo aparecen en el reporte general (totalización).
+
+4. **Fix latente**: `Dict` (typing) se usaba en views.py sin importar → NameError
+   al generar reportes; agregado `from typing import Dict`.
+
+Nomenclatura vigente (ver AGENTS.md): "reporte general de cocina" = reportes de
+dining_room de Ghost* (la opción del modal visible como "Reporte general", internamente
+`report_type=totalizacion`).
 
 1. **Patrón Builder** (`src/src/dining_room/reportering.py`, archivo nuevo):
    - `BaseReportBuilder`: encadena `with_format()` ('excel' por defecto, PDF/CSV reservados →
@@ -22,7 +91,10 @@ memoria.
    - `parse_report_filters(query)`: normaliza `report_type` ('empresa'|'totalizacion'),
      `print_date` (compat) o `start_date`/`end_date`, `work_center` (id|'all') y
      `procedencia` (id|'all').
-   - `company_checks_dataset(filters)`: reporte por empresa — copiada 1:1 de la
+   - `company_checks_dataset(filters)`: reporte por empresa — **verificado (2026-11-05):
+     cada WorkCenter sale en su propia hoja del Excel** (título de pestaña = nombre
+     de la empresa; empresas sin chequeos del rango también obtienen hoja; nombres
+     duplicados tras el recorte de 31 caracteres reciben sufijo «N»). Copia 1:1 de la
      versión original (commit c7cf574, validada con diff celda-a-celda: valores,
      fuentes, negritas y merges coinciden). Header en UNA fila A1:G1 con texto exacto
      "PERSONAL ASISTENTE AL {fecha} INPROMARCA" (rango: "DESDE ... HASTA ...
@@ -39,7 +111,10 @@ memoria.
      `totals_skip=4`, `totals_label_offset=2`, `totals_value_label`,
      `totals_value_span=2`, `totals_bold=False`.
 
-   - `totalization_services_dataset(filters)`: reporte por totalización (Excel): secciones
+   - `totalization_services_dataset(filters)`: reporte **"general"** (visible como
+     "Reporte general" en el modal; valor interno `report_type=totalizacion`,
+     título de hoja "REPORTE GENERAL DE SERVICIO ENTREGADO {rango}", auditado como
+     "Reporte general de servicios de comedor"): secciones
      por Procedencia desde **B7** (columnas Procedencia / Beneficio / Total), celdas de
      procedencia fusionadas por cantidad de beneficios, y al final tras saltar 2 líneas el
      "Total por tipo de servicio" general. **Actualización (2026-11-04)**:

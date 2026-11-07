@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from datetime import datetime
 import time
+from typing import Dict
 from django.contrib.auth.decorators import login_required, permission_required
 from django.http import JsonResponse
 from django.contrib.staticfiles import finders
@@ -40,18 +41,19 @@ def report_dining_today_excel(request, *args, **kwargs):
     Genera el reporte según los parámetros de la descarga hecha desde el
     modal de gestión de comedor (DiningRoomProxyModel):
 
-    - report_type: 'empresa' (default) o 'totalizacion'.
+    - report_type: 'empresa' (default, "Por empresa") o 'totalizacion'
+      (visible como "Reporte general").
     - print_date: fecha única (compatibilidad con el enlace anterior).
     - start_date / end_date: rango de fechas (end_date inclusive).
     - work_center: id de empresa o 'all' (solo reporte por empresa).
-    - procedencia: id de GhostEmployee o 'all' (solo reporte por
-      totalización; las cargas no están asociadas a una procedencia, por
-      tanto la sección muestra los totales globales del rango).
+    - procedencia: id de GhostEmployee o 'all' (solo reporte general;
+      filtra las secciones por procedencia en el archivo).
 
     Requiere sesión activa y el permiso dining_room.view_conf_diningroom.
-    Los "servicios entregados a procedencias" (GhostServiceLoad, cargas
-    originales y erratas, estas últimas suman) se agregan al total por
-    beneficio sin afectar los cálculos de asistencia del personal fijo.
+    Los servicios entregados a procedencias (GhostServiceLoad, cargas
+    originales y erratas, estas últimas suman) se reportan únicamente en
+    el reporte general (totalización), sin afectar los cálculos de
+    asistencia del personal fijo.
 
     Parámetros:
         request (HttpRequest): petición con los filtros de reporte.
@@ -77,7 +79,7 @@ def report_dining_today_excel(request, *args, **kwargs):
     log_report(
         request,
         (
-            "Reporte totalización de servicios de comedor"
+            "Reporte general de servicios de comedor"
             if filters["report_type"] == "totalizacion"
             else "Reporte comedor por empresa"
         ),
@@ -102,7 +104,6 @@ def index(request, *args, **kwargs):
     context['today_statistics'] = DiningChecking.objects.statistics_of()
     context['today_statistics']["presents"] = context['today_statistics']["assistants"] - context['today_statistics']["retired"]
 
-    print(f"current_turn: {current_turn}")
     return render(
         request,
         "dining_room/index.html",
@@ -199,8 +200,13 @@ def company_checks_dataset(filters):
     fila de encabezado fusionada con solo "Trabajador", nombre fusionado
     C:D por fila y bloque "Beneficio / Total/Día" sin negritas), con los
     cambios nuevos: rango de fechas y una hoja por empresa (WorkCenter).
-    Los servicios de procedencias NO se mezclan aquí: corresponden
-    exclusivamente al reporte por totalización.
+    La totalización de cada hoja es POR empresa y discrimina por tipo de
+    beneficio: chequeos de comedor de esa empresa + servicios cargados a
+    procedencias relacionadas a ella (GhostEmployee.work_center, erratas
+    incluidas). Los registros de modelos fantasma nunca generan filas de
+    chequeo (solo totalización) y las procedencias sin empresa solo
+    aparecen en el reporte general. Los datos de totalización NO se
+    mezclan con el reporte general (eso vive exclusivamente ahí).
 
     Parámetros:
         filters (dict): filtros de parse_report_filters.
@@ -263,25 +269,67 @@ def company_checks_dataset(filters):
             for data in checkings
         ]
 
-        totals = []
-        totals_by_benefit = (
-            ConfDiningRoom.objects
+        # Totalización de ESTA empresa (discriminada por tipo de beneficio):
+        # servicios entregados por chequeo de comedor + servicios cargados a
+        # procedencias relacionadas a la empresa (GhostEmployee.work_center,
+        # cargas originales y erratas, estas últimas suman). Las
+        # procedencias sin empresa no se atribuyen a ninguna hoja: solo
+        # aparecen en el reporte general (totalización); registros fantasma
+        # no generan filas de chequeo, solo totales.
+        #
+        # El conteo por chequeo se arma DESDE DiningChecking agrupado por
+        # beneficio (join único por lado employer/person, NOTA: los FK
+        # employer y person son single-valued y no multiplican filas);
+        # contar via ConfDiningRoom.checkings duplicaba el valor porque cada
+        # llamada a filter() sobre la relación multi-valor checkings__ crea
+        # un JOIN independiente y el mismo chequeo entraba 2 veces.
+        totals_map: Dict[str, float] = {}
+
+        checks_by_benefit = (
+            DiningChecking.objects
             .filter(
-                checkings__created__date__range=[
+                created__date__range=[
                     filters["start_date"], filters["end_date"]
                 ],
-                checkings__is_removed=False,
                 is_removed=False,
+                conf_dining_room__isnull=False,
+                conf_dining_room__is_removed=False,
             )
-            .annotate(total_by_benefit=Count("checkings__id"))
-            .filter(total_by_benefit__gt=0)
-            .order_by("check_name")
+            .filter(
+                Q(employer__department__work_center=work_center)
+                | Q(person__department__work_center=work_center)
+            )
+            .values("conf_dining_room__check_name")
+            .annotate(total=Count("id"))
         )
-        for benefit in totals_by_benefit:
-            totals.append({
-                "label": benefit.check_name,
-                "total": benefit.total_by_benefit,
-            })
+        for check in checks_by_benefit:
+            benefit_name = check["conf_dining_room__check_name"]
+            totals_map[benefit_name] = (
+                totals_map.get(benefit_name, 0) + (check["total"] or 0)
+            )
+
+        ghost_by_benefit = (
+            GhostServiceLoad.objects
+            .actives()
+            .filter(
+                date_day__range=[filters["start_date"], filters["end_date"]],
+            )
+            .exclude(service_type=None)
+            .filter(procedencia__work_center=work_center)
+            .values("service_type__check_name")
+            .annotate(total=Sum("quantity"))
+        )
+        for ghost in ghost_by_benefit:
+            benefit_name = ghost["service_type__check_name"]
+            totals_map[benefit_name] = (
+                totals_map.get(benefit_name, 0) + (ghost["total"] or 0)
+            )
+
+        totals = [
+            {"label": benefit_name, "total": benefit_total}
+            for benefit_name, benefit_total in sorted(totals_map.items())
+            if benefit_total > 0
+        ]
 
         datasets.append({
             "rows": rows,
@@ -342,13 +390,16 @@ def company_checks_dataset(filters):
 
 def totalization_services_dataset(filters):
     """
-    Arma el dataset del reporte "por totalización": secciones por
-    procedencia (GhostEmployee) con su beneficio y total **por procedencia**
-    (cada carga está asociada a una procedencia vía GhostServiceLoad.
-    procedencia); las cargas sin procedencia (históricas/null) se agrupan en
-    la sección "Sin procedencia registrada". Al final del archivo, el
-    reporte salta 2 líneas e indica el total por tipo de servicio de forma
-    general sobre los datos incluidos.
+    Arma el dataset del reporte "general" (internamente totalización):
+    secciones por procedencia (GhostEmployee) con su beneficio y total
+    **por procedencia** (cada carga está asociada a una procedencia vía
+    GhostServiceLoad.procedencia); las cargas sin procedencia (históricas/
+    null) se agrupan en la sección "Sin procedencia registrada". Al final
+    del archivo, el reporte salta 2 líneas e indica el total por tipo de
+    servicio: TODAS las cargas del rango (ligadas o no a una empresa, con
+    erratas incluidas) + las entregas por chequeo de comedor del rango.
+    Con una procedencia específica el bloque muestra solo las cargas de
+    esa procedencia (los chequeos reales no pertenecen a una procedencia).
 
     Parámetros:
         filters (dict): filtros de parse_report_filters (incluye
@@ -394,6 +445,34 @@ def totalization_services_dataset(filters):
             total_by_service_general.get(service_name, 0) + total
         )
 
+    # Total del bloque final por tipo de servicio: totalización según el
+    # usuario (cargas del rango, TODAS por igual — ligadas o no a una
+    # empresa— ya sumadas por procedencia en el bucle de secciones) +
+    # entregas por chequeo de comedor del rango, discriminadas beneficio.
+    # Con un filtro de procedencia específica el bloque muestra solo las
+    # cargas de esa procedencia (los chequeos reales no pertenecen a una
+    # procedencia).
+    if not isinstance(filters["procedencia"], int):
+        real_checks = (
+            DiningChecking.objects
+            .filter(
+                created__date__range=[
+                    filters["start_date"], filters["end_date"]
+                ],
+                is_removed=False,
+                conf_dining_room__isnull=False,
+                conf_dining_room__is_removed=False,
+            )
+            .values("conf_dining_room__check_name")
+            .annotate(total=Count("id"))
+        )
+        for check in real_checks:
+            service_name = check["conf_dining_room__check_name"]
+            total_by_service_general[service_name] = (
+                total_by_service_general.get(service_name, 0)
+                + (check["total"] or 0)
+            )
+
     # Si el filtro fue 'all' y no existen procedencias con cargas en el
     # rango, el dataset queda vacío (hoja con solo el header y totales nulos)
     if not rows:
@@ -413,7 +492,7 @@ def totalization_services_dataset(filters):
     )
 
     layout = {
-        "sheet_title": f"TOTALIZACIÓN DE SERVICIO ENTREGADO {range_label}",
+        "sheet_title": f"REPORTE GENERAL DE SERVICIO ENTREGADO {range_label}",
         "header_text": (
             f"REPORTE ENTREGA DE BENEFICIO ALIMENTARIO AL PERSONAL DESDE "
             f"{filters['start_date'].strftime('%d/%m/%Y')} "

@@ -16,7 +16,7 @@ from .models import (
     GhostEmployee,
     GhostServiceLoad,
 )
-from .forms import ConfDiningRoomForm, GhostServiceLoadForm
+from .forms import ConfDiningRoomForm, GhostEmployeeForm, GhostServiceLoadForm
 from src.reports.auditlog_admin import FriendlyLogEntryAdmin  # noqa: F401
 from src.settings.models import WorkCenter
 from .views import ReportAdminView
@@ -158,14 +158,32 @@ class GhostEmployeeModelAdmin(ModelAdmin):
 
     Solo requiere un nombre para identificar su procedencia; no llevan un
     registro de asistencia asociado y no afectan los cálculos de asistencia
-    del personal fijo. El flag interno is_removed (borrado lógico) no se
-    muestra en el formulario.
+    del personal fijo. La relación opcional con Empresa (WorkCenter) hace
+    que sus servicios cargados se sumen a la totalización del reporte por
+    empresa, discriminados por tipo de beneficio. El flag interno
+    is_removed (borrado lógico) no se muestra en el formulario.
     """
 
-    list_display = ["id", "name", "is_actived", "created"]
+    form = GhostEmployeeForm
+    list_display = ["id", "name", "empresa_name", "is_actived", "created"]
     search_fields = ["name"]
-    list_filter = ["is_actived"]
+    list_filter = ["is_actived", "work_center"]
     exclude = ["is_removed"]
+
+    @admin.display(description="Empresa", empty_value="General")
+    def empresa_name(self, obj):
+        """
+        Muestra la empresa relacionada a la procedencia.
+
+        Parámetros:
+            obj (GhostEmployee): registro del listado.
+
+        Retorna:
+            str: nombre de la empresa o 'General' cuando la procedencia no
+            tiene relación con ninguna empresa (solo aparece en el reporte
+            general / totalización).
+        """
+        return obj.work_center.name if obj.work_center is not None else "General"
 
     def has_view_permission(self, request, obj=None):
         """

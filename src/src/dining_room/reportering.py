@@ -407,7 +407,12 @@ class ExcelReportBuilder(BaseReportBuilder):
             title_cell.font = self.HEADER_FONT
             title_cell.alignment = self.CENTER_ALIGN
 
-            self._add_corporate_logo(rendered, layout.get("logo_path"))
+            self._add_corporate_logo(
+                rendered,
+                layout.get("logo_path"),
+                anchor="A1",
+                anchor_rows=header_rows,
+            )
 
         # Encabezados de columnas desde la celda inicial indicada
         for offset, column in enumerate(columns):
@@ -564,15 +569,25 @@ class ExcelReportBuilder(BaseReportBuilder):
         span_from_text = math.ceil(max(len(header_text), 1) / chars_per_cell)
         return max(columns_count, span_from_text, 1)
 
-    def _add_corporate_logo(self, sheet, logo_path: Optional[str]) -> None:
+    def _add_corporate_logo(
+        self, sheet, logo_path: Optional[str], anchor: str = "A1",
+        anchor_rows: int = 2,
+    ) -> None:
         """
-        Inserta el logo de identidad corporativa en la esquina superior
-        izquierda del reporte (celda A1) si el archivo existe en disco.
+        Inserta el logo de identidad corporativa preservando su relación de
+        aspecto (no se reescala para caber en las celdas): la dimensión del
+        logo se mantiene en su tamaño natural y son las celdas que lo
+        contienen las que se adaptan (alto de las filas del header y ancho
+        de la columna ancla). Se omite la inserción cuando la ruta es
+        None o el archivo no existe en disco.
 
         Parámetros:
             sheet (Worksheet): hoja del reporte.
             logo_path (str | None): ruta absoluta del logo en el sistema de
                 archivos; None o ruta inexistente omiten la inserción.
+            anchor (str): celda ancla del logo (esquina superior izquierda).
+            anchor_rows (int): cantidad de filas del header que contienen
+                al logo en vertical (se reparten su altura).
 
         Retorna:
             None.
@@ -581,9 +596,32 @@ class ExcelReportBuilder(BaseReportBuilder):
             return
 
         logo = ExcelImage(logo_path)
-        logo.width = 90
-        logo.height = 32
-        sheet.add_image(logo, "A1")
+        # Tamaño natural del archivo (px); nunca se fuerza el aspect ratio
+        natural_width = float(logo.width or 0)
+        natural_height = float(logo.height or 0)
+        sheet.add_image(logo, anchor)
+
+        # Las celdas ancla se adaptan al logo en lugar del logo a las
+        # celdas: altura de las filas del header y ancho de la columna
+        anchor_row = int(anchor[1:]) if anchor[1:].isdigit() else 1
+        if natural_height > 0:
+            total_height_pt = natural_height * 0.75  # px → puntos (72/96)
+            row_height_pt = max(total_height_pt / max(anchor_rows, 1), 15.0)
+            for row_index in range(anchor_row, anchor_row + anchor_rows):
+                if sheet.row_dimensions[row_index].height is None:
+                    sheet.row_dimensions[row_index].height = row_height_pt
+
+        if natural_width > 0:
+            anchor_letter = get_column_letter(
+                column_index_from_string(anchor[0])
+            )
+            width_chars = (natural_width + 5) / 7  # px → ancho aproximado
+            if anchor_letter not in sheet.column_dimensions:
+                sheet.column_dimensions[anchor_letter].width = width_chars
+            else:
+                current = sheet.column_dimensions[anchor_letter].width or 0
+                if width_chars > current:
+                    sheet.column_dimensions[anchor_letter].width = width_chars
 
     def _build_sections(
         self, rows: List[Dict], section_field: Optional[str]

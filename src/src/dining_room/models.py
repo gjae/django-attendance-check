@@ -113,6 +113,20 @@ class GhostEmployee(TimeStampedModel, SoftDeletableModel):
             "(ej: 'Visita Casa Matriz')"
         ),
     )
+    work_center = models.ForeignKey(
+        "settings.WorkCenter",
+        on_delete=models.PROTECT,
+        related_name="ghost_employees",
+        verbose_name="Empresa",
+        null=True,
+        blank=True,
+        default=None,
+        help_text=(
+            "Empresa a la que corresponde la procedencia (opcional); si se "
+            "define, sus servicios cargados se suman a la totalización del "
+            "reporte por empresa, discriminados por tipo de beneficio"
+        ),
+    )
     is_actived = models.BooleanField("Activo", default=True)
 
     class Meta:

@@ -1,6 +1,7 @@
 from django import forms
 from django.utils import timezone
 
+from src.settings.models import WorkCenter
 from .models import ConfDiningRoom, GhostEmployee, GhostServiceLoad
 
 class ConfDiningRoomForm(forms.ModelForm):
@@ -12,6 +13,54 @@ class ConfDiningRoomForm(forms.ModelForm):
             "is_all_day",
             "is_removed"
         ]
+
+
+class GhostEmployeeForm(forms.ModelForm):
+    """
+    Formulario del admin de comedor para crear y gestionar Procedencias
+    (GhostEmployee).
+
+    Solo el nombre es obligatorio; la relación con Empresa (WorkCenter) es
+    opcional para mantener la procedencia genérica: si se define, su
+    totalización de servicios se suma al reporte por empresa, discriminada
+    por tipo de beneficio. El flag is_removed no se muestra.
+    """
+
+    work_center = forms.ModelChoiceField(
+        label="Empresa",
+        required=False,
+        queryset=WorkCenter.objects.filter(is_removed=False).order_by("name"),
+        help_text=(
+            "Empresa a la que corresponde la procedencia (opcional); si se "
+            "define, sus servicios cargados se suman a la totalización del "
+            "reporte por empresa, discriminados por tipo de beneficio"
+        ),
+        widget=forms.Select(
+            attrs={
+                # Estilos tailwind/unfold consistentes con los demás selects
+                # del admin de comedor
+                "class": (
+                    "border border-base-200 bg-white font-medium min-w-20 "
+                    "placeholder-base-400 rounded-default shadow-xs "
+                    "text-font-default-light text-sm focus:outline-2 "
+                    "focus:-outline-offset-2 focus:outline-primary-600 "
+                    "group-[.errors]:border-red-600 "
+                    "focus:group-[.errors]:outline-red-600 "
+                    "dark:bg-base-900 dark:border-base-700 "
+                    "dark:text-font-default-dark "
+                    "dark:group-[.errors]:border-red-500 "
+                    "dark:focus:group-[.errors]:outline-red-500 "
+                    "dark:scheme-dark group-[.primary]:border-transparent "
+                    "px-3 py-2 w-full pr-8! max-w-2xl truncate"
+                ),
+            }
+        ),
+    )
+
+    class Meta:
+        model = GhostEmployee
+        fields = ["name", "work_center"]
+        exclude = ["is_removed"]
 
 
 class GhostServiceLoadForm(forms.ModelForm):
