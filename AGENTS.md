@@ -25,6 +25,7 @@ README.md contains detailed information about the project, including necessary v
 - The repo root only contains `README.md`, `AGENTS.md`, and `src/`. The **real Django project root is `src/`** (cookiecutter-django layout). Run every command from `src/`, not the repo root.
 - Inside `src/`, application code lives in `src/src/` (double `src`). App entrypoints are Django apps: `users` (custom `AUTH_USER_MODEL`), `clocking` (attendance/clocking logic), `employees`, `dining_room`, `reports`, `indentities`, `preloads`, `peladoydescabezado`, `settings` (an app named "settings" for client config — NOT Django settings).
 - Django settings are in `src/config/settings/{base,local,production,test}.py` under the `config` package.
+- General report of `dining_room ` is a synonym for reports generateds from `GhostService*`, therefore, when I say anything like "reporte general de cocina", "general report from dining_room", "reports of ghosts*" you shoud keep in mind that I refer to dining_room
 
 ## Commands (from `src/`)
 
