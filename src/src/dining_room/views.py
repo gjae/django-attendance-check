@@ -565,7 +565,7 @@ def totalization_services_dataset(filters):
         "sheet_title": None,
         "start": f"B{10 + len(rows)}",
         "block_title": (
-            "SERVICIOS ENTREGADOS POR CHEQUEO ORDINARIO - DESGLOSE POR EMPRESA"
+            "DESGLOSE POR EMPRESA"
         ),
         "columns": ["", "Beneficio", "Total"],
         "row_fields": ["empresa", "servicio", "total"],
