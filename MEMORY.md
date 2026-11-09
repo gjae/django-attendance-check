@@ -40,6 +40,33 @@ memoria.
    también los excluye de la totalización real del reporte general... vigilar con datos
    reales (posible necesario un bucket "Sin empresa" en el futuro).
 
+## Iteración: filtro de beneficios activos + desgloce por empresa en el general (2026-11-09)
+
+1. **Selector de beneficio del form de cargas** (`forms.py`): `service_type` es ahora un
+   `ModelChoiceField` explícito con queryset `ConfDiningRoom.filter(is_removed=False,
+   is_active__isnull=True)` ordenado por check_name → deja de listar beneficios
+   eliminados/desactivados. Refactor: helper `unfold_select_widget()` con las clases
+   tailwind/unfold compartidas (procedencia, empresa, tipo de servicio ya no duplican
+   el string del widget).
+
+2. **Desgloce por empresa de chequeos ordinarios en el reporte general**:
+   - Builder (`reportering.py`): soporte para varios datasets en la MISMA hoja
+     (`same_sheet=True` reutiliza la hoja anterior; no reescribe título ni header) y
+     `block_title` (fila en negrita sobre el encabezado de columnas; el bloque corre
+     una fila abajo). Docstring de `add_dataset` documentado.
+   - `totalization_services_dataset` (`views.py`) retorna DOS datasets: bloque 1
+     "CARGAS DE PROCEDENCIAS" (desde B7: título fila 7, encabezado fila 8, datos fila
+     9+) y bloque 2 "SERVICIOS ENTREGADOS POR CHEQUEO ORDINARIO - DESGLOSE POR EMPRESA"
+     2 filas después de la última carga (título en fila `10+len(cargas)`), con
+     secciones por empresa (employer|person → department.work_center) x beneficio,
+     armado desde DiningChecking sin joins duplicados. El total general por tipo de
+     servicio (todas las cargas + chequeos reales, con 'all') quedó al FINAL del
+     bloque 2. Departments sin empresa no aparecen en el desgloce pero sí cuentan en
+     el total general. Con procedencia específica el desgloce sigue completo (los
+     chequeos no pertenecen a una procedencia).
+   - Verificado con test de builder: 1 hoja, títulos B7/B13, encabezados B8/B14,
+     merges verticales por sección y total general debajo del desgloce.
+
 ## Iteración: Logo sin distorsión + relación Procedencia–Empresa (2026-11-07)
 
 1. **Logo del reporte general** (`dining_room/reportering.py` —

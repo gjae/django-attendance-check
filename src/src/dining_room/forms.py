@@ -4,6 +4,40 @@ from django.utils import timezone
 from src.settings.models import WorkCenter
 from .models import ConfDiningRoom, GhostEmployee, GhostServiceLoad
 
+
+def unfold_select_widget():
+    """
+    Construye un widget Select con las clases tailwind/unfold usadas por
+    los selects del admin de comedor (borde base-200, shadow-xs, estados
+    de foco y dark mode). Cada llamada retorna una instancia nueva para
+    evitar compartir estado entre campos.
+
+    Parámetros:
+        Ninguno.
+
+    Retorna:
+        forms.Select: widget estilizado consistente con el admin.
+    """
+    return forms.Select(
+        attrs={
+            "class": (
+                "border border-base-200 bg-white font-medium min-w-20 "
+                "placeholder-base-400 rounded-default shadow-xs "
+                "text-font-default-light text-sm focus:outline-2 "
+                "focus:-outline-offset-2 focus:outline-primary-600 "
+                "group-[.errors]:border-red-600 "
+                "focus:group-[.errors]:outline-red-600 "
+                "dark:bg-base-900 dark:border-base-700 "
+                "dark:text-font-default-dark "
+                "dark:group-[.errors]:border-red-500 "
+                "dark:focus:group-[.errors]:outline-red-500 "
+                "dark:scheme-dark group-[.primary]:border-transparent "
+                "px-3 py-2 w-full pr-8! max-w-2xl truncate"
+            ),
+        }
+    )
+
+
 class ConfDiningRoomForm(forms.ModelForm):
 
     class Meta:
@@ -35,26 +69,7 @@ class GhostEmployeeForm(forms.ModelForm):
             "define, sus servicios cargados se suman a la totalización del "
             "reporte por empresa, discriminados por tipo de beneficio"
         ),
-        widget=forms.Select(
-            attrs={
-                # Estilos tailwind/unfold consistentes con los demás selects
-                # del admin de comedor
-                "class": (
-                    "border border-base-200 bg-white font-medium min-w-20 "
-                    "placeholder-base-400 rounded-default shadow-xs "
-                    "text-font-default-light text-sm focus:outline-2 "
-                    "focus:-outline-offset-2 focus:outline-primary-600 "
-                    "group-[.errors]:border-red-600 "
-                    "focus:group-[.errors]:outline-red-600 "
-                    "dark:bg-base-900 dark:border-base-700 "
-                    "dark:text-font-default-dark "
-                    "dark:group-[.errors]:border-red-500 "
-                    "dark:focus:group-[.errors]:outline-red-500 "
-                    "dark:scheme-dark group-[.primary]:border-transparent "
-                    "px-3 py-2 w-full pr-8! max-w-2xl truncate"
-                ),
-            }
-        ),
+        widget=unfold_select_widget(),
     )
 
     class Meta:
@@ -78,25 +93,7 @@ class GhostServiceLoadForm(forms.ModelForm):
         label="Procedencia",
         queryset=GhostEmployee.objects.filter(is_removed=False).order_by("name"),
         help_text="Procedencia (registro con nombre) a la que corresponde la carga",
-        widget=forms.Select(
-            attrs={
-                # Estilos tailwind/unfold consistentes con el resto del admin
-                "class": (
-                    "border border-base-200 bg-white font-medium min-w-20 "
-                    "placeholder-base-400 rounded-default shadow-xs "
-                    "text-font-default-light text-sm focus:outline-2 "
-                    "focus:-outline-offset-2 focus:outline-primary-600 "
-                    "group-[.errors]:border-red-600 "
-                    "focus:group-[.errors]:outline-red-600 "
-                    "dark:bg-base-900 dark:border-base-700 "
-                    "dark:text-font-default-dark "
-                    "dark:group-[.errors]:border-red-500 "
-                    "dark:focus:group-[.errors]:outline-red-500 "
-                    "dark:scheme-dark group-[.primary]:border-transparent "
-                    "px-3 py-2 w-full pr-8! max-w-2xl truncate"
-                ),
-            }
-        ),
+        widget=unfold_select_widget(),
     )
 
     date_day = forms.DateField(
@@ -125,6 +122,16 @@ class GhostServiceLoadForm(forms.ModelForm):
                 ),
             },
         ),
+    )
+
+    service_type = forms.ModelChoiceField(
+        label="Tipo de servicio",
+        queryset=ConfDiningRoom.objects.filter(
+            is_removed=False,
+            is_active__isnull=True,
+        ).order_by("check_name"),
+        help_text="Solo se listan beneficios activos y no eliminados",
+        widget=unfold_select_widget(),
     )
 
     class Meta:

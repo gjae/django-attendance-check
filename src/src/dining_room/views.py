@@ -390,16 +390,23 @@ def company_checks_dataset(filters):
 
 def totalization_services_dataset(filters):
     """
-    Arma el dataset del reporte "general" (internamente totalización):
-    secciones por procedencia (GhostEmployee) con su beneficio y total
-    **por procedencia** (cada carga está asociada a una procedencia vía
-    GhostServiceLoad.procedencia); las cargas sin procedencia (históricas/
-    null) se agrupan en la sección "Sin procedencia registrada". Al final
-    del archivo, el reporte salta 2 líneas e indica el total por tipo de
-    servicio: TODAS las cargas del rango (ligadas o no a una empresa, con
-    erratas incluidas) + las entregas por chequeo de comedor del rango.
-    Con una procedencia específica el bloque muestra solo las cargas de
-    esa procedencia (los chequeos reales no pertenecen a una procedencia).
+    Arma el dataset del reporte "general" (internamente totalización) con
+    DOS bloques en la misma hoja:
+
+    1. Secciones por procedencia (GhostEmployee) con su beneficio y total
+       **por procedencia** (cada carga está asociada a una procedencia vía
+       GhostServiceLoad.procedencia); las cargas sin procedencia
+       (históricas/null) se agrupan en la sección "Sin procedencia
+       registrada".
+    2. Desgloce por empresa de las entregas por chequeo ordinario
+       (asistencia): secciones por empresa (WorkCenter del departamento del
+       chequeado) x beneficio, armado desde DiningChecking.
+
+    Al final, tras 2 líneas del desgloce, el total por tipo de servicio:
+    TODAS las cargas del rango (ligadas o no a una empresa, erratas
+    incluidas) + las entregas por chequeo de comedor del rango. Con una
+    procedencia específica el bloque muestra solo las cargas de esa
+    procedencia (los chequeos reales no pertenecen a una procedencia).
 
     Parámetros:
         filters (dict): filtros de parse_report_filters (incluye
@@ -482,6 +489,45 @@ def totalization_services_dataset(filters):
             "total": "",
         }]
 
+    # Desgloce por empresa de las entregas por chequeo ordinario
+    # (asistencia): conteo por empresa x beneficio armado desde
+    # DiningChecking (join único por FK single-valued employer/person,
+    # sin multiplicación de filas). Los departments sin empresa quedan
+    # fuera del desgloce aunque sí cuentan en el total general.
+    checks_source = DiningChecking.objects.filter(
+        created__date__range=[filters["start_date"], filters["end_date"]],
+        is_removed=False,
+        conf_dining_room__isnull=False,
+        conf_dining_room__is_removed=False,
+    )
+    breakdown_map: Dict[tuple, float] = {}
+    for join_path in (
+        "employer__department__work_center__name",
+        "person__department__work_center__name",
+    ):
+        grouped_checks = (
+            checks_source
+            .filter(**{f"{join_path}__isnull": False})
+            .values(join_path, "conf_dining_room__check_name")
+            .annotate(total=Count("id"))
+        )
+        for item in grouped_checks:
+            key = (item[join_path], item["conf_dining_room__check_name"])
+            breakdown_map[key] = (
+                breakdown_map.get(key, 0) + (item["total"] or 0)
+            )
+
+    breakdown_rows = [
+        {"empresa": empresa, "servicio": servicio, "total": total}
+        for (empresa, servicio), total in sorted(breakdown_map.items())
+    ]
+    if not breakdown_rows:
+        breakdown_rows = [{
+            "empresa": "Sin entregas por chequeo en el rango",
+            "servicio": "",
+            "total": "",
+        }]
+
     range_label = (
         filters["start_date"].strftime("%d/%m/%Y")
         if filters["start_date"] == filters["end_date"]
@@ -491,6 +537,9 @@ def totalization_services_dataset(filters):
         )
     )
 
+    # Bloque 1: cargas a procedencias (misma hoja). Estructura: título del
+    # bloque en fila 7, encabezado en fila 8, datos desde fila 9; el
+    # desgloce inicia 2 filas después de la última fila de cargas.
     layout = {
         "sheet_title": f"REPORTE GENERAL DE SERVICIO ENTREGADO {range_label}",
         "header_text": (
@@ -500,10 +549,28 @@ def totalization_services_dataset(filters):
         ),
         "logo_path": str(finders.find("images/branding/logo_inpromaro_lit.png")),
         "start": "B7",
+        "block_title": "CARGAS DE PROCEDENCIAS",
         "columns": ["", "Beneficio", "Total"],
         "row_fields": ["procedencia", "servicio", "total"],
         "section_field": "procedencia",
         "merge_key": "procedencia",
+        "merge_columns": 1,
+    }
+
+    # Bloque 2 (misma hoja): desgloce por empresa del chequeo ordinario;
+    # al final (2 filas después del bloque) va el total general por
+    # tipo de servicio (todas las cargas + todas las entregas reales)
+    layout_breakdown = {
+        "same_sheet": True,
+        "sheet_title": None,
+        "start": f"B{10 + len(rows)}",
+        "block_title": (
+            "SERVICIOS ENTREGADOS POR CHEQUEO ORDINARIO - DESGLOSE POR EMPRESA"
+        ),
+        "columns": ["", "Beneficio", "Total"],
+        "row_fields": ["empresa", "servicio", "total"],
+        "section_field": "empresa",
+        "merge_key": "empresa",
         "merge_columns": 1,
         "totals": [
             {"label": name, "total": total}
@@ -511,7 +578,10 @@ def totalization_services_dataset(filters):
         ],
         "totals_title": "Total por tipo de servicio",
     }
-    return [{"rows": rows, "layout": layout}]
+    return [
+        {"rows": rows, "layout": layout},
+        {"rows": breakdown_rows, "layout": layout_breakdown},
+    ]
 
 
 def check_dining_employer(request, card_id, *args, **kwargs):

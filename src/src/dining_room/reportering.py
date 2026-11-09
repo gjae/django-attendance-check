@@ -193,6 +193,11 @@ class BaseReportBuilder:
                   valor (default 'Total').
                 - totals_value_span (int): columnas que fusiona el encabezado
                   del valor (default 1).
+                - same_sheet (bool): renderiza el dataset en la MISMA hoja
+                  del dataset anterior (desgloses en una sola hoja; no
+                  reescribe título ni header).
+                - block_title (str): fila en negrita sobre el encabezado de
+                  columnas para identificar el bloque.
         Retorna:
             BaseReportBuilder: self, para encadenar.
         """
@@ -339,20 +344,27 @@ class ExcelReportBuilder(BaseReportBuilder):
 
         workbook = self._workbook
         used_titles = set()
+        current_sheet = None
 
         for index, item in enumerate(self._datasets):
             rows = item.get("rows") or []
             layout = item.get("layout") or {}
-            sheet = workbook.active if index == 0 else workbook.create_sheet()
-            title = self._sanitize_sheet_title(
-                str(layout.get("sheet_title") or f"Hoja {index + 1}"),
-                index,
-            )
-            if title in used_titles:
-                suffix = f" {index + 1}"
-                title = title[: 31 - len(suffix)].rstrip() + suffix
-            used_titles.add(title)
-            sheet.title = title
+            if layout.get("same_sheet") and current_sheet is not None:
+                # Dataset adicional del MAISMO sheet (desgloses de un
+                # reporte en una sola hoja); no reescribe título ni header
+                sheet = current_sheet
+            else:
+                sheet = workbook.active if index == 0 else workbook.create_sheet()
+                title = self._sanitize_sheet_title(
+                    str(layout.get("sheet_title") or f"Hoja {index + 1}"),
+                    index,
+                )
+                if title in used_titles:
+                    suffix = f" {index + 1}"
+                    title = title[: 31 - len(suffix)].rstrip() + suffix
+                used_titles.add(title)
+                sheet.title = title
+            current_sheet = sheet
             self._render_on_sheet(sheet, rows, layout)
 
         response = HttpResponse(
@@ -382,6 +394,15 @@ class ExcelReportBuilder(BaseReportBuilder):
         start = layout.get("start", "A1")
         start_col = column_index_from_string(start[0])
         start_row = int(start[1:]) if start[1:].isdigit() else 1
+
+        # Título del bloque (ej: "CARGAS DE PROCEDENCIAS" / desgloses):
+        # fila en negrita sobre el encabezado de columnas; los datos del
+        # bloque corren una fila
+        if layout.get("block_title"):
+            block_cell = sheet.cell(row=start_row, column=start_col)
+            block_cell.value = str(layout["block_title"])
+            block_cell.font = self.TOTALS_FONT
+            start_row += 1
         columns = layout.get("columns", [])
         row_fields = layout.get("row_fields", columns)
         merge_key = layout.get("merge_key")
