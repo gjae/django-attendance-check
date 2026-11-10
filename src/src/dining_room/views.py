@@ -1,18 +1,19 @@
 from django.shortcuts import render
 from datetime import datetime
 import time
-from typing import Dict
-from django.contrib.auth.decorators import login_required, permission_required
+from typing import Dict, Optional
+from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.contrib.staticfiles import finders
 from django.forms.models import model_to_dict
 from django.views.generic import TemplateView
 from django.http.response import HttpResponse
+from django.core.exceptions import PermissionDenied
 from django.db.models import Sum, Window, Q, Count
 from django.db.models.functions import RowNumber
 
 from src.dining_room.models import DiningChecking, ConfDiningRoom
-from src.dining_room.models import GhostServiceLoad
+from src.dining_room.models import GhostEmployee, GhostServiceLoad
 from src.dining_room.reportering import ExcelReportBuilder
 from src.settings.models import WorkCenter
 from src.employees.models import Employee
@@ -32,8 +33,37 @@ class ReportAdminView(UnfoldModelAdminViewMixin, TemplateView):
     template_name = "dining_room/report_admin_template.html"
 
 
+REPORT_VIEW_PERMISSIONS = (
+    # Permisos de vista válidos para generar reportes de gestión de
+    # comedor: el permiso propio del proxy "Gestión" (donde vive el
+    # modal de descarga) o el permiso clásico de configuración de
+    # turnos de comedor. Basta con TENER UNO de los dos.
+    "dining_room.view_diningroomproxymodel",
+    "dining_room.view_conf_diningroom",
+)
+
+
+def may_generate_dining_reports(user):
+    """Indica si el usuario puede generar reportes de gestión de comedor.
+
+    El requisito es tener CUALQUIERA de los permisos de vista definidos
+    en REPORT_VIEW_PERMISSIONS (vista del proxy Gestión o vista de la
+    configuración de turnos de comedor); NO exige tener todos.
+
+    Parámetros:
+        user (User): usuario autenticado de la petición.
+
+    Retorna:
+        bool: True si el usuario cuenta con al menos uno de los permisos
+        de vista listados en REPORT_VIEW_PERMISSIONS.
+    """
+    return any(
+        user.has_perm(perm)
+        for perm in REPORT_VIEW_PERMISSIONS
+    )
+
+
 @login_required
-@permission_required("dining_room.view_conf_diningroom", raise_exception=True)
 def report_dining_today_excel(request, *args, **kwargs):
     """
     Handler del builder de reportes de comedor (dining_room.reportering).
@@ -49,7 +79,9 @@ def report_dining_today_excel(request, *args, **kwargs):
     - procedencia: id de GhostEmployee o 'all' (solo reporte general;
       filtra las secciones por procedencia en el archivo).
 
-    Requiere sesión activa y el permiso dining_room.view_conf_diningroom.
+    Requiere sesión activa y AL MENOS UN permiso de vista del módulo
+    (ver REPORT_VIEW_PERMISSIONS: vista del proxy Gestión o vista de
+    configuración de turnos de comedor).
     Los servicios entregados a procedencias (GhostServiceLoad, cargas
     originales y erratas, estas últimas suman) se reportan únicamente en
     el reporte general (totalización), sin afectar los cálculos de
@@ -62,6 +94,11 @@ def report_dining_today_excel(request, *args, **kwargs):
         HttpResponse: archivo Excel (o tabla HTML en salida display)
         auditado con log_report.
     """
+    if not may_generate_dining_reports(request.user):
+        raise PermissionDenied(
+            "No tiene permisos para generar reportes de gestión de comedor."
+        )
+
     filters = parse_report_filters(request.GET)
 
     builder = ExcelReportBuilder().enable_header()
@@ -389,33 +426,63 @@ def company_checks_dataset(filters):
 
 
 def totalization_services_dataset(filters):
-    """
-    Arma el dataset del reporte "general" (internamente totalización) con
-    DOS bloques en la misma hoja:
+    """Arma el dataset del reporte "general" (internamente totalización) en
+    UNA sola sección "CARGAS DE PROCEDENCIAS" (el desgloce por empresa fue
+    retirado y sus datos quedan sumandos DENTRO de esta sección):
 
-    1. Secciones por procedencia (GhostEmployee) con su beneficio y total
-       **por procedencia** (cada carga está asociada a una procedencia vía
-       GhostServiceLoad.procedencia); las cargas sin procedencia
-       (históricas/null) se agrupan en la sección "Sin procedencia
-       registrada".
-    2. Desgloce por empresa de las entregas por chequeo ordinario
-       (asistencia): secciones por empresa (WorkCenter del departamento del
-       chequeado) x beneficio, armado desde DiningChecking.
-
-    Al final, tras 2 líneas del desgloce, el total por tipo de servicio:
-    TODAS las cargas del rango (ligadas o no a una empresa, erratas
-    incluidas) + las entregas por chequeo de comedor del rango. Con una
-    procedencia específica el bloque muestra solo las cargas de esa
-    procedencia (los chequeos reales no pertenecen a una procedencia).
+    - TODAS las procedencias no eliminadas (GhostEmployee) aparecen, tengan
+      o no cargas en el rango; sin cargas muestran TODOS los beneficios del
+      universo con total 0 (todas las secciones comparten el mismo juego de
+      filas, completando con 0 los beneficios que no registran movimiento).
+    - Entregas reales por chequeo ordinario (asistencia): las de una empresa
+      con procedencia vinculada se suman a las filas de esa procedencia
+      (por beneficio); TODAS las empresas SIN procedencia vinculada forman
+      secciones propias con el MISMO formato (empresa - beneficio - total,
+      la empresa sustituye la procedencia), también cuando están en 0;
+      solo un chequeo sin empresa en AMBOS lados cae en el bucket
+      defensivo "Sin empresa" (con usuarios asociados por
+      trabajador->departamento no ocurre).
+    - Si varias procedencias apuntaran a la misma empresa, sus reales se
+      absorben una sola vez (la primera procedencia en orden de nombre); en
+      el total final no hay doble conteo porque se calcula independiente.
+    - Las cargas sin procedencia (históricas) siguen en la sección "Sin
+      procedencia registrada"; con filtro de una procedencia específica el
+      detalle muestra solo esa sección, pero el total por tipo de servicio
+      sigue abarcando TODAS las cargas + TODAS las entregas reales del
+      rango.
 
     Parámetros:
         filters (dict): filtros de parse_report_filters (incluye
             procedencia: id o 'all').
 
     Retorna:
-        list[dict]: dataset único [{rows, layout}] para el ExcelReportBuilder.
+        list[dict]: dataset único [{rows, layout}] para el
+        ExcelReportBuilder.
     """
-    loads = (
+    specific_id = (
+        filters["procedencia"]
+        if isinstance(filters["procedencia"], int)
+        else None
+    )
+
+    def suma_en(mapa, clave, nombre, valor):
+        """Acumula valor de un beneficio en el par clave/respuesta dado.
+
+        Parámetros:
+            mapa (dict): registro clave → {beneficio: total}.
+            clave: clave de mapa a actualizar (creada si falta).
+            nombre (str): tipo de beneficio.
+            valor (float): cantidad a sumar (None cuenta como 0).
+
+        Retorna:
+            None.
+        """
+        mapa.setdefault(clave, {})
+        mapa[clave][nombre] = mapa[clave].get(nombre, 0) + (valor or 0)
+
+    # Cargas del rango (las erratas SUMAN porque errata ya es una carga
+    # nueva y solo se operan las quantities)
+    all_loads = (
         GhostServiceLoad.objects
         .actives()
         .filter(
@@ -423,107 +490,191 @@ def totalization_services_dataset(filters):
         )
         .exclude(service_type=None)
     )
-
-    if isinstance(filters["procedencia"], int):
-        loads = loads.filter(procedencia_id=filters["procedencia"])
-
-    # Totales por procedencia y tipo de servicio (las erratas suman)
-    grouped = list(
-        loads.values("procedencia__name", "service_type__check_name")
-        .annotate(total=Sum("quantity"))
-        .order_by("procedencia__name", "service_type__check_name")
+    detail_loads = (
+        all_loads.filter(procedencia_id=specific_id) if specific_id else all_loads
     )
 
-    def procedencia_label(name):
-        return name if name else "Sin procedencia registrada"
-
-    total_by_service_general: Dict[str, float] = {}
-    rows = []
-    for item in grouped:
-        procedencia_name = procedencia_label(item["procedencia__name"])
-        service_name = item["service_type__check_name"]
-        total = item["total"] or 0
-        rows.append({
-            "procedencia": procedencia_name,
-            "servicio": service_name,
-            "total": total,
-        })
-        total_by_service_general[service_name] = (
-            total_by_service_general.get(service_name, 0) + total
+    # Cargas por procedencia y beneficio (con filtro, solo para el detalle)
+    cargas_por_procedencia: Dict[Optional[int], Dict[str, int]] = {}
+    service_names: set = set()
+    for item in (
+        detail_loads.values("procedencia_id", "service_type__check_name")
+        .annotate(total=Sum("quantity"))
+    ):
+        service_names.add(item["service_type__check_name"])
+        suma_en(
+            cargas_por_procedencia,
+            item["procedencia_id"],
+            item["service_type__check_name"],
+            item["total"],
         )
 
-    # Total del bloque final por tipo de servicio: totalización según el
-    # usuario (cargas del rango, TODAS por igual — ligadas o no a una
-    # empresa— ya sumadas por procedencia en el bucle de secciones) +
-    # entregas por chequeo de comedor del rango, discriminadas beneficio.
-    # Con un filtro de procedencia específica el bloque muestra solo las
-    # cargas de esa procedencia (los chequeos reales no pertenecen a una
-    # procedencia).
-    if not isinstance(filters["procedencia"], int):
-        real_checks = (
-            DiningChecking.objects
-            .filter(
-                created__date__range=[
-                    filters["start_date"], filters["end_date"]
-                ],
-                is_removed=False,
-                conf_dining_room__isnull=False,
-                conf_dining_room__is_removed=False,
-            )
-            .values("conf_dining_room__check_name")
-            .annotate(total=Count("id"))
-        )
-        for check in real_checks:
-            service_name = check["conf_dining_room__check_name"]
-            total_by_service_general[service_name] = (
-                total_by_service_general.get(service_name, 0)
-                + (check["total"] or 0)
-            )
-
-    # Si el filtro fue 'all' y no existen procedencias con cargas en el
-    # rango, el dataset queda vacío (hoja con solo el header y totales nulos)
-    if not rows:
-        rows = [{
-            "procedencia": "Sin cargas en el rango seleccionado",
-            "servicio": "",
-            "total": "",
-        }]
-
-    # Desgloce por empresa de las entregas por chequeo ordinario
-    # (asistencia): conteo por empresa x beneficio armado desde
-    # DiningChecking (join único por FK single-valued employer/person,
-    # sin multiplicación de filas). Los departments sin empresa quedan
-    # fuera del desgloce aunque sí cuentan en el total general.
-    checks_source = DiningChecking.objects.filter(
+    # Entregas reales por chequeo ordinario (asistencia) del rango
+    filtered_checks = DiningChecking.objects.filter(
         created__date__range=[filters["start_date"], filters["end_date"]],
         is_removed=False,
         conf_dining_room__isnull=False,
         conf_dining_room__is_removed=False,
     )
-    breakdown_map: Dict[tuple, float] = {}
-    for join_path in (
-        "employer__department__work_center__name",
-        "person__department__work_center__name",
-    ):
-        grouped_checks = (
-            checks_source
-            .filter(**{f"{join_path}__isnull": False})
-            .values(join_path, "conf_dining_room__check_name")
-            .annotate(total=Count("id"))
+    # Entregas reales atribuidas en PYTHON a la empresa del chequeado (NO
+    # por rutas SQL separadas: un chequeo de carnet tiene employer NULL y
+    # con isnull=True del path employer caería como "sin empresa" aunque
+    # su person esté asociado a una empresa por trabajador->departamento,
+    # además de poder contar doble entre rutas). Preferencia: employer
+    # (personal fijo) y si no resuelve, person (Department.work_center);
+    # mismo criterio que employer_object del modelo / reporte por empresa.
+    checks_flat = filtered_checks.values(
+        "conf_dining_room__check_name",
+        "employer__department__work_center__id",
+        "person__department__work_center__id",
+    )
+    real_por_empresa: Dict[int, Dict[str, int]] = {}
+    real_sin_empresa: Dict[str, int] = {}
+    for item in checks_flat:
+        nombre = item["conf_dining_room__check_name"]
+        service_names.add(nombre)
+        employer_id = item["employer__department__work_center__id"]
+        wc_id = (
+            employer_id
+            if employer_id is not None
+            else item["person__department__work_center__id"]
         )
-        for item in grouped_checks:
-            key = (item[join_path], item["conf_dining_room__check_name"])
-            breakdown_map[key] = (
-                breakdown_map.get(key, 0) + (item["total"] or 0)
+        if wc_id is None:
+            # Chequeo sin empresa en AMBOS lados (no debería ocurrir con
+            # usuarios asociados por trabajador->departamento; bucket
+            # defensivo "Sin empresa")
+            real_sin_empresa[nombre] = (
+                real_sin_empresa.get(nombre, 0) + 1
             )
+            continue
+        real_por_empresa.setdefault(wc_id, {})
+        real_por_empresa[wc_id][nombre] = (
+            real_por_empresa[wc_id].get(nombre, 0) + 1
+        )
 
-    breakdown_rows = [
-        {"empresa": empresa, "servicio": servicio, "total": total}
-        for (empresa, servicio), total in sorted(breakdown_map.items())
+    # Universo de beneficios: consolidado en los bucles anteriores + el
+    # catálogo de beneficios activos y no eliminados, para que el rango
+    # SIEMPRE liste todas las procedencias/empresas con sus filas de
+    # beneficios (en 0 los que no registran movimiento en el rango)
+    service_names.update(
+        ConfDiningRoom.objects.filter(
+            is_removed=False,
+            is_active__isnull=True,
+        ).values_list("check_name", flat=True)
+    )
+
+    # Total por tipo de servicio: TODAS las cargas del rango (ligadas o no
+    # a una empresa, erratas incluidas) + TODAS las entregas reales del
+    # rango; calculado independiente del detalle para que nunca haya doble
+    # conteo (ej: procedencias distintas ligadas a la misma empresa). Con
+    # filtro de procedencia específica no se reduce
+    total_by_service_general: Dict[str, float] = {}
+    for item in (
+        all_loads.values("service_type__check_name")
+        .annotate(total=Sum("quantity"))
+    ):
+        nombre = item["service_type__check_name"]
+        total_by_service_general[nombre] = (
+            total_by_service_general.get(nombre, 0) + (item["total"] or 0)
+        )
+    for por_beneficio in real_por_empresa.values():
+        for nombre, cantidad in por_beneficio.items():
+            total_by_service_general[nombre] = (
+                total_by_service_general.get(nombre, 0) + cantidad
+            )
+    for nombre, cantidad in real_sin_empresa.items():
+        total_by_service_general[nombre] = (
+            total_by_service_general.get(nombre, 0) + cantidad
+        )
+
+    # Todas las procedencias no eliminadas; con filtro específico el
+    # detalle se limita a esa sección
+    all_ghosts = list(
+        GhostEmployee.objects.filter(is_removed=False).order_by("name", "id")
+    )
+    ordered_ghosts = [
+        ghost for ghost in all_ghosts
+        if specific_id is None or ghost.id == specific_id
     ]
-    if not breakdown_rows:
-        breakdown_rows = [{
-            "empresa": "Sin entregas por chequeo en el rango",
+    # Empresas que YA tienen procedencia vinculada: sus reales se absorben
+    # en la sección de esa procedencia y nunca forman sección emulada (con
+    # filtro específico, si esa procedencia no se renderiza sus reales
+    # quedan cubiertos por el total final)
+    empresas_con_procedencia = {
+        ghost.work_center_id for ghost in all_ghosts if ghost.work_center_id
+    }
+    # Copias de los reales pendientes: pop() retira la empresa al absorberla
+    # en su procedencia, evitando doble conteo si hubiera más de una
+    # procedencia ligada a la misma empresa
+    reales_pendientes = {
+        empresa_id: dict(por_beneficio)
+        for empresa_id, por_beneficio in real_por_empresa.items()
+    }
+
+    rows = []
+
+    def seccion(label, por_beneficio):
+        """Agrega al dataset las filas de una sección del bloque.
+
+        Cada sección cubre el universo completo de beneficios, con 0 en
+        los que no registran movimiento en el rango.
+
+        Parámetros:
+            label (str): nombre de la procedencia o empresa (columna
+                fusionada verticalmente).
+            por_beneficio (dict): beneficio → total de la sección.
+
+        Retorna:
+            None.
+        """
+        for nombre in sorted(service_names):
+            rows.append({
+                "procedencia": label,
+                "servicio": nombre,
+                "total": por_beneficio.get(nombre, 0),
+            })
+
+    # 1) Secciones por procedencia: cargas + reales de su empresa ligada
+    for ghost in ordered_ghosts:
+        por_beneficio = {
+            nombre: cantidad
+            for nombre, cantidad in (
+                cargas_por_procedencia.get(ghost.id) or {}
+            ).items()
+        }
+        if ghost.work_center_id:
+            reales = reales_pendientes.pop(ghost.work_center_id, None) or {}
+            for nombre, cantidad in reales.items():
+                por_beneficio[nombre] = (
+                    por_beneficio.get(nombre, 0) + cantidad
+                )
+        seccion(ghost.name, por_beneficio)
+
+    # 2) Secciones emuladas: TODAS las empresas (WorkCenter no eliminada)
+    # SIN procedencia vinculada, con el mismo formato (la empresa sustituye
+    # la procedencia); las que no registran entregas reales en el rango se
+    # listan igual con sus beneficios en 0
+    emuladas = [
+        (work_center, reales_pendientes.pop(work_center.id, None) or {})
+        for work_center in WorkCenter.objects.filter(is_removed=False)
+        .order_by("name", "id")
+        if work_center.id not in empresas_con_procedencia
+    ]
+    for work_center, por_beneficio in emuladas:
+        seccion(work_center.name, por_beneficio)
+
+    # 3) Cargas sin procedencia (históricas) y 4) reales sin empresa
+    cargas_sin_procedencia = cargas_por_procedencia.get(None)
+    if cargas_sin_procedencia:
+        seccion("Sin procedencia registrada", cargas_sin_procedencia)
+    if real_sin_empresa:
+        seccion("Sin empresa", real_sin_empresa)
+
+    # Si no se generó ninguna sección (sin procedencias y sin movimientos),
+    # placeholder para que la hoja no quede vacía tras el encabezado
+    if not rows:
+        rows = [{
+            "procedencia": "Sin cargas en el rango seleccionado",
             "servicio": "",
             "total": "",
         }]
@@ -537,9 +688,6 @@ def totalization_services_dataset(filters):
         )
     )
 
-    # Bloque 1: cargas a procedencias (misma hoja). Estructura: título del
-    # bloque en fila 7, encabezado en fila 8, datos desde fila 9; el
-    # desgloce inicia 2 filas después de la última fila de cargas.
     layout = {
         "sheet_title": f"REPORTE GENERAL DE SERVICIO ENTREGADO {range_label}",
         "header_text": (
@@ -555,34 +703,17 @@ def totalization_services_dataset(filters):
         "section_field": "procedencia",
         "merge_key": "procedencia",
         "merge_columns": 1,
-    }
-
-    # Bloque 2 (misma hoja): desgloce por empresa del chequeo ordinario;
-    # al final (2 filas después del bloque) va el total general por
-    # tipo de servicio (todas las cargas + todas las entregas reales)
-    layout_breakdown = {
-        "same_sheet": True,
-        "sheet_title": None,
-        "start": f"B{10 + len(rows)}",
-        "block_title": (
-            "DESGLOSE POR EMPRESA"
-        ),
-        "columns": ["", "Beneficio", "Total"],
-        "row_fields": ["empresa", "servicio", "total"],
-        "section_field": "empresa",
-        "merge_key": "empresa",
-        "merge_columns": 1,
+        # Totalización general por beneficio SIEMPRE visible, con 0 en los
+        # beneficios sin movimiento del rango; label alineada bajo
+        # "Beneficio" y valor bajo "Total" (offset 1 desde la col inicial)
         "totals": [
-            {"label": name, "total": total}
-            for name, total in sorted(total_by_service_general.items())
+            {"label": nombre, "total": total_by_service_general.get(nombre, 0)}
+            for nombre in sorted(service_names)
         ],
+        "totals_label_offset": 1,
         "totals_title": "Total por tipo de servicio",
     }
-    return [
-        {"rows": rows, "layout": layout},
-        {"rows": breakdown_rows, "layout": layout_breakdown},
-    ]
-
+    return [{"rows": rows, "layout": layout}]
 
 def check_dining_employer(request, card_id, *args, **kwargs):
     emp = Employee.objects.select_related("position", "department").filter(cedula=card_id).first()

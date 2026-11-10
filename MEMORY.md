@@ -1,10 +1,74 @@
 # MEMORY.md — Resumen de iteraciones (django-attendance-check / INPROMAR)
 
+## Iteración: sección única de cargas + reales (2026-11-10)
+
+> NOTA incidente: el reinicio del servidor corrompió `src/src/dining_room/views.py`
+> (truncado ~offset 24k + 5932 bytes NUL). Se restauró desde HEAD (los commits del
+> usuario `47f83a7`/`9e40c45` conservaban el builder y el desgloce) y se RE-APLICARON
+> a mano el fix de permisos y esta iteración. Verificar con py_compile/import.
+
+1. **Reporte general: UNA sola sección "CARGAS DE PROCEDENCIAS"** (`views.py`);
+   el bloque "DESGLOSE POR EMPRESA" quedó retirado:
+   - TODAS las GhostEmployee no eliminadas aparecen (aunque no tengan cargas en el
+     rango → TODOS los beneficios del universo con total 0; las secciones comparten
+     el mismo juego de filas).
+   - Entregas reales (DiningChecking por asistencia) se suman DENTRO de la sección:
+     empresa con procedencia vinculada → se suman a sus filas por beneficio; empresa
+     CON procedencia → sección con reales; empresa SIN → sección emulada con el
+     MISMO formato (empresa sustituye la procedencia); trabajadores sin empresa →
+     sección "Sin empresa". Cargas sin procedencia → "Sin procedencia registrada".
+   - Multiples procedencias ligadas a la misma empresa: los reales se absorben una
+     vez (pop de `reales_pendientes`) pero el TOTAL FINAL se calcula independiente
+     (TODAS las cargas del rango + TODAS las reales), nunca hay doble conteo.
+   - Con filtro de UNA procedencia: detalle = solo esa sección (+ reales de su
+     empresa + completar 0 con el universo); el total final sigue siendo global.
+   - Secciones emuladas completan 0; aserciones verificadas con builder test: 1
+     hoja, B7 título, header fila 8, secciones 9-16 con merges verticales B9:B10,
+     B11:B12, B13:B14, B15:B16, totales desde la fila 19 (2 de salto) con valores
+     en columna C (label+1).
+   - FIX prueba del usuario ("sin cargas en el rango seleccionado"): el universo
+     de beneficios venía SOLO de cargas/reales del rango; con rango sin
+     movimientos quedaba vacío y `seccion()` no agregaba ninguna fila aunque las
+     procedencias existieran → placeholder. Ahora el universo SIEMPRE suma el
+     catálogo `ConfDiningRoom` (is_removed=False, is_active__isnull=True), de
+     modo que toda procedencia/empresa se lista con sus beneficios en 0.
+   - FIX "empresas sin procedencia ocultas": las secciones emuladas solo se
+     creaban para empresas CON entregas reales; ahora se listan TODAS las
+     `WorkCenter` no eliminadas sin procedencia vinculada (queryset
+     `is_removed=False`, mismo criterio del reporte por empresa), con sus
+     beneficios en 0 si no registran movimiento; las que sí registran
+     entran con sus reales (pop de `reales_pendientes`). La sección emulada
+     usa `work_center.name` directo (ya no depende de nombres del values)
+     y se limpió `empresa_nombres`.
+   - FIX atribución de entregas reales (prueba del usuario: chequeo ordinario
+     de carnet de un Person de la empresa TEST): el agrupado por rutas SQL
+     con `isnull=True` marcaba como "Sin empresa" los chequeos con employer
+     NULL aunque la person tuviera Department.work_center, y podía contar
+     doble entre rutas. Ahora la atribución es en PYTHON (un chequeo → una
+     empresa): employer primero y si no resuelve person (mismo criterio que
+     `employer_object`/reporte por empresa); "Sin empresa" es solo bucket
+     defensivo para cheques sin empresa en AMBOS lados. Verificado con
+     simulación: Person de TEST → sección TEST con su beneficio.
+   - FIX "totalización general por beneficios": el bloque de totales solo se
+     renderizaba si el dict de totales tenía entradas (movimientos del rango);
+     en rango sin movimiento no aparecía. Ahora `totals` se construye SIEMPRE
+     desde el universo `service_names` (0 en los beneficios sin movimiento) y
+     `totals_label_offset: 1` para alinear label bajo "Beneficio" y valor bajo
+     "Total" (misma columna C/D que los datos). Verificado en builder test:
+     título "Total por tipo de servicio" en C, "Total" en D, filas por
+     beneficio con 0 incluidos.
+
+2. **Permisos de reportes re-aplicados** (`views.py`): `REPORT_VIEW_PERMISSIONS`
+   (view_diningroomproxymodel | view_conf_diningroom, any-of), helper
+   `may_generate_dining_reports`, decorador `@permission_required` removido y guard
+   DENTRO de `report_dining_today_excel` (raise PermissionDenied antes de
+   parse_report_filters). `typing.Optional` importado. Kiosco sigue libre.
+
 ## Iteración: Reportes de comedor con builder (2026-11-04)
 
-Último commit confirmado: `5f6c20d` feat(comedor) — relación procedencia-empresa,
-logo fiel y conteos sin duplicar (2026-11-07). Incluye las iteraciones anteriores
-completas además de TODO el trabajo de reportes/UI de esta
+Último commit confirmado: `be34c5f` feat(comedor) — permisos any-of y
+reporte general de una sola sección (2026-11-10). Incluye las iteraciones
+anteriores completas además de TODO el trabajo de reportes/UI de esta
 memoria.
 
 ## Iteración: conteos duplicados + reporte general con chequeos reales (2026-11-07)
@@ -39,6 +103,20 @@ memoria.
    ninguna hoja por empresa (filtro employer/person → department.work_center); hoy eso
    también los excluye de la totalización real del reporte general... vigilar con datos
    reales (posible necesario un bucket "Sin empresa" en el futuro).
+
+## Iteración: permisos any-of para generar reportes de comedor (2026-11-10)
+
+1. **Generación de reportes de gestión de comedor** (`views.py`): dejaba de funcionar
+   para usuarios con solo "ver Gestión de comedor" (403 al descargar) porque exigía
+   `dining_room.view_conf_diningroom`. Ahora:
+   - Constante `REPORT_VIEW_PERMISSIONS` = (`dining_room.view_diningroomproxymodel`,
+     `dining_room.view_conf_diningroom`); basta UNO de los dos (semántica any-of).
+   - Helper `may_generate_dining_reports(user)` (any-of con `has_perm`).
+   - `report_dining_today_excel` ya no usa el decorador `@permission_required`;
+     el guard está DENTRO de la vista (`if not may_generate_dining_reports(request.user):
+     raise PermissionDenied(...)` antes de `parse_report_filters`), siempre
+     `@login_required`. Docstring actualizado. Import `permission_required` limpiado.
+   - Kiosco (`index`, `/check/`, `todayChecks`) sigue sin requerir login.
 
 ## Iteración: filtro de beneficios activos + desgloce por empresa en el general (2026-11-09)
 
