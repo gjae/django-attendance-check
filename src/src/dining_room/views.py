@@ -1,6 +1,7 @@
 from django.shortcuts import render
-from datetime import datetime
+from datetime import datetime, time
 import time
+import unicodedata
 from typing import Dict, Optional
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
@@ -425,6 +426,25 @@ def company_checks_dataset(filters):
     return datasets
 
 
+def normalizar_nombre(texto):
+    """Normaliza un nombre para comparar empresa vs procedencia.
+
+    Quita acentos/diacríticos, pasa a mayúsculas y colapsa espacios,
+    de modo que "FABRICA DE HIELO EL CARMEN" y "Fábrica de Hielo el
+    Carmen" coincidan (mismas palabras escritas distinto).
+
+    Parámetros:
+        texto (str): nombre a normalizar (None se trata como "").
+
+    Retorna:
+        str: nombre normalizado para comparación.
+    """
+    sin_acentos = unicodedata.normalize(
+        "NFKD", str(texto or "")
+    ).encode("ascii", "ignore").decode("ascii")
+    return " ".join(sin_acentos.upper().split())
+
+
 def totalization_services_dataset(filters):
     """Arma el dataset del reporte "general" (internamente totalización) en
     UN SOLO bloque (sin título de bloque; el encabezado de la hoja ya
@@ -433,24 +453,32 @@ def totalization_services_dataset(filters):
 
     1. Secciones por EMPRESA: entregas por CHEQUEO ORDINARIO (asistencia)
        atribuidas a la empresa del chequeado, en formato empresa -
-       beneficio - total. TODAS las empresas (WorkCenter no eliminadas)
-       aparecen, también en 0 si no registran entregas en el rango; un
-       chequeo sin empresa en AMBOS lados cae en el bucket defensivo "Sin
-       empresa" (no ocurre con usuarios asociados por
+       beneficio - total, + las cargas de las procedencias HOMÓNIMAS (si
+       una o más procedencias llevan el mismo nombre normalizado que la
+       empresa se fusionan en UNA sola sección; el resto de las
+       procedencias conserva su sección propia). TODAS las empresas
+       (WorkCenter no eliminadas) aparecen, también en 0 si no registran
+       entregas; un chequeo sin empresa en AMBOS lados cae en el bucket
+       defensivo "Sin empresa" (no ocurre con usuarios asociados por
        trabajador->departamento).
     2. Secciones por PROCEDENCIA: alimentadas ÚNICAMENTE por sus cargas
        (GhostServiceLoad; erratas suman) — NUNCA se mezclan con las
-       entregas por chequeo. TODAS las procedencias no eliminadas
-       aparecen, con o sin cargas en el rango (0 por defecto en cada
-       beneficio del universo); las cargas sin procedencia (históricas)
-       forman la sección "Sin procedencia registrada".
+       entregas por chequeo. TODAS las procedencias no fusionadas con su
+       empresa homónima aparecen, con o sin cargas en el rango (0 por
+       defecto en cada beneficio del universo); las cargas sin
+       procedencia (históricas) forman la sección "Sin procedencia
+       registrada".
 
     Al final, UNA sola totalización general por tipo de servicio: TODAS
     las cargas del rango (ligadas o no a una empresa) + TODAS las
     entregas reales del rango, calculada independiente del detalle para
     que nunca haya doble conteo ni mezcla de sumas; siempre visible, con
     0 en los beneficios sin movimiento del rango (universo de beneficios
-    = cargas ∪ reales ∪ catálogo activo).
+    = cargas ∪ reales ∪ catálogo activo). Las filas de beneficios, en
+    TODAS las secciones y en la totalización, se ordenan por HORARIO DE
+    ENTREGA (start_time del turno de comedor, del más temprano al más
+    tardío); los sin horario conocido van al final, alfabéticos entre
+    ellos.
 
     Parámetros:
         filters (dict): filtros de parse_report_filters (incluye
@@ -497,18 +525,49 @@ def totalization_services_dataset(filters):
 
     # Cargas por procedencia y beneficio (con filtro, solo para el detalle)
     cargas_por_procedencia: Dict[Optional[int], Dict[str, int]] = {}
-    service_names: set = set()
+    service_schedule: Dict[str, Optional[time]] = {}
+
+    def registrar_beneficio(nombre, horario):
+        """Registra un beneficio en el universo con su horario de entrega.
+
+        Guarda el horario MÁS TEMPRANO visto para el mismo nombre (un
+        beneficio no debería repetir horario; si ocurriera manda el más
+        temprano). Los horarios alimentan el orden por horario de entrega
+        de las filas del reporte.
+
+        Parámetros:
+            nombre (str): nombre del beneficio (check_name); None ignora.
+            horario (time | None): start_time del turno de comedor (None
+                = sin horario conocido; ordena al final).
+
+        Retorna:
+            None.
+        """
+        if nombre is None:
+            return
+        previo = service_schedule.get(nombre)
+        if previo is None or (
+            horario is not None and horario < previo
+        ):
+            service_schedule[nombre] = horario
+
     for item in (
         detail_loads.values("procedencia_id", "service_type__check_name")
         .annotate(total=Sum("quantity"))
     ):
-        service_names.add(item["service_type__check_name"])
         suma_en(
             cargas_por_procedencia,
             item["procedencia_id"],
             item["service_type__check_name"],
             item["total"],
         )
+    # Horario de entrega de los beneficios cargados (query aparte, sin
+    # agregación: sumar el horario al values del agrupado dividiría los
+    # totales del mismo beneficio con horarios distintos)
+    for nombre, horario in all_loads.values_list(
+        "service_type__check_name", "service_type__start_time"
+    ):
+        registrar_beneficio(nombre, horario)
 
     # Entregas reales por chequeo ordinario (asistencia) del rango
     filtered_checks = DiningChecking.objects.filter(
@@ -526,6 +585,7 @@ def totalization_services_dataset(filters):
     # mismo criterio que employer_object del modelo / reporte por empresa.
     checks_flat = filtered_checks.values(
         "conf_dining_room__check_name",
+        "conf_dining_room__start_time",
         "employer__department__work_center__id",
         "person__department__work_center__id",
     )
@@ -533,7 +593,7 @@ def totalization_services_dataset(filters):
     real_sin_empresa: Dict[str, int] = {}
     for item in checks_flat:
         nombre = item["conf_dining_room__check_name"]
-        service_names.add(nombre)
+        registrar_beneficio(nombre, item["conf_dining_room__start_time"])
         employer_id = item["employer__department__work_center__id"]
         wc_id = (
             employer_id
@@ -557,11 +617,18 @@ def totalization_services_dataset(filters):
     # catálogo de beneficios activos y no eliminados, para que el rango
     # SIEMPRE liste todas las procedencias/empresas con sus filas de
     # beneficios (en 0 los que no registran movimiento en el rango)
-    service_names.update(
-        ConfDiningRoom.objects.filter(
-            is_removed=False,
-            is_active__isnull=True,
-        ).values_list("check_name", flat=True)
+    for nombre, horario in ConfDiningRoom.objects.filter(
+        is_removed=False,
+        is_active__isnull=True,
+    ).values_list("check_name", "start_time"):
+        registrar_beneficio(nombre, horario)
+
+    # Orden de beneficios: por HORARIO DE ENTREGA (start_time del turno de
+    # comedor, del más temprano al más tardío); los sin horario conocido
+    # van al final, alfabéticos entre ellos
+    orden_beneficios = sorted(
+        service_schedule,
+        key=lambda nombre: (service_schedule[nombre] or time.max, nombre),
     )
 
     # Total por tipo de servicio: TODAS las cargas del rango (ligadas o no
@@ -614,19 +681,47 @@ def totalization_services_dataset(filters):
         Retorna:
             None.
         """
-        for nombre in sorted(service_names):
+        for nombre in orden_beneficios:
             rows.append({
                 "procedencia": label,
                 "servicio": nombre,
                 "total": por_beneficio.get(nombre, 0),
             })
 
-    # Primeras secciones: EMPRESAS, alimentadas SOLO por las entregas por
-    # chequeo ordinario (las cargas de procedencias NO se mezclan aquí)
+    # Fusión por nombre: si una o más procedencias del detalle llevan el
+    # MISMO nombre normalizado que una empresa, se muestra UNA sola
+    # sección con las cargas de esas procedencias + los chequeos
+    # ordinarios de la empresa (evita duplicar visualmente el nombre, ej:
+    # "FABRICA DE HIELO EL CARMEN" empresa y "FÁBRICA DE HIELO EL
+    # CARMEN" procedencia). Las demás procedencias conservan su sección
+    # propia (cada una la suya aunque varias apunten a la misma empresa)
+    procedencias_por_nombre: Dict[str, list] = {}
+    for ghost in ordered_ghosts:
+        procedencias_por_nombre.setdefault(
+            normalizar_nombre(ghost.name), []
+        ).append(ghost)
+    ghosts_fusionados = set()
+
+    # Primeras secciones: EMPRESAS, alimentadas por las entregas por
+    # chequeo ordinario + las cargas de sus procedencias homónimas (las
+    # cargas de procedencias NO homónimas NO se mezclan aquí). La empresa
+    # actual (is_current_center) va PRIMERO, el resto alfabético
     for work_center in WorkCenter.objects.filter(is_removed=False).order_by(
-        "name", "id"
+        "-is_current_center", "name", "id"
     ):
-        seccion(work_center.name, real_por_empresa.get(work_center.id) or {})
+        por_beneficio = dict(real_por_empresa.get(work_center.id) or {})
+        homonimas = procedencias_por_nombre.get(
+            normalizar_nombre(work_center.name), []
+        )
+        for ghost in homonimas:
+            ghosts_fusionados.add(ghost.id)
+            for nombre, cantidad in (
+                cargas_por_procedencia.get(ghost.id) or {}
+            ).items():
+                por_beneficio[nombre] = (
+                    por_beneficio.get(nombre, 0) + cantidad
+                )
+        seccion(work_center.name, por_beneficio)
 
     # Chequeos sin empresa en AMBOS lados al final del grupo de empresas
     if real_sin_empresa:
@@ -642,8 +737,11 @@ def totalization_services_dataset(filters):
         })
 
     # Luego: PROCEDENCIAS, alimentadas SOLO por sus cargas (las entregas
-    # por chequeo ordinario NO se mezclan aquí)
+    # por chequeo ordinario NO se mezclan aquí); las fusionadas con su
+    # empresa homónima ya se muestran dentro de la sección de esa empresa
     for ghost in ordered_ghosts:
+        if ghost.id in ghosts_fusionados:
+            continue
         seccion(ghost.name, cargas_por_procedencia.get(ghost.id) or {})
 
     # Cargas sin procedencia (históricas) al final del grupo de procedencias
@@ -676,7 +774,13 @@ def totalization_services_dataset(filters):
             f"{filters['start_date'].strftime('%d/%m/%Y')} "
             f"HASTA {filters['end_date'].strftime('%d/%m/%Y')}"
         ),
-        "logo_path": str(finders.find("images/branding/logo_inpromaro_lit.png")),
+        "logo_path": str(
+            finders.find("images/branding/logo_reportes_excel.JPG")
+        ),
+        # Logo de alta resolución (1080x964): reescalado proporcional a
+        # ~166px de alto para un header compacto (misma proporción, sin
+        # distorsión); las celdas ancla se adaptan al tamaño final
+        "logo_height_px": 166,
         "start": "B7",
         "columns": ["", "Beneficio", "Total"],
         "row_fields": ["procedencia", "servicio", "total"],
@@ -688,7 +792,7 @@ def totalization_services_dataset(filters):
         # "Beneficio" y valor bajo "Total" (offset 1 desde la col inicial)
         "totals": [
             {"label": nombre, "total": total_by_service_general.get(nombre, 0)}
-            for nombre in sorted(service_names)
+            for nombre in orden_beneficios
         ],
         "totals_label_offset": 1,
         "totals_title": "Total por tipo de servicio",

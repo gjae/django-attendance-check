@@ -1,6 +1,82 @@
 # MEMORY.md — Resumen de iteraciones (django-attendance-check / INPROMAR)
 
-## Iteración: bloque único empresas→procedencias (2026-11-11)
+## Iteración: empresa actual (is_current_center) primero en el reporte general (2026-11-11)
+
+- **Orden de empresas con centro actual** (`views.py`, pedido del usuario): en
+  el bloque de EMPRESAS del reporte general, la empresa marcada como centro
+  actual (`WorkCenter.is_current_center=True`, default True) va PRIMERO; el
+  resto alfabético. Cambio: `order_by("-is_current_center", "name", "id")`.
+  El reporte por empresa (sheets de `company_checks_dataset`) sigue
+  alfabético — el usuario solo pidió el general. Verificado con simulación:
+  actuales primero (alfabético entre ellos), resto alfabético después.
+- **Nota de despliegue** (evidencia en captura del usuario): su servidor
+  seguía corriendo código VIEJO — beneficios alfabéticos (sin orden por
+  horario) y "FÁBRICA DE HIELO EL CARMEN" sin fusionar con la empresa
+  homónima. Hay que reiniciar/recargar el servidor Django para que el código
+  nuevo (fusión + orden por horario + este cambio) tome efecto y regenerar
+  el reporte.
+
+## Iteración: beneficios del reporte general ordenados por horario de entrega (2026-11-11)
+
+- **Orden por horario de entrega** (`views.py`, pedido del usuario): los
+  beneficios del reporte general ya NO van alfabéticos; se ordenan por
+  `start_time` del turno de comedor (ConfDiningRoom), del más temprano al más
+  tardío; los sin horario conocido van al final, alfabéticos entre ellos
+  (`orden_beneficios = sorted(service_schedule, key=(start_time or time.max,
+  nombre))`). Refactor: el set `service_names` se reemplaza por el dict
+  `service_schedule` (nombre → horario MÁS TEMPRANO visto, helper
+  `registrar_beneficio()`) alimentado por las 3 fuentes (cargas, chequeos
+  reales, catálogo activo). El horario NO se agrega al values del agrupado
+  de cargas (dividiría los totales del mismo beneficio con horarios
+  distintos): query aparte `values_list` no agregada sobre `all_loads`;
+  `checks_flat` extiende con `conf_dining_room__start_time`. Ambos call-sites
+  `sorted(service_names)` (secciones + totalización) usan `orden_beneficios`.
+  Import ajustado a `from datetime import datetime, time` (el módulo `time`
+  no se usaba en views.py). Docstring de `totalization_services_dataset`
+  actualizado. Verificado con simulación: Desayuno 06:00 / Merienda 10:00 /
+  Almuerzo 12:00 / Cena 18:00 / Extra(sin horario); repetición de horario
+  más tardío para el mismo beneficio NO sobreescribe el más temprano; empate
+  → alfabético.
+
+## Iteración: fusión por nombre empresa/procedencia (2026-11-11)
+
+- **Nuevo logo del reporte general** (`views.py` + `reportering.py`, pedido
+  del usuario): `logo_reportes_excel.JPG` (1080x964, ya en
+  `static/images/branding/`) reemplaza a `logo_inpromaro_lit.png` SOLO en el
+  layout del reporte general. Builder: nueva llave `logo_height_px` (int) que
+  reescala el logo PROPORCIONALMENTE al alto indicado (sin distorsión) y las
+  celdas ancla (filas 1-2 y columna A) se adaptan al tamaño FINAL; sin la
+  llave, tamaño natural (legacy por empresa intacto, 166x166 natural). El
+  call-site pasa `layout.logo_height_px`. Verificado con builder test:
+  visualización 186x166 (proporción 1.12 preservada), fila 1 = 62.25pt,
+  col A ≈ 27.29 chars; el por empresa sigue insertando su logo a tamaño
+  natural. NOTA openpyxl: al recargar, `img.width/height` viene del PNG
+  embebido (tamaño natural); el tamaño de visualización real está en
+  `img.anchor.ext` (EMU ÷ 9525).
+
+- **Título del reporte general con salto de línea** (`reportering.py`, pedido
+  del usuario): el header de hoja ahora usa `HEADER_ALIGN` (Alignment center/
+  center con `wrap_text=True`) cuando `header_rows > 1` (el general usa 2
+  filas); si el texto excede el ancho de la celda combinada (B1:X2 calculado
+  por `_calculate_header_span`), Excel lo parte automáticamente en líneas y
+  queda centrado. El legacy por empresa (`header_rows=1`) conserva
+  `CENTER_ALIGN` sin wrap — formato original 1:1 intacto. Verificado con
+  builder test: general wrap=True/centered; por empresa sin wrap.
+
+- **Duplicidad visual** (evidencia `duplicidades.jpeg`): "FABRICA DE HIELO EL
+  CARMEN" aparecía 2 veces (empresa en el bloque de chequeos + procedencia en
+  el de cargas); los MONTOS no estaban duplicados (totales = INPROMAR una vez).
+  Decisión del usuario: FUSIONAR POR NOMBRE — si una o más procedencias del
+  detalle llevan el MISMO nombre normalizado (sin acentos/mayúsculas/espacios,
+  helper `normalizar_nombre` con unicodedata NFKD + ascii) que una empresa, se
+  muestra UNA sola sección (label = nombre de la empresa) con las cargas de
+  esas procedencias + los chequeos ordinarios de la empresa; el resto de las
+  procedencias conserva su sección propia (varias procedencias de una misma
+  empresa NO homónimas siguen separadas). `ghosts_fusionados` evita render
+  doble; el total general sigue calculándose independiente (sin doble conteo).
+  Con filtro de procedencia específica la fusión solo aplica a la
+  procedencia renderizada. Verificado con simulación: procedencia homónima
+  absorbida, carga en la sección de la empresa, sin secciones duplicadas.
 
 - **Selector de fecha fuera de la vista de Gestión** (`management.html`,
   pedido del usuario): el bloque "Reporte por día" (`id_date_selector`, que

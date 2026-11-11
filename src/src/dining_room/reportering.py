@@ -287,6 +287,11 @@ class ExcelReportBuilder(BaseReportBuilder):
     THIN = Side(style="thin")
     BORDER = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
     CENTER_ALIGN = Alignment(horizontal="center", vertical="center", wrap_text=False)
+    # Alineación del título de hoja con salto de línea automático: cuando
+    # el texto sobrepasa el ancho de la celda combinada que lo contiene,
+    # Excel parte el texto en varias líneas (header de varias filas, ej:
+    # reporte general); el legacy por empresa (1 fila) no se toca
+    HEADER_ALIGN = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
     def __init__(self):
         """
@@ -426,13 +431,18 @@ class ExcelReportBuilder(BaseReportBuilder):
             title_cell = rendered.cell(row=1, column=start_col)
             title_cell.value = header_text
             title_cell.font = self.HEADER_FONT
-            title_cell.alignment = self.CENTER_ALIGN
+            # Título centrado; con header de varias filas el texto parte
+            # automáticamente en líneas si excede el ancho combinado
+            title_cell.alignment = (
+                self.HEADER_ALIGN if header_rows > 1 else self.CENTER_ALIGN
+            )
 
             self._add_corporate_logo(
                 rendered,
                 layout.get("logo_path"),
                 anchor="A1",
                 anchor_rows=header_rows,
+                logo_height_px=int(layout.get("logo_height_px") or 0) or None,
             )
 
         # Encabezados de columnas desde la celda inicial indicada
@@ -592,15 +602,18 @@ class ExcelReportBuilder(BaseReportBuilder):
 
     def _add_corporate_logo(
         self, sheet, logo_path: Optional[str], anchor: str = "A1",
-        anchor_rows: int = 2,
+        anchor_rows: int = 2, logo_height_px: Optional[int] = None,
     ) -> None:
         """
         Inserta el logo de identidad corporativa preservando su relación de
-        aspecto (no se reescala para caber en las celdas): la dimensión del
-        logo se mantiene en su tamaño natural y son las celdas que lo
-        contienen las que se adaptan (alto de las filas del header y ancho
-        de la columna ancla). Se omite la inserción cuando la ruta es
-        None o el archivo no existe en disco.
+        aspecto (no se deforma para caber en las celdas): por defecto la
+        dimensión del logo se mantiene en su tamaño natural y son las celdas
+        que lo contienen las que se adaptan (alto de las filas del header y
+        ancho de la columna ancla). Si el layout indica logo_height_px, el
+        logo se reescala PROPORCIONALMENTE a ese alto (útil para logos de
+        alta resolución que deformarían el header a tamaño natural) y las
+        celdas se adaptan al tamaño FINAL del logo. Se omite la inserción
+        cuando la ruta es None o el archivo no existe en disco.
 
         Parámetros:
             sheet (Worksheet): hoja del reporte.
@@ -609,6 +622,8 @@ class ExcelReportBuilder(BaseReportBuilder):
             anchor (str): celda ancla del logo (esquina superior izquierda).
             anchor_rows (int): cantidad de filas del header que contienen
                 al logo en vertical (se reparten su altura).
+            logo_height_px (int | None): alto deseado del logo en px
+                manteniendo la proporción; None inserta a tamaño natural.
 
         Retorna:
             None.
@@ -620,23 +635,30 @@ class ExcelReportBuilder(BaseReportBuilder):
         # Tamaño natural del archivo (px); nunca se fuerza el aspect ratio
         natural_width = float(logo.width or 0)
         natural_height = float(logo.height or 0)
+        # Escala proporcional opcional del layout: mismo aspecto, alto fijo
+        if logo_height_px and natural_height > 0 and natural_width > 0:
+            scale = float(logo_height_px) / natural_height
+            logo.height = max(int(round(natural_height * scale)), 1)
+            logo.width = max(int(round(natural_width * scale)), 1)
         sheet.add_image(logo, anchor)
 
-        # Las celdas ancla se adaptan al logo en lugar del logo a las
-        # celdas: altura de las filas del header y ancho de la columna
+        # Las celdas ancla se adaptan al logo en su tamaño FINAL (natural o
+        # escalado): altura de las filas del header y ancho de la columna
+        display_width = float(logo.width or 0)
+        display_height = float(logo.height or 0)
         anchor_row = int(anchor[1:]) if anchor[1:].isdigit() else 1
-        if natural_height > 0:
-            total_height_pt = natural_height * 0.75  # px → puntos (72/96)
+        if display_height > 0:
+            total_height_pt = display_height * 0.75  # px → puntos (72/96)
             row_height_pt = max(total_height_pt / max(anchor_rows, 1), 15.0)
             for row_index in range(anchor_row, anchor_row + anchor_rows):
                 if sheet.row_dimensions[row_index].height is None:
                     sheet.row_dimensions[row_index].height = row_height_pt
 
-        if natural_width > 0:
+        if display_width > 0:
             anchor_letter = get_column_letter(
                 column_index_from_string(anchor[0])
             )
-            width_chars = (natural_width + 5) / 7  # px → ancho aproximado
+            width_chars = (display_width + 5) / 7  # px → ancho aproximado
             if anchor_letter not in sheet.column_dimensions:
                 sheet.column_dimensions[anchor_letter].width = width_chars
             else:
