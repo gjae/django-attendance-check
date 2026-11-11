@@ -777,6 +777,10 @@ def totalization_services_dataset(filters):
             f"DESDE {filters['start_date'].strftime('%d/%m/%Y')} "
             f"HASTA {filters['end_date'].strftime('%d/%m/%Y')}"
         ),
+        # Ancho del título multi-línea: 4 columnas (B..E), UN rango
+        # combinado por parte (B1:E1 y B2:E2) en vez del bloque único
+        # que cubría todo el ancho calculado por longitud del texto
+        "header_span": 4,
         "logo_path": str(
             finders.find("images/branding/logo_reportes_excel.JPG")
         ),

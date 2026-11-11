@@ -423,19 +423,45 @@ class ExcelReportBuilder(BaseReportBuilder):
         # header_rows (2 default; el reporte original por empresa usa 1)
         if self._include_header and sheet_title:
             header_text = layout.get("header_text", sheet_title)
-            header_span = self._calculate_header_span(header_text, len(columns))
             header_rows = max(int(layout.get("header_rows", 2)), 1)
             start_letter = get_column_letter(start_col)
-            end_letter = get_column_letter(start_col + header_span - 1)
-            rendered.merge_cells(f"{start_letter}1:{end_letter}{header_rows}")
-            title_cell = rendered.cell(row=1, column=start_col)
-            title_cell.value = header_text
-            title_cell.font = self.HEADER_FONT
-            # Título centrado; con header de varias filas el texto parte
-            # automáticamente en líneas si excede el ancho combinado
-            title_cell.alignment = (
-                self.HEADER_ALIGN if header_rows > 1 else self.CENTER_ALIGN
-            )
+            lineas_titulo = header_text.split("\n")
+            if header_rows > 1 and len(lineas_titulo) > 1:
+                # Título multi-línea (saltos forzados con \n): UN rango
+                # combinado POR LÍNEA, cada parte en su propia fila con el
+                # ancho fijo del layout (header_span, ej: B1:E1 y B2:E2)
+                header_span = max(
+                    int(layout.get("header_span", 0)) or
+                    self._calculate_header_span(header_text, len(columns)),
+                    1,
+                )
+                end_letter = get_column_letter(start_col + header_span - 1)
+                for indice, linea in enumerate(lineas_titulo[:header_rows]):
+                    rendered.merge_cells(
+                        f"{start_letter}{1 + indice}:{end_letter}{1 + indice}"
+                    )
+                    celda = rendered.cell(row=1 + indice, column=start_col)
+                    celda.value = linea
+                    celda.font = self.HEADER_FONT
+                    celda.alignment = self.HEADER_ALIGN
+            else:
+                # Título de una sola línea: UN solo bloque combinado que
+                # cubre todas las filas del header (legacy por empresa)
+                header_span = self._calculate_header_span(
+                    header_text, len(columns)
+                )
+                end_letter = get_column_letter(start_col + header_span - 1)
+                rendered.merge_cells(
+                    f"{start_letter}1:{end_letter}{header_rows}"
+                )
+                title_cell = rendered.cell(row=1, column=start_col)
+                title_cell.value = header_text
+                title_cell.font = self.HEADER_FONT
+                # Título centrado; con header de varias filas el texto parte
+                # automáticamente en líneas si excede el ancho combinado
+                title_cell.alignment = (
+                    self.HEADER_ALIGN if header_rows > 1 else self.CENTER_ALIGN
+                )
 
             self._add_corporate_logo(
                 rendered,
