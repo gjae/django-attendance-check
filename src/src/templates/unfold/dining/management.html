@@ -2,8 +2,6 @@
 {% load static %}
 
 {% block extrahead %}
-<link rel="stylesheet" href="{% static 'css/vanilla_calendar.min.css' %}">
-<script src="{% static 'js/vanilla_calendar.js' %}"></script>
 <script src="{% static 'js/momentv1.js' %}"></script>
 <style>[x-cloak]{display:none !important;}</style>
 {% endblock %}
@@ -26,7 +24,6 @@
       dateMode: 'single',
       workCenter: 'all',
       procedencia: 'all',
-      current_date: moment(new Date()),
       singleDate: moment(new Date()).format('YYYY-MM-DD'),
       startDate: moment(new Date()).format('YYYY-MM-DD'),
       endDate: moment(new Date()).format('YYYY-MM-DD'),
@@ -59,14 +56,6 @@
                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 13V4M7 14H5a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1h-2m-1-5-4 5-4-5m9 8h.01"/>
              </svg>
          </button>
-      </div>
-      <div class="w-auto flex justify-center">
-         <div class="bg-white hover:bg-gray-100 text-gray-800 font-semibold py-2 px-4 border border-gray-400 rounded shadow flex items-center  space-x-4 dark:bg-gray-900">
-            <label for="id_date_selector">
-               Reporte por día:
-            </label>
-          <input type="date" @change="current_date = moment($event.target.value)" :value="current_date.format('YYYY-MM-DD')" id="id_date_selector">
-         </div>
       </div>
    </div>
 

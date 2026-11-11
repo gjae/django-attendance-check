@@ -427,29 +427,30 @@ def company_checks_dataset(filters):
 
 def totalization_services_dataset(filters):
     """Arma el dataset del reporte "general" (internamente totalización) en
-    UNA sola sección "CARGAS DE PROCEDENCIAS" (el desgloce por empresa fue
-    retirado y sus datos quedan sumandos DENTRO de esta sección):
+    UN SOLO bloque (sin título de bloque; el encabezado de la hoja ya
+    indica "REPORTE GENERAL DE SERVICIO ENTREGADO..."), con las secciones
+    identificadas por su nombre y en este orden:
 
-    - TODAS las procedencias no eliminadas (GhostEmployee) aparecen, tengan
-      o no cargas en el rango; sin cargas muestran TODOS los beneficios del
-      universo con total 0 (todas las secciones comparten el mismo juego de
-      filas, completando con 0 los beneficios que no registran movimiento).
-    - Entregas reales por chequeo ordinario (asistencia): las de una empresa
-      con procedencia vinculada se suman a las filas de esa procedencia
-      (por beneficio); TODAS las empresas SIN procedencia vinculada forman
-      secciones propias con el MISMO formato (empresa - beneficio - total,
-      la empresa sustituye la procedencia), también cuando están en 0;
-      solo un chequeo sin empresa en AMBOS lados cae en el bucket
-      defensivo "Sin empresa" (con usuarios asociados por
-      trabajador->departamento no ocurre).
-    - Si varias procedencias apuntaran a la misma empresa, sus reales se
-      absorben una sola vez (la primera procedencia en orden de nombre); en
-      el total final no hay doble conteo porque se calcula independiente.
-    - Las cargas sin procedencia (históricas) siguen en la sección "Sin
-      procedencia registrada"; con filtro de una procedencia específica el
-      detalle muestra solo esa sección, pero el total por tipo de servicio
-      sigue abarcando TODAS las cargas + TODAS las entregas reales del
-      rango.
+    1. Secciones por EMPRESA: entregas por CHEQUEO ORDINARIO (asistencia)
+       atribuidas a la empresa del chequeado, en formato empresa -
+       beneficio - total. TODAS las empresas (WorkCenter no eliminadas)
+       aparecen, también en 0 si no registran entregas en el rango; un
+       chequeo sin empresa en AMBOS lados cae en el bucket defensivo "Sin
+       empresa" (no ocurre con usuarios asociados por
+       trabajador->departamento).
+    2. Secciones por PROCEDENCIA: alimentadas ÚNICAMENTE por sus cargas
+       (GhostServiceLoad; erratas suman) — NUNCA se mezclan con las
+       entregas por chequeo. TODAS las procedencias no eliminadas
+       aparecen, con o sin cargas en el rango (0 por defecto en cada
+       beneficio del universo); las cargas sin procedencia (históricas)
+       forman la sección "Sin procedencia registrada".
+
+    Al final, UNA sola totalización general por tipo de servicio: TODAS
+    las cargas del rango (ligadas o no a una empresa) + TODAS las
+    entregas reales del rango, calculada independiente del detalle para
+    que nunca haya doble conteo ni mezcla de sumas; siempre visible, con
+    0 en los beneficios sin movimiento del rango (universo de beneficios
+    = cargas ∪ reales ∪ catálogo activo).
 
     Parámetros:
         filters (dict): filtros de parse_report_filters (incluye
@@ -596,31 +597,17 @@ def totalization_services_dataset(filters):
         ghost for ghost in all_ghosts
         if specific_id is None or ghost.id == specific_id
     ]
-    # Empresas que YA tienen procedencia vinculada: sus reales se absorben
-    # en la sección de esa procedencia y nunca forman sección emulada (con
-    # filtro específico, si esa procedencia no se renderiza sus reales
-    # quedan cubiertos por el total final)
-    empresas_con_procedencia = {
-        ghost.work_center_id for ghost in all_ghosts if ghost.work_center_id
-    }
-    # Copias de los reales pendientes: pop() retira la empresa al absorberla
-    # en su procedencia, evitando doble conteo si hubiera más de una
-    # procedencia ligada a la misma empresa
-    reales_pendientes = {
-        empresa_id: dict(por_beneficio)
-        for empresa_id, por_beneficio in real_por_empresa.items()
-    }
 
     rows = []
 
     def seccion(label, por_beneficio):
-        """Agrega al dataset las filas de una sección del bloque.
+        """Agrega al bloque las filas de una sección.
 
         Cada sección cubre el universo completo de beneficios, con 0 en
         los que no registran movimiento en el rango.
 
         Parámetros:
-            label (str): nombre de la procedencia o empresa (columna
+            label (str): nombre de la empresa o procedencia (columna
                 fusionada verticalmente).
             por_beneficio (dict): beneficio → total de la sección.
 
@@ -634,50 +621,44 @@ def totalization_services_dataset(filters):
                 "total": por_beneficio.get(nombre, 0),
             })
 
-    # 1) Secciones por procedencia: cargas + reales de su empresa ligada
-    for ghost in ordered_ghosts:
-        por_beneficio = {
-            nombre: cantidad
-            for nombre, cantidad in (
-                cargas_por_procedencia.get(ghost.id) or {}
-            ).items()
-        }
-        if ghost.work_center_id:
-            reales = reales_pendientes.pop(ghost.work_center_id, None) or {}
-            for nombre, cantidad in reales.items():
-                por_beneficio[nombre] = (
-                    por_beneficio.get(nombre, 0) + cantidad
-                )
-        seccion(ghost.name, por_beneficio)
+    # Primeras secciones: EMPRESAS, alimentadas SOLO por las entregas por
+    # chequeo ordinario (las cargas de procedencias NO se mezclan aquí)
+    for work_center in WorkCenter.objects.filter(is_removed=False).order_by(
+        "name", "id"
+    ):
+        seccion(work_center.name, real_por_empresa.get(work_center.id) or {})
 
-    # 2) Secciones emuladas: TODAS las empresas (WorkCenter no eliminada)
-    # SIN procedencia vinculada, con el mismo formato (la empresa sustituye
-    # la procedencia); las que no registran entregas reales en el rango se
-    # listan igual con sus beneficios en 0
-    emuladas = [
-        (work_center, reales_pendientes.pop(work_center.id, None) or {})
-        for work_center in WorkCenter.objects.filter(is_removed=False)
-        .order_by("name", "id")
-        if work_center.id not in empresas_con_procedencia
-    ]
-    for work_center, por_beneficio in emuladas:
-        seccion(work_center.name, por_beneficio)
-
-    # 3) Cargas sin procedencia (históricas) y 4) reales sin empresa
-    cargas_sin_procedencia = cargas_por_procedencia.get(None)
-    if cargas_sin_procedencia:
-        seccion("Sin procedencia registrada", cargas_sin_procedencia)
+    # Chequeos sin empresa en AMBOS lados al final del grupo de empresas
     if real_sin_empresa:
         seccion("Sin empresa", real_sin_empresa)
 
-    # Si no se generó ninguna sección (sin procedencias y sin movimientos),
-    # placeholder para que la hoja no quede vacía tras el encabezado
+    # Si no existen empresas registradas (ni chequeos sin empresa),
+    # placeholder para que el bloque no quede vacío tras su encabezado
     if not rows:
-        rows = [{
-            "procedencia": "Sin cargas en el rango seleccionado",
+        rows.append({
+            "procedencia": "Sin empresas registradas",
             "servicio": "",
             "total": "",
-        }]
+        })
+
+    # Luego: PROCEDENCIAS, alimentadas SOLO por sus cargas (las entregas
+    # por chequeo ordinario NO se mezclan aquí)
+    for ghost in ordered_ghosts:
+        seccion(ghost.name, cargas_por_procedencia.get(ghost.id) or {})
+
+    # Cargas sin procedencia (históricas) al final del grupo de procedencias
+    cargas_sin_procedencia = cargas_por_procedencia.get(None)
+    if cargas_sin_procedencia:
+        seccion("Sin procedencia registrada", cargas_sin_procedencia)
+
+    # Si no existen procedencias registradas (ni cargas sin procedencia),
+    # placeholder al final para que el grupo de procedencias no quede vacío
+    if not ordered_ghosts and not cargas_sin_procedencia:
+        rows.append({
+            "procedencia": "Sin procedencias registradas",
+            "servicio": "",
+            "total": "",
+        })
 
     range_label = (
         filters["start_date"].strftime("%d/%m/%Y")
@@ -697,14 +678,13 @@ def totalization_services_dataset(filters):
         ),
         "logo_path": str(finders.find("images/branding/logo_inpromaro_lit.png")),
         "start": "B7",
-        "block_title": "CARGAS DE PROCEDENCIAS",
         "columns": ["", "Beneficio", "Total"],
         "row_fields": ["procedencia", "servicio", "total"],
         "section_field": "procedencia",
         "merge_key": "procedencia",
         "merge_columns": 1,
-        # Totalización general por beneficio SIEMPRE visible, con 0 en los
-        # beneficios sin movimiento del rango; label alineada bajo
+        # Única totalización general por beneficio, SIEMPRE visible, con 0
+        # en los beneficios sin movimiento del rango; label alineada bajo
         # "Beneficio" y valor bajo "Total" (offset 1 desde la col inicial)
         "totals": [
             {"label": nombre, "total": total_by_service_general.get(nombre, 0)}

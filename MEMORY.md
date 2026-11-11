@@ -1,5 +1,40 @@
 # MEMORY.md — Resumen de iteraciones (django-attendance-check / INPROMAR)
 
+## Iteración: bloque único empresas→procedencias (2026-11-11)
+
+- **Selector de fecha fuera de la vista de Gestión** (`management.html`,
+  pedido del usuario): el bloque "Reporte por día" (`id_date_selector`, que
+  solo mutaba el estado Alpine `current_date` sin consumirlo en ninguna otra
+  parte — los rangos se eligen en el modal) quedó retirado junto con su
+  estado `current_date`. Limpieza asociada: los includes de
+  `vanilla_calendar` CSS/JS eran restos muertos del date-picker anterior (el
+  modal usa `<input type="date">` nativo) y se quitaron; `momentv1.js` se
+  conserva porque inicializa singleDate/startDate/endDate. El kiosco
+  (`index.html`) no se tocó.
+
+- **Un SOLO bloque** en el reporte general (`views.py`, decisión del usuario):
+  sin título de bloque (el encabezado de columnas arranca directo en B7) y
+  las secciones identificadas solo por su nombre, en este orden:
+  1) EMPRESAS — solo entregas por chequeo ordinario (todas las WorkCenter no
+     eliminadas, 0 por defecto; "Sin empresa" defensivo);
+  2) PROCEDENCIAS — solo sus cargas (todas las GhostEmployee no eliminadas, 0
+     por defecto; "Sin procedencia registrada" si aplica).
+  Placeholders "Sin empresas registradas"/"Sin procedencias registradas" solo
+  si no existe nada en cada grupo. UNA totalización general al final (todas
+  las cargas + todas las reales, universo completo con 0, offset 1), sin
+  mezclar sumas entre fuentes. La función retorna un dataset único (el
+  builder ya no necesita same_sheet para este reporte; la feature sigue
+  disponible). Verificado con builder test: header B7, datos B8-B15 con
+  merges verticales, totales fila 18 alineados C/D.
+
+- **Separación de fuentes** (`views.py`, decisión del usuario; SUPERADA por la
+  iteración anterior — hoy el reporte es UN bloque único empresas→procedencias,
+  se conserva el registro del proceso): los cálculos de procedencias y empresas
+  NO se mezclan. Cargas = solo procedencias; entregas por chequeo ordinario =
+  solo empresas (atribución en Python: employer primero, si no person). La
+  función retorna un dataset único; el total general se calcula independiente
+  (todas las cargas + todas las reales) para que nunca haya doble conteo.
+
 ## Iteración: sección única de cargas + reales (2026-11-10)
 
 > NOTA incidente: el reinicio del servidor corrompió `src/src/dining_room/views.py`
@@ -66,8 +101,9 @@
 
 ## Iteración: Reportes de comedor con builder (2026-11-04)
 
-Último commit confirmado: `be34c5f` feat(comedor) — permisos any-of y
-reporte general de una sola sección (2026-11-10). Incluye las iteraciones
+Último commit confirmado: `46328a7` feat(comedor) — reporte general en un
+solo bloque y gestión sin selector de fecha (2026-11-11; sucesor de
+`07bdbce`). Incluye las iteraciones
 anteriores completas además de TODO el trabajo de reportes/UI de esta
 memoria.
 
