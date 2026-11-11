@@ -426,6 +426,12 @@ def company_checks_dataset(filters):
     return datasets
 
 
+# Empresa que SIEMPRE va de primera en el bloque de empresas del reporte
+# general (comparación exacta del nombre normalizado; no afecta nombres
+# que solo CONTIENEN esta cadena, ej: "Transporte INPROMAR")
+EMPRESA_SIEMPRE_PRIMERA = "INPROMAR"
+
+
 def normalizar_nombre(texto):
     """Normaliza un nombre para comparar empresa vs procedencia.
 
@@ -705,10 +711,19 @@ def totalization_services_dataset(filters):
     # Primeras secciones: EMPRESAS, alimentadas por las entregas por
     # chequeo ordinario + las cargas de sus procedencias homónimas (las
     # cargas de procedencias NO homónimas NO se mezclan aquí). La empresa
-    # actual (is_current_center) va PRIMERO, el resto alfabético
-    for work_center in WorkCenter.objects.filter(is_removed=False).order_by(
-        "-is_current_center", "name", "id"
-    ):
+    # fija (EMPRESA_SIEMPRE_PRIMERA) va PRIMERA en todo momento; el resto:
+    # centro actual (is_current_center) primero, luego alfabético
+    work_centers = list(WorkCenter.objects.filter(is_removed=False))
+    work_centers.sort(
+        key=lambda wc: (
+            normalizar_nombre(wc.name)
+            != normalizar_nombre(EMPRESA_SIEMPRE_PRIMERA),
+            not wc.is_current_center,
+            wc.name,
+            wc.id,
+        )
+    )
+    for work_center in work_centers:
         por_beneficio = dict(real_por_empresa.get(work_center.id) or {})
         homonimas = procedencias_por_nombre.get(
             normalizar_nombre(work_center.name), []
