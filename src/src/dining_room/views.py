@@ -770,8 +770,11 @@ def totalization_services_dataset(filters):
     layout = {
         "sheet_title": f"REPORTE GENERAL DE SERVICIO ENTREGADO {range_label}",
         "header_text": (
-            f"REPORTE ENTREGA DE BENEFICIO ALIMENTARIO AL PERSONAL DESDE "
-            f"{filters['start_date'].strftime('%d/%m/%Y')} "
+            # Salto de línea forzado tras "AL PERSONAL": el título baja a
+            # una 2da línea con el rango de fechas (el header del general
+            # usa wrap_text=True, así que Excel respeta el salto)
+            "REPORTE ENTREGA DE BENEFICIO ALIMENTARIO AL PERSONAL\n"
+            f"DESDE {filters['start_date'].strftime('%d/%m/%Y')} "
             f"HASTA {filters['end_date'].strftime('%d/%m/%Y')}"
         ),
         "logo_path": str(
